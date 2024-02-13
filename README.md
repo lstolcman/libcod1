@@ -1,4 +1,4 @@
-it was planned to wait for a more advanced port before the fork creation
+it was planned to wait for a more advanced adaptation before the fork creation
 
 currently the project can build, is for 1.1 only, and if you don't have a valid cd-key, you can join the server using the `sv_cracked` cvar set to `1`
 
