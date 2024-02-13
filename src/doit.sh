@@ -3,7 +3,7 @@
 # ./doit.sh debug
 
 cc="g++"
-options="-I. -m32 -fPIC -Wall"
+options="-I. -m32 -fPIC -Wall -fvisibility=hidden"
 # -g -ggdb -O0 // debug build without optimization
 # -Wno-write-strings // not full warnings
 

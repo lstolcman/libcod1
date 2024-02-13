@@ -70,7 +70,7 @@
 #define stackPushBool Scr_AddBool
 #define stackPushInt Scr_AddInt
 #define stackPushFloat Scr_AddFloat
-//#define stackPushString Scr_AddString
+#define stackPushString Scr_AddString
 #define stackPushVector Scr_AddVector
 #define stackPushEntity Scr_AddEntity
 #define stackPushArray Scr_MakeArray

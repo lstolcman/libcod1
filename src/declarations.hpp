@@ -18,6 +18,9 @@
 
 
 #define MAX_CLIENTS                 64
+#define MAX_STRINGLENGTH            1024
+
+
 
 
 #define CVAR_NOFLAG             0               // 0x0000
@@ -137,8 +140,8 @@ typedef struct scr_method_s
 
 
 
-#if 0
 
+//CODEXTENDED
 typedef struct playerState_s
 {
 	int commandTime;
@@ -197,7 +200,7 @@ typedef struct playerState_s
 } playerState_t;
 
 
-#endif
+
 
 
 
@@ -227,7 +230,7 @@ typedef struct playerState_s
 
 
 
-#define gameInitialized (*((int*)( gameInitialized_offset )))
+//#define gameInitialized (*((int*)( gameInitialized_offset )))
 
 
 

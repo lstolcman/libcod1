@@ -6,12 +6,11 @@
 
 
 
+
 void gsc_player_getstance(scr_entref_t ref)
 {
-
-	/*
 	int id = ref.entnum;
-
+	
 	if ( id >= MAX_CLIENTS )
 	{
 		stackError("gsc_player_getstance() entity %i is not a player", id);
@@ -19,11 +18,6 @@ void gsc_player_getstance(scr_entref_t ref)
 		return;
 	}
 	
-	*/
-
-
-	/*
-
 	playerState_t *ps = SV_GameClientNum(id);
 	if ( ps->pm_flags & PMF_CROUCH )
 		stackPushString("crouch");
@@ -31,10 +25,6 @@ void gsc_player_getstance(scr_entref_t ref)
 		stackPushString("prone");
 	else
 		stackPushString("stand");
-	
-	*/
-
-
 }
 
 

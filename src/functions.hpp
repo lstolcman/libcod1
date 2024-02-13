@@ -43,15 +43,19 @@ static const Com_Printf_t Com_Printf = (Com_Printf_t)0x0806b760;
 
 
 
+typedef void (*Com_PrintMessage_t)(int channel, const char *message);
+#if COD_VERSION == COD1_1_1
+static const Com_PrintMessage_t Com_PrintMessage = (Com_PrintMessage_t)0x0806b530;
+#elif COD_VERSION == COD1_1_5
+
+#endif
+
+
 
 
 
 typedef xmethod_t (*Scr_GetMethod_t)(const char** v_methodName, qboolean *v_developer);
 extern Scr_GetMethod_t Scr_GetMethod;
-
-
-
-
 
 
 
@@ -62,6 +66,11 @@ static const Cvar_FindVar_t Cvar_FindVar = (Cvar_FindVar_t)0x0806e9b4;
 #elif COD_VERSION == COD1_1_5
 
 #endif
+
+
+
+
+
 
 
 
@@ -84,24 +93,28 @@ static const Cvar_VariableString_t Cvar_VariableString = (Cvar_VariableString_t)
 
 
 
-typedef int (*Scr_AddString_t)(char*);
-//typedef int (*Scr_AddString_t)(char *string);
+
+typedef void (*Scr_Error_t)(const char *string);
+extern Scr_Error_t Scr_Error;
+
+
+
+
+
+
+
+
+typedef void (*Scr_AddString_t)(const char *string);
 extern Scr_AddString_t Scr_AddString;
 
-
-
-
-
-/*
 
 typedef void (*Scr_AddUndefined_t)(void);
 extern Scr_AddUndefined_t Scr_AddUndefined;
 
-*/
 
 
 
-/*
+
 
 typedef playerState_t * (*SV_GameClientNum_t)(int num);
 #if COD_VERSION == COD1_1_1
@@ -109,9 +122,6 @@ static const SV_GameClientNum_t SV_GameClientNum = (SV_GameClientNum_t)0x0808927
 #elif COD_VERSION == COD1_1_5
 
 #endif
-
-
-*/
 
 
 

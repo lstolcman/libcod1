@@ -45,8 +45,16 @@ callback_t callbacks[] =
 
 // Game lib function declarations
 Scr_GetMethod_t Scr_GetMethod;
-//Scr_AddString_t Scr_AddString;
-//Scr_AddUndefined_t Scr_AddUndefined;
+Scr_Error_t Scr_Error;
+Scr_AddString_t Scr_AddString;
+Scr_AddUndefined_t Scr_AddUndefined;
+
+
+
+
+
+
+
 
 
 void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...))
@@ -82,10 +90,10 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     }
     fclose(fp);
 
-
 	Scr_GetMethod = (Scr_GetMethod_t)dlsym(ret, "Scr_GetMethod");
-	//Scr_AddString = (Scr_AddString_t)dlsym(ret, "Scr_AddString");
-	//Scr_AddUndefined = (Scr_AddUndefined_t)dlsym(ret, "Scr_AddUndefined");
+	Scr_AddString = (Scr_AddString_t)dlsym(ret, "Scr_AddString");
+	Scr_AddUndefined = (Scr_AddUndefined_t)dlsym(ret, "Scr_AddUndefined");
+	Scr_Error = (Scr_Error_t)dlsym(ret, "Scr_Error");
 
 
 	return ret;
