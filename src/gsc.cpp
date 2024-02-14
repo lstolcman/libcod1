@@ -4,37 +4,6 @@
 #include <stdint.h>
 #include <sys/time.h>
 
-const char *getParamTypeAsString(int type)
-{
-	switch ( type )
-	{
-		case 0: return "UNDEFINED";
-		case 1: return "OBJECT";
-		case 2: return "STRING";
-		case 3: return "LOCALIZED_STRING";
-		case 4: return "VECTOR";
-		case 5: return "FLOAT";
-		case 6: return "INT";
-		case 7: return "CODEPOS";
-		case 8: return "PRECODEPOS";
-		case 9: return "FUNCTION";
-		case 10: return "STACK";
-		case 11: return "ANIMATION";
-		case 12: return "DEVELOPER_CODEPOS";
-		case 13: return "INCLUDE_CODEPOS";
-		case 14: return "THREAD_LIST";
-		case 15: return "THREAD_1";
-		case 16: return "THREAD_2";
-		case 17: return "THREAD_3";
-		case 18: return "THREAD_4";
-		case 19: return "STRUCT";
-		case 20: return "REMOVED_ENTITY";
-		case 21: return "ENTITY";
-		case 22: return "ARRAY";
-		case 23: return "REMOVED_THREAD";
-		default: return "UNKNOWN TYPE";
-	}
-}
 
 
 
@@ -48,35 +17,41 @@ scr_function_t scriptFunctions[] =
 {
 
 
-	//{"sqrt", gsc_utils_sqrt, 0},
-	
+    //{"sqrt", gsc_utils_sqrt, 0},
+    
 
-	{NULL, NULL, 0} // Terminator
+    {NULL, NULL, 0} // Terminator
 };
 
 scr_method_t scriptMethods[] =
 {
 
 
-	#if COMPILE_ENTITY == 1
+    #if COMPILE_ENTITY == 1
 
-	#if 0
-	{"addEntityVelocity", gsc_entity_addentityvelocity, 0},
-	{"disableBounce", gsc_entity_disablebounce, 0},
-	{"setLight", gsc_entity_setlight, 0},
-	#endif
+    #if 0
+    {"addEntityVelocity", gsc_entity_addentityvelocity, 0},
+    {"disableBounce", gsc_entity_disablebounce, 0},
+    {"setLight", gsc_entity_setlight, 0},
+    #endif
 
-	#endif
-
-
-	#if COMPILE_PLAYER == 1
-
-	{"getStance", gsc_player_getstance, 0},
-
-	#endif
+    #endif
 
 
-	{NULL, NULL, 0} // Terminator
+    #if COMPILE_PLAYER == 1
+
+    
+    {"leanleftButtonPressed", gsc_player_button_leanleft, 0},
+    {"leanrightButtonPressed", gsc_player_button_leanright, 0},
+    {"reloadButtonPressed", gsc_player_button_reload, 0},
+    {"getPlayerAngles", gsc_player_gettagangles, 0},
+    {"getStance", gsc_player_getstance, 0},
+    {"getIP", gsc_player_getip, 0},
+
+    #endif
+
+
+    {NULL, NULL, 0} // Terminator
 };
 
 
@@ -87,26 +62,26 @@ scr_method_t scriptMethods[] =
 
 xmethod_t Scr_GetCustomMethod(const char **fname, qboolean *fdev)
 {
-	xmethod_t m = Scr_GetMethod(fname, fdev);
-	
-	if ( m )
-		return m;
+    xmethod_t m = Scr_GetMethod(fname, fdev);
+    
+    if ( m )
+        return m;
 
-	for ( int i = 0; scriptMethods[i].name; i++ )
-	{
-		if ( strcasecmp(*fname, scriptMethods[i].name) )
-			continue;
+    for ( int i = 0; scriptMethods[i].name; i++ )
+    {
+        if ( strcasecmp(*fname, scriptMethods[i].name) )
+            continue;
 
-		scr_method_t func = scriptMethods[i];
+        scr_method_t func = scriptMethods[i];
 
-		*fname = func.name;
-		*fdev = func.developer;
+        *fname = func.name;
+        *fdev = func.developer;
 
-		return func.call;
-	}
+        return func.call;
+    }
 
 
-	return NULL;
+    return NULL;
 }
 
 
@@ -116,20 +91,20 @@ xmethod_t Scr_GetCustomMethod(const char **fname, qboolean *fdev)
 
 void stackError(const char *format, ...)
 {
-	char s[MAX_STRINGLENGTH];
-	int len = 0;
-	va_list va;
+    char s[MAX_STRINGLENGTH];
+    int len = 0;
+    va_list va;
 
-	va_start(va, format);
-	Q_vsnprintf(s, sizeof(s) - 1, format, va);
-	va_end(va);
+    va_start(va, format);
+    Q_vsnprintf(s, sizeof(s) - 1, format, va);
+    va_end(va);
 
-	len = strlen(s);
-	s[len] = '\n';
-	s[len + 1] = '\0';
-	Com_PrintMessage(0, s);
-	//Scr_CodeCallback_Error(qfalse, qfalse, "stackError", s);
-	Scr_Error(s); //TODO: check if need call Scr_CodeCallback_Error instead
+    len = strlen(s);
+    s[len] = '\n';
+    s[len + 1] = '\0';
+    Com_PrintMessage(0, s);
+    //Scr_CodeCallback_Error(qfalse, qfalse, "stackError", s);
+    Scr_Error(s); //TODO: check if need call Scr_CodeCallback_Error instead
 }
 
 
@@ -147,15 +122,15 @@ time_t sys_timeBase = 0;
  */
 uint64_t Sys_MilliSeconds64(void)
 {
-	struct timeval tp;
+    struct timeval tp;
 
-	gettimeofday(&tp, NULL);
+    gettimeofday(&tp, NULL);
 
-	if ( !sys_timeBase )
-	{
-		sys_timeBase = tp.tv_sec;
-		return tp.tv_usec / 1000;
-	}
+    if ( !sys_timeBase )
+    {
+        sys_timeBase = tp.tv_sec;
+        return tp.tv_usec / 1000;
+    }
 
-	return (tp.tv_sec - sys_timeBase) * 1000 + tp.tv_usec / 1000;
+    return (tp.tv_sec - sys_timeBase) * 1000 + tp.tv_usec / 1000;
 }

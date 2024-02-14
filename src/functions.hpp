@@ -43,6 +43,15 @@ static const Com_Printf_t Com_Printf = (Com_Printf_t)0x0806b760;
 
 
 
+typedef int (*Com_sprintf_t)(char *dest, int size, const char *format, ...);
+#if COD_VERSION == COD1_1_1
+static const Com_sprintf_t Com_sprintf = (Com_sprintf_t)0x080823a0;
+#elif COD_VERSION == COD1_1_5
+
+#endif
+
+
+
 typedef void (*Com_PrintMessage_t)(int channel, const char *message);
 #if COD_VERSION == COD1_1_1
 static const Com_PrintMessage_t Com_PrintMessage = (Com_PrintMessage_t)0x0806b530;
@@ -99,8 +108,8 @@ extern Scr_Error_t Scr_Error;
 
 
 
-
-
+typedef void (*Scr_AddBool_t)(qboolean value);
+extern Scr_AddBool_t Scr_AddBool;
 
 
 
@@ -113,6 +122,9 @@ extern Scr_AddUndefined_t Scr_AddUndefined;
 
 
 
+typedef void (*Scr_AddVector_t)(vec3_t vec);
+extern Scr_AddVector_t Scr_AddVector;
+
 
 
 
@@ -123,6 +135,10 @@ static const SV_GameClientNum_t SV_GameClientNum = (SV_GameClientNum_t)0x0808927
 
 #endif
 
+
+/*
+typedef int (*Player_GetUseList_t)(gentity_t *player, useList_t *useList);
+extern Player_GetUseList_t Player_GetUseList;*/
 
 
 
