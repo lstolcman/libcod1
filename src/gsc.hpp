@@ -88,8 +88,17 @@ int strcmp_constant_time(const char *s1, const char *s2);
 
 
 
-
+int stackGetParams(const char *params, ...);
 void stackError(const char *format, ...);
+
+int stackGetParamInt(int param, int *value);
+
+int stackGetParamString(int param, char **value);
+int stackGetParamConstString(int param, unsigned int *value);
+int stackGetParamLocalizedString(int param, char **value);
+int stackGetParamVector(int param, vec3_t value);
+int stackGetParamFloat(int param, float *value);
+
 
 
 

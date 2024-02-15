@@ -4,7 +4,8 @@
 #include "gsc.hpp"
 
 
-
+void gsc_player_setvelocity(scr_entref_t ref);
+void gsc_player_getvelocity(scr_entref_t ref);
 void gsc_player_button_leanleft(scr_entref_t ref);
 void gsc_player_button_leanright(scr_entref_t ref);
 void gsc_player_button_reload(scr_entref_t ref);

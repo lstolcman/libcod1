@@ -51,6 +51,7 @@ gentity_t *g_entities;
 
 
 // Game lib functions declarations
+Scr_GetNumParam_t Scr_GetNumParam;
 Scr_GetMethod_t Scr_GetMethod;
 Scr_Error_t Scr_Error;
 Scr_AddBool_t Scr_AddBool;
@@ -106,6 +107,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 
 
     // Game lib functions initializations
+    Scr_GetNumParam = (Scr_GetNumParam_t)dlsym(ret, "Scr_GetNumParam");
     Scr_GetMethod = (Scr_GetMethod_t)dlsym(ret, "Scr_GetMethod");
     Scr_Error = (Scr_Error_t)dlsym(ret, "Scr_Error");
     Scr_AddBool = (Scr_AddBool_t)dlsym(ret, "Scr_AddBool");

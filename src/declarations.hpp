@@ -6,12 +6,16 @@
 
 
 
-
 #define qboolean int
 #define qtrue 1
 #define qfalse 0
 
 
+
+
+
+// 3D vectors
+#define VectorCopy( a, b )          ( ( b )[0] = ( a )[0],( b )[1] = ( a )[1],( b )[2] = ( a )[2] )
 
 
 
@@ -53,7 +57,6 @@
 
 
 
-
 typedef unsigned char byte;
 typedef signed char sbyte;
 typedef struct gclient_s gclient_t;
@@ -68,8 +71,6 @@ typedef struct scr_entref_s
     uint16_t entnum;
     uint16_t classnum;
 } scr_entref_t;
-
-
 
 
 
@@ -94,7 +95,6 @@ typedef enum
 
 
 
-
 typedef enum
 {
     CS_FREE,
@@ -103,7 +103,6 @@ typedef enum
     CS_PRIMED,
     CS_ACTIVE
 } clientConnectState_t;
-
 
 
 
@@ -148,8 +147,6 @@ typedef vec_t vec3_t[3];
 
 
 
-
-
 typedef struct cvar_s
 {
     char *name;
@@ -164,6 +161,76 @@ typedef struct cvar_s
     struct cvar_s *next;
     struct cvar_s *hashNext;
 } cvar_t;
+
+
+
+
+
+
+
+
+
+#if 1
+struct VariableStackBuffer
+{
+	const char *pos;
+	uint16_t size;
+	uint16_t bufLen;
+	uint16_t localId;
+	char time;
+	char buf[1];
+};
+
+union VariableUnion
+{
+	int intValue;
+	float floatValue;
+	unsigned int stringValue;
+	const float *vectorValue;
+	const char *codePosValue;
+	unsigned int pointerValue;
+	struct VariableStackBuffer *stackValue;
+	unsigned int entityOffset;
+};
+
+typedef struct
+{
+	union VariableUnion u;
+	int type;
+} VariableValue;
+
+struct function_stack_t
+{
+	const char *pos;
+	unsigned int localId;
+	unsigned int localVarCount;
+	VariableValue *top;
+	VariableValue *startTop;
+};
+
+struct function_frame_t
+{
+	struct function_stack_t fs;
+	int topType;
+};
+
+typedef struct
+{
+	unsigned int *localVars;
+	VariableValue *maxstack;
+	int function_count;
+	struct function_frame_t *function_frame;
+	VariableValue *top;
+	byte debugCode;
+	byte abort_on_error;
+	byte terminal_error;
+	byte pad;
+	unsigned int inparamcount;
+	unsigned int outparamcount;
+	struct function_frame_t function_frame_start[32];
+	VariableValue stack[2048];
+} scrVmPub_t;
+#endif
 
 
 
@@ -684,6 +751,17 @@ typedef struct
 
 
 
+
+#if COD_VERSION == COD1_1_1
+static const int vmpub_offset = 0x082f57e0; //DAT_082f57e0 = &DAT_082f57d8;
+#elif COD_VERSION == COD1_1_5
+
+#endif
+
+
+
+
+
 #if COD_VERSION == COD1_1_1
 static const int svs_offset = 0x083b67a0;
 #elif COD_VERSION == COD1_1_5
@@ -703,8 +781,11 @@ static const int svs_offset = 0x083b67a0;
 
 
 
+
 extern gentity_t *g_entities;
 
+
+#define scrVmPub (*((scrVmPub_t*)( vmpub_offset )))
 #define svs (*((serverStatic_t*)( svs_offset )))
 //#define gameInitialized (*((int*)( gameInitialized_offset )))
 

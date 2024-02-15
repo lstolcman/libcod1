@@ -21,6 +21,30 @@ static const GetNextVariable_t GetNextVariable = (GetNextVariable_t)0x080a3028;
 
 
 
+
+typedef char * (*SL_ConvertToString_t)(unsigned int index);
+#if COD_VERSION == COD1_1_1
+static const SL_ConvertToString_t SL_ConvertToString = (SL_ConvertToString_t)0x0809cac4;
+#elif COD_VERSION == COD1_1_5
+
+#endif
+
+
+
+
+
+
+
+
+typedef int (*Scr_GetNumParam_t)(void);
+extern Scr_GetNumParam_t Scr_GetNumParam;
+
+
+
+
+
+
+
 typedef char * (*Cmd_Argv_t)(int arg);
 #if COD_VERSION == COD1_1_1
 static const Cmd_Argv_t Cmd_Argv = (Cmd_Argv_t)0x0805b258;
@@ -39,6 +63,17 @@ static const Com_Printf_t Com_Printf = (Com_Printf_t)0x0806b760;
 #elif COD_VERSION == COD1_1_5
 
 #endif
+
+
+
+
+typedef void (*Com_DPrintf_t)(const char *format, ...);
+#if COD_VERSION == COD1_1_1
+static const Com_DPrintf_t Com_DPrintf = (Com_DPrintf_t)0x0806b79c;
+#elif COD_VERSION == COD1_1_5
+
+#endif
+
 
 
 
