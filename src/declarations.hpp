@@ -170,6 +170,11 @@ typedef struct cvar_s
 
 
 
+
+
+
+
+
 #if 1
 struct VariableStackBuffer
 {
@@ -217,18 +222,35 @@ struct function_frame_t
 typedef struct
 {
 	unsigned int *localVars;
-	VariableValue *maxstack;
 	int function_count;
-	struct function_frame_t *function_frame;
-	VariableValue *top;
-	byte debugCode;
+    char pad1[18];
+    struct function_frame_t function_frame_start[80];
+    int pad2; //DAT_082f5880
+    int pad3; //DAT_082f5884
+    int pad4; //DAT_082f5888
+    byte debugCode;
 	byte abort_on_error;
 	byte terminal_error;
-	byte pad;
-	unsigned int inparamcount;
-	unsigned int outparamcount;
-	struct function_frame_t function_frame_start[32];
-	VariableValue stack[2048];
+	byte pad_zk;
+    int pad5; //DAT_082f5890
+    int pad6; //DAT_082f5894
+    int pad7; //DAT_082f5898
+    byte pad8;
+    byte pad9;
+    byte pad10;
+    byte pad11;
+    byte pad12; //DAT_082f58a0
+    char pad13[127];
+    byte pad14; //DAT_082f5920
+    char pad15[31];
+    unsigned int inparamcount;
+    unsigned int outparamcount;
+    VariableValue *top; //4 bytes
+    // unknown rest
+
+    /*
+	VariableValue stack[2048];*/
+
 } scrVmPub_t;
 #endif
 
@@ -753,7 +775,7 @@ typedef struct
 
 
 #if COD_VERSION == COD1_1_1
-static const int vmpub_offset = 0x082f57e0; //DAT_082f57e0 = &DAT_082f57d8;
+static const int vmpub_offset = 0x082f57e0;
 #elif COD_VERSION == COD1_1_5
 
 #endif
