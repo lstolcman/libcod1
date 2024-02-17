@@ -246,11 +246,7 @@ typedef struct
     unsigned int inparamcount;
     unsigned int outparamcount;
     VariableValue *top; //4 bytes
-    // unknown rest
-
-    /*
-	VariableValue stack[2048];*/
-
+    VariableValue stack[2048]; //082f17e4 ->
 } scrVmPub_t;
 #endif
 

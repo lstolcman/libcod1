@@ -138,8 +138,21 @@ static const Cvar_VariableString_t Cvar_VariableString = (Cvar_VariableString_t)
 
 
 
+
+
+
+
 typedef void (*Scr_Error_t)(const char *string);
 extern Scr_Error_t Scr_Error;
+
+
+
+
+
+typedef void (*Scr_GetVector_t)(unsigned int param, vec3_t /***/vec);
+extern Scr_GetVector_t Scr_GetVector;
+
+
 
 
 

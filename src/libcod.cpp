@@ -54,6 +54,7 @@ gentity_t *g_entities;
 Scr_GetNumParam_t Scr_GetNumParam;
 Scr_GetMethod_t Scr_GetMethod;
 Scr_Error_t Scr_Error;
+Scr_GetVector_t Scr_GetVector;
 Scr_AddBool_t Scr_AddBool;
 Scr_AddString_t Scr_AddString;
 Scr_AddUndefined_t Scr_AddUndefined;
@@ -110,6 +111,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Scr_GetNumParam = (Scr_GetNumParam_t)dlsym(ret, "Scr_GetNumParam");
     Scr_GetMethod = (Scr_GetMethod_t)dlsym(ret, "Scr_GetMethod");
     Scr_Error = (Scr_Error_t)dlsym(ret, "Scr_Error");
+    Scr_GetVector = (Scr_GetVector_t)dlsym(ret, "Scr_GetVector");
     Scr_AddBool = (Scr_AddBool_t)dlsym(ret, "Scr_AddBool");
     Scr_AddString = (Scr_AddString_t)dlsym(ret, "Scr_AddString");
     Scr_AddUndefined = (Scr_AddUndefined_t)dlsym(ret, "Scr_AddUndefined");
