@@ -1,9 +1,0 @@
-# Libcod compilation
-src/objects_cod1_1_1/**
-src/objects_cod1_1_5/**
-
-# Debugger files
-src/.gdb_history
-
-# Crash log
-src/crash.log
