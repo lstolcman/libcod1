@@ -15,7 +15,7 @@ fi
 set -- "cod1_1_1"
 constants="-D COD_VERSION=COD1_1_1"
 
-mkdir -p bin
+mkdir -p ../bin
 mkdir -p objects_$1
 
 echo "##### COMPILE $1 CRACKING.CPP #####"
@@ -45,7 +45,7 @@ $cc $debug $options $constants -c lib/strcmp_constant_time.c -o objects_"$1"/str
 
 echo "##### LINKING lib$1.so #####"
 objects="$(ls objects_$1/*.opp)"
-$cc -m32 -shared -L/lib32 -o bin/lib$1.so -ldl $objects
+$cc -m32 -shared -L/lib32 -o ../bin/lib$1.so -ldl $objects
 rm objects_$1 -r
 
 # Read leftover
