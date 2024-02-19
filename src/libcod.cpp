@@ -31,7 +31,6 @@ int codecallback_playerdamage = 0;
 int codecallback_playerkilled = 0;
 
 
-
 callback_t callbacks[] =
 {
     { &codecallback_startgametype, "CodeCallback_StartGameType" }, // g_scr_data.gametype.startupgametype
@@ -48,13 +47,12 @@ callback_t callbacks[] =
 // Game lib variables declarations
 gentity_t *g_entities;
 
-
-
 // Game lib functions declarations
 Scr_GetNumParam_t Scr_GetNumParam;
+Scr_GetFunction_t Scr_GetFunction;
 Scr_GetMethod_t Scr_GetMethod;
 Scr_Error_t Scr_Error;
-Scr_GetVector_t Scr_GetVector;
+//Scr_GetVector_t Scr_GetVector;
 Scr_AddBool_t Scr_AddBool;
 Scr_AddString_t Scr_AddString;
 Scr_AddUndefined_t Scr_AddUndefined;
@@ -106,12 +104,12 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     // Game lib variables initializations
     g_entities = (gentity_t*)dlsym(ret, "g_entities");
 
-
     // Game lib functions initializations
     Scr_GetNumParam = (Scr_GetNumParam_t)dlsym(ret, "Scr_GetNumParam");
+    Scr_GetFunction = (Scr_GetFunction_t)dlsym(ret, "Scr_GetFunction");
     Scr_GetMethod = (Scr_GetMethod_t)dlsym(ret, "Scr_GetMethod");
     Scr_Error = (Scr_Error_t)dlsym(ret, "Scr_Error");
-    Scr_GetVector = (Scr_GetVector_t)dlsym(ret, "Scr_GetVector");
+    //Scr_GetVector = (Scr_GetVector_t)dlsym(ret, "Scr_GetVector");
     Scr_AddBool = (Scr_AddBool_t)dlsym(ret, "Scr_AddBool");
     Scr_AddString = (Scr_AddString_t)dlsym(ret, "Scr_AddString");
     Scr_AddUndefined = (Scr_AddUndefined_t)dlsym(ret, "Scr_AddUndefined");
@@ -261,8 +259,8 @@ public:
         cracking_hook_call(0x0806ce77, (int)common_init_complete_print);
         //cracking_hook_call(0x08091D0C, (int)hook_sv_spawnserver);
         cracking_hook_call(0x08085213, (int)hook_AuthorizeState);
+        cracking_hook_call(0x08094c54, (int)Scr_GetCustomFunction);
         cracking_hook_call(0x080951c4, (int)Scr_GetCustomMethod);
-
 
 
         hook_sys_loaddll = new cHook(0x080c5fe4, (int)custom_Sys_LoadDll);

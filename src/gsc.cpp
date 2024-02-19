@@ -15,13 +15,49 @@ void NULL_FUNC(void) {}
 
 scr_function_t scriptFunctions[] =
 {
-
-
-    //{"sqrt", gsc_utils_sqrt, 0},
     
+    
+
+    #if COMPILE_UTILS == 1
+    {"makeLocalizedString", gsc_utils_makelocalizedstring, 0},
+    #endif
+
+
 
     {NULL, NULL, 0} // Terminator
 };
+
+
+xfunction_t Scr_GetCustomFunction(const char **fname, int *fdev)
+{
+    xfunction_t m = Scr_GetFunction(fname, fdev);
+    if ( m )
+        return m;
+
+    for ( int i = 0; scriptFunctions[i].name; i++ )
+    {
+        if ( strcasecmp(*fname, scriptFunctions[i].name) )
+            continue;
+
+        scr_function_t func = scriptFunctions[i];
+        *fname = func.name;
+        *fdev = func.developer;
+        return func.call;
+    }
+
+    return NULL;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 scr_method_t scriptMethods[] =
 {
@@ -53,12 +89,6 @@ scr_method_t scriptMethods[] =
 
     {NULL, NULL, 0} // Terminator
 };
-
-
-
-
-
-
 
 xmethod_t Scr_GetCustomMethod(const char **fname, qboolean *fdev)
 {
@@ -110,93 +140,93 @@ void stackError(const char *format, ...)
 
 int stackGetParams(const char *params, ...)
 {
-	va_list args;
-	va_start(args, params);
+    va_list args;
+    va_start(args, params);
 
-	int errors = 0;
+    int errors = 0;
 
-	for ( size_t i = 0; i < strlen(params); i++ )
-	{
-		switch ( params[i] )
-		{
-		case ' ': // Ignore param
-			break;
+    for ( size_t i = 0; i < strlen(params); i++ )
+    {
+        switch ( params[i] )
+        {
+        case ' ': // Ignore param
+            break;
 
-		case 'i':
-		{
-			int *tmp = va_arg(args, int *);
-			if ( !stackGetParamInt(i, tmp) )
-			{
-				Com_DPrintf("\nstackGetParams() Param %i is not an int\n", i);
-				errors++;
-			}
-			break;
-		}
+        case 'i':
+        {
+            int *tmp = va_arg(args, int *);
+            if ( !stackGetParamInt(i, tmp) )
+            {
+                Com_DPrintf("\nstackGetParams() Param %i is not an int\n", i);
+                errors++;
+            }
+            break;
+        }
 
-		case 'v':
-		{
-			float *tmp = va_arg(args, float *);
-			if ( !stackGetParamVector(i, tmp) )
-			{
-				Com_DPrintf("\nstackGetParams() Param %i is not a vector\n", i);
-				errors++;
-			}
-			break;
-		}
+        case 'v':
+        {
+            float *tmp = va_arg(args, float *);
+            if ( !stackGetParamVector(i, tmp) )
+            {
+                Com_DPrintf("\nstackGetParams() Param %i is not a vector\n", i);
+                errors++;
+            }
+            break;
+        }
 
-		case 'f':
-		{
-			float *tmp = va_arg(args, float *);
-			if ( ! stackGetParamFloat(i, tmp) )
-			{
-				Com_DPrintf("\nstackGetParams() Param %i is not a float\n", i);
-				errors++;
-			}
-			break;
-		}
+        case 'f':
+        {
+            float *tmp = va_arg(args, float *);
+            if ( ! stackGetParamFloat(i, tmp) )
+            {
+                Com_DPrintf("\nstackGetParams() Param %i is not a float\n", i);
+                errors++;
+            }
+            break;
+        }
 
-		case 's':
-		{
-			char **tmp = va_arg(args, char **);
-			if ( !stackGetParamString(i, tmp) )
-			{
-				Com_DPrintf("\nstackGetParams() Param %i is not a string\n", i);
-				errors++;
-			}
-			break;
-		}
+        case 's':
+        {
+            char **tmp = va_arg(args, char **);
+            if ( !stackGetParamString(i, tmp) )
+            {
+                Com_DPrintf("\nstackGetParams() Param %i is not a string\n", i);
+                errors++;
+            }
+            break;
+        }
 
-		case 'c':
-		{
-			unsigned int *tmp = va_arg(args, unsigned int *);
-			if ( !stackGetParamConstString(i, tmp) )
-			{
-				Com_DPrintf("\nstackGetParams() Param %i is not a const string\n", i);
-				errors++;
-			}
-			break;
-		}
+        case 'c':
+        {
+            unsigned int *tmp = va_arg(args, unsigned int *);
+            if ( !stackGetParamConstString(i, tmp) )
+            {
+                Com_DPrintf("\nstackGetParams() Param %i is not a const string\n", i);
+                errors++;
+            }
+            break;
+        }
 
-		case 'l':
-		{
-			char **tmp = va_arg(args, char **);
-			if ( !stackGetParamLocalizedString(i, tmp) )
-			{
-				Com_DPrintf("\nstackGetParams() Param %i is not a localized string\n", i);
-				errors++;
-			}
-			break;
-		}
+        case 'l':
+        {
+            char **tmp = va_arg(args, char **);
+            if ( !stackGetParamLocalizedString(i, tmp) )
+            {
+                Com_DPrintf("\nstackGetParams() Param %i is not a localized string\n", i);
+                errors++;
+            }
+            break;
+        }
 
-		default:
-			errors++;
-			Com_DPrintf("\nUnknown identifier [%c] passed to stackGetParams()\n", params[i]);
-			break;
-		}
-	}
+        default:
+            errors++;
+            Com_DPrintf("\nUnknown identifier [%c] passed to stackGetParams()\n", params[i]);
+            break;
+        }
+    }
 
-	va_end(args);
-	return errors == 0; // success if no errors
+    va_end(args);
+    return errors == 0; // success if no errors
 }
 
 
@@ -204,110 +234,110 @@ int stackGetParams(const char *params, ...)
 
 int stackGetParamInt(int param, int *value)
 {
-	if ( param >= Scr_GetNumParam() )
-		return 0;
+    if ( param >= Scr_GetNumParam() )
+        return 0;
 
-	VariableValue *var;
-	var = &scrVmPub.top[-param];
+    VariableValue *var;
+    var = &scrVmPub.top[-param];
 
-	if ( var->type == STACK_FLOAT )
-	{
-		*value = var->u.floatValue;
-		return 1;
-	}
+    if ( var->type == STACK_FLOAT )
+    {
+        *value = var->u.floatValue;
+        return 1;
+    }
 
-	if ( var->type != STACK_INT )
-		return 0;
+    if ( var->type != STACK_INT )
+        return 0;
 
-	*value = var->u.intValue;
+    *value = var->u.intValue;
 
-	return 1;
+    return 1;
 }
 
 int stackGetParamString(int param, char **value)
 {
-	if ( param >= Scr_GetNumParam() )
-		return 0;
+    if ( param >= Scr_GetNumParam() )
+        return 0;
 
-	VariableValue *var;
-	var = &scrVmPub.top[-param];
+    VariableValue *var;
+    var = &scrVmPub.top[-param];
 
-	if ( var->type != STACK_STRING )
-		return 0;
+    if ( var->type != STACK_STRING )
+        return 0;
 
-	*value = SL_ConvertToString(var->u.stringValue);
+    *value = SL_ConvertToString(var->u.stringValue);
 
-	return 1;
+    return 1;
 }
 
 int stackGetParamConstString(int param, unsigned int *value)
 {
-	if ( param >= Scr_GetNumParam() )
-		return 0;
+    if ( param >= Scr_GetNumParam() )
+        return 0;
 
-	VariableValue *var;
-	var = &scrVmPub.top[-param];
+    VariableValue *var;
+    var = &scrVmPub.top[-param];
 
-	if ( var->type != STACK_STRING )
-		return 0;
+    if ( var->type != STACK_STRING )
+        return 0;
 
-	*value = var->u.stringValue;
+    *value = var->u.stringValue;
 
-	return 1;
+    return 1;
 }
 
 int stackGetParamLocalizedString(int param, char **value)
 {
-	if ( param >= Scr_GetNumParam() )
-		return 0;
+    if ( param >= Scr_GetNumParam() )
+        return 0;
 
-	VariableValue *var;
-	var = &scrVmPub.top[-param];
+    VariableValue *var;
+    var = &scrVmPub.top[-param];
 
-	if ( var->type != STACK_LOCALIZED_STRING )
-		return 0;
+    if ( var->type != STACK_LOCALIZED_STRING )
+        return 0;
 
-	*value = SL_ConvertToString(var->u.stringValue);
+    *value = SL_ConvertToString(var->u.stringValue);
 
-	return 1;
+    return 1;
 }
 
 int stackGetParamVector(int param, vec3_t value)
 {
-	if ( param >= Scr_GetNumParam() )
-		return 0;
+    if ( param >= Scr_GetNumParam() )
+        return 0;
 
-	VariableValue *var;
-	var = &scrVmPub.top[-param];
+    VariableValue *var;
+    var = &scrVmPub.top[-param];
 
-	if ( var->type != STACK_VECTOR )
-		return 0;
+    if ( var->type != STACK_VECTOR )
+        return 0;
 
-	VectorCopy(var->u.vectorValue, value);
+    VectorCopy(var->u.vectorValue, value);
 
-	return 1;
+    return 1;
 }
 
 int stackGetParamFloat(int param, float *value)
 {
-	if ( param >= Scr_GetNumParam() )
-		return 0;
+    if ( param >= Scr_GetNumParam() )
+        return 0;
 
-	VariableValue *var;
-	var = &scrVmPub.top[-param];
+    VariableValue *var;
+    var = &scrVmPub.top[-param];
 
-	if ( var->type == STACK_INT )
-	{
-		*value = var->u.intValue;
-		return 1;
-	}
+    if ( var->type == STACK_INT )
+    {
+        *value = var->u.intValue;
+        return 1;
+    }
 
-	if ( var->type != STACK_FLOAT )
-		return 0;
+    if ( var->type != STACK_FLOAT )
+        return 0;
 
-	*value = var->u.floatValue;
+    *value = var->u.floatValue;
 
-	return 1;
+    return 1;
 }
 
 

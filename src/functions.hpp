@@ -98,6 +98,13 @@ static const Com_PrintMessage_t Com_PrintMessage = (Com_PrintMessage_t)0x0806b53
 
 
 
+typedef xfunction_t (*Scr_GetFunction_t)(const char** v_functionName, qboolean *v_developer);
+extern Scr_GetFunction_t Scr_GetFunction;
+
+
+
+
+
 typedef xmethod_t (*Scr_GetMethod_t)(const char** v_methodName, qboolean *v_developer);
 extern Scr_GetMethod_t Scr_GetMethod;
 
@@ -149,8 +156,8 @@ extern Scr_Error_t Scr_Error;
 
 
 
-typedef void (*Scr_GetVector_t)(unsigned int param, vec3_t /***/vec);
-extern Scr_GetVector_t Scr_GetVector;
+//typedef void (*Scr_GetVector_t)(unsigned int param, vec3_t /***/vec);
+//extern Scr_GetVector_t Scr_GetVector;
 
 
 

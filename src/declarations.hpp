@@ -170,22 +170,22 @@ typedef struct cvar_s
 
 union VariableUnion
 {
-	int intValue;
-	float floatValue;
-	unsigned int stringValue;
-	const float *vectorValue;
+    int intValue;
+    float floatValue;
+    unsigned int stringValue;
+    const float *vectorValue;
     // some might remain
 };
 
 typedef struct
 {
-	union VariableUnion u;
-	int type;
+    union VariableUnion u;
+    int type;
 } VariableValue;
 
 typedef struct
 {
-	unsigned int *localVars;
+    unsigned int *localVars;
     char pad[356];
     VariableValue *top;
     // some remains
@@ -488,7 +488,7 @@ typedef struct playerState_s
 typedef struct gitem_s
 {
     char *classname;
-    //rest remaining
+    // some might remain
 } gitem_t;
 struct gentity_s
 {

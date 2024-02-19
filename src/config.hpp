@@ -4,5 +4,6 @@
 // GSC MODULES
 #define COMPILE_ENTITY 1
 #define COMPILE_PLAYER 1
+#define COMPILE_UTILS 1
 
 #endif

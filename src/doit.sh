@@ -8,9 +8,9 @@ options="-I. -m32 -fPIC -Wall -fvisibility=hidden"
 # -Wno-write-strings // not full warnings
 
 if [ "$1" == "debug" ] || [ "$2" == "debug" ]; then
-	debug="-g -ggdb -O0"
+    debug="-g -ggdb -O0"
 else
-	debug=""
+    debug=""
 fi
 set -- "cod1_1_1"
 constants="-D COD_VERSION=COD1_1_1"
@@ -25,13 +25,18 @@ echo "##### COMPILE $1 GSC.CPP #####"
 $cc $debug $options $constants -c gsc.cpp -o objects_$1/gsc.opp
 
 if  grep -q "COMPILE_ENTITY 1" config.hpp; then
-	echo "##### COMPILE $1 GSC_ENTITY.CPP #####"
-	$cc $debug $options $constants -c gsc_entity.cpp -o objects_$1/gsc_entity.opp
+    echo "##### COMPILE $1 GSC_ENTITY.CPP #####"
+    $cc $debug $options $constants -c gsc_entity.cpp -o objects_$1/gsc_entity.opp
 fi
 
 if grep -q "COMPILE_PLAYER 1" config.hpp; then
-	echo "##### COMPILE $1 GSC_PLAYER.CPP #####"
-	$cc $debug $options $constants -c gsc_player.cpp -o objects_$1/gsc_player.opp
+    echo "##### COMPILE $1 GSC_PLAYER.CPP #####"
+    $cc $debug $options $constants -c gsc_player.cpp -o objects_$1/gsc_player.opp
+fi
+
+if grep -q "COMPILE_UTILS 1" config.hpp; then
+    echo "##### COMPILE $1 GSC_UTILS.CPP #####"
+    $cc $debug $options $constants -c gsc_utils.cpp -o objects_$1/gsc_utils.opp
 fi
 
 echo "##### COMPILE $1 LIBCOD.CPP #####"
