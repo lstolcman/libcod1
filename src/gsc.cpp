@@ -277,36 +277,13 @@ int stackGetParamVector(int param, vec3_t value)
 	if ( param >= Scr_GetNumParam() )
 		return 0;
 
-	//printf("####### stackGetParamVector: param = %i \n", param);
+	VariableValue *var;
+	var = &scrVmPub.top[-param];
 
-	//VariableValue *var;
-	//var = &scrVmPub.top[-param];
-	//printf("####### var = &scrVmPub.top PASS \n");
-
-
-
-
-
-	int scrVmPubTop = *(int*)0x082f5948;
-	int base = (scrVmPubTop + param * -8);
-	int vartype = *(int*)(base + 4);
-	if ( vartype != 3 )
+	if ( var->type != STACK_VECTOR )
 		return 0;
 
-
-	int vectorValue = *(int*)(base + 0 * 12);
-	VectorCopy((float*)vectorValue, value);
-	
-	
-
-
-
-
-
-	//if ( var->type != STACK_VECTOR )
-		//return 0;
-
-	//VectorCopy(var->u.vectorValue, value);
+	VectorCopy(var->u.vectorValue, value);
 
 	return 1;
 }

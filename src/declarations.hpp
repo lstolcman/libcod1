@@ -168,34 +168,13 @@ typedef struct cvar_s
 
 
 
-
-
-
-
-
-
-
-#if 1
-struct VariableStackBuffer
-{
-	const char *pos;
-	uint16_t size;
-	uint16_t bufLen;
-	uint16_t localId;
-	char time;
-	char buf[1];
-};
-
 union VariableUnion
 {
 	int intValue;
 	float floatValue;
 	unsigned int stringValue;
 	const float *vectorValue;
-	const char *codePosValue;
-	unsigned int pointerValue;
-	struct VariableStackBuffer *stackValue;
-	unsigned int entityOffset;
+    // some might remain
 };
 
 typedef struct
@@ -204,51 +183,16 @@ typedef struct
 	int type;
 } VariableValue;
 
-struct function_stack_t
-{
-	const char *pos;
-	unsigned int localId;
-	unsigned int localVarCount;
-	VariableValue *top;
-	VariableValue *startTop;
-};
-
-struct function_frame_t
-{
-	struct function_stack_t fs;
-	int topType;
-};
-
 typedef struct
 {
 	unsigned int *localVars;
-	int function_count;
-    char pad1[18];
-    struct function_frame_t function_frame_start[80];
-    int pad2; //DAT_082f5880
-    int pad3; //DAT_082f5884
-    int pad4; //DAT_082f5888
-    byte debugCode;
-	byte abort_on_error;
-	byte terminal_error;
-	byte pad_zk;
-    int pad5; //DAT_082f5890
-    int pad6; //DAT_082f5894
-    int pad7; //DAT_082f5898
-    byte pad8;
-    byte pad9;
-    byte pad10;
-    byte pad11;
-    byte pad12; //DAT_082f58a0
-    char pad13[127];
-    byte pad14; //DAT_082f5920
-    char pad15[31];
-    unsigned int inparamcount;
-    unsigned int outparamcount;
-    VariableValue *top; //4 bytes
-    VariableValue stack[2048]; //082f17e4 ->
+    char pad[356];
+    VariableValue *top;
+    // some remains
 } scrVmPub_t;
-#endif
+
+
+
 
 
 

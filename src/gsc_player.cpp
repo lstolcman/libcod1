@@ -35,12 +35,6 @@ void gsc_player_setvelocity(scr_entref_t ref)
 	playerState_t *ps = SV_GameClientNum(id);
 	VectorCopy(velocity, ps->velocity);
 
-    /*
-    vec3_t vec;
-    Scr_GetVector(0, vec);
-    VectorCopy(vec, ps->velocity);*/
-
-
 	stackPushBool(qtrue);
 }
 

@@ -44,7 +44,7 @@
 #define STACK_OBJECT 1
 #define STACK_STRING 2
 #define STACK_LOCALIZED_STRING 3
-#define STACK_VECTOR 4
+#define STACK_VECTOR 3
 #define STACK_FLOAT 5
 #define STACK_INT 6
 #define STACK_CODEPOS 7
