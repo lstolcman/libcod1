@@ -19,6 +19,15 @@ scr_function_t scriptFunctions[] =
     
 
     #if COMPILE_UTILS == 1
+    {"sendCommandToClient", gsc_utils_sendcommandtoclient, 0},
+    {"sendCommandToServer", gsc_utils_sendcommandtoserver, 0},
+
+    {"toLower", gsc_utils_tolower, 0},
+    {"replace", gsc_utils_replace, 0},
+
+    {"getSystemTime", gsc_utils_getsystemtime, 0},
+    
+    {"getConfigString", gsc_utils_getconfigstring, 0},
     {"makeLocalizedString", gsc_utils_makelocalizedstring, 0},
     #endif
 
@@ -77,12 +86,16 @@ scr_method_t scriptMethods[] =
     #if COMPILE_PLAYER == 1
     {"setVelocity", gsc_player_setvelocity, 0},
     {"getVelocity", gsc_player_getvelocity, 0},
+    {"aimButtonPressed", gsc_player_button_ads, 0},
     {"leanleftButtonPressed", gsc_player_button_leanleft, 0},
     {"leanrightButtonPressed", gsc_player_button_leanright, 0},
     {"reloadButtonPressed", gsc_player_button_reload, 0},
     {"getPlayerAngles", gsc_player_gettagangles, 0},
     {"getStance", gsc_player_getstance, 0},
     {"getIP", gsc_player_getip, 0},
+    {"getPing", gsc_player_getping, 0},
+
+    {"dropClient", gsc_player_dropclient, 0},
 
     #endif
 

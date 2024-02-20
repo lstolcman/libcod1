@@ -3,7 +3,7 @@
 
 #include <setjmp.h>
 
-
+#define QDECL __attribute__((cdecl))
 
 
 #define qboolean int
@@ -30,6 +30,7 @@
 
 #define MAX_CHALLENGES              1024
 #define MAX_CLIENTS                 64
+#define MAX_CONFIGSTRINGS           2048
 #define MAX_DOWNLOAD_WINDOW         8
 #define MAX_INFO_STRING             0x400
 #define MAX_MSGLEN                  0x4000
@@ -40,13 +41,14 @@
 
 #define CVAR_NOFLAG             0               // 0x0000
 #define CVAR_ARCHIVE            (1 << 0)        // 0x0001
-
+#define CVAR_SERVERINFO         (1 << 2)        // 0x0004
 
 
 
 #define KEY_MASK_RELOAD         0x8
 #define KEY_MASK_LEANLEFT       0x10
 #define KEY_MASK_LEANRIGHT      0x20
+#define KEY_MASK_ADS_MODE       0x10
 
 
 // playerState_t->eFlags

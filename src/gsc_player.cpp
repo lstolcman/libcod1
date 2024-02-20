@@ -67,6 +67,26 @@ void gsc_player_getvelocity(scr_entref_t ref)
 
 
 
+void gsc_player_button_ads(scr_entref_t ref)
+{
+	int id = ref.entnum;
+
+	if ( id >= MAX_CLIENTS )
+	{
+		stackError("gsc_player_button_ads() entity %i is not a player", id);
+		stackPushUndefined();
+		return;
+	}
+
+	client_t *client = &svs.clients[id];
+
+	stackPushBool(client->lastUsercmd.buttons & KEY_MASK_ADS_MODE ? qtrue : qfalse);
+}
+
+
+
+
+
 
 
 
@@ -193,6 +213,64 @@ void gsc_player_getip(scr_entref_t ref)
 
     stackPushString(tmp);
 }
+
+
+
+
+
+
+void gsc_player_getping(scr_entref_t ref)
+{
+	int id = ref.entnum;
+
+	if ( id >= MAX_CLIENTS )
+	{
+		stackError("gsc_player_getping() entity %i is not a player", id);
+		stackPushUndefined();
+		return;
+	}
+
+	client_t *client = &svs.clients[id];
+	stackPushInt(client->ping);
+}
+
+
+
+
+
+
+
+
+void gsc_player_dropclient(scr_entref_t ref)
+{
+    int id = ref.entnum;
+    char *reason;
+
+    if ( Scr_GetNumParam() > 0 && !stackGetParams("s", &reason) )
+    {
+        stackError("gsc_player_dropclient() argument has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_dropclient() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    client_t *client = &svs.clients[id];
+
+    if(Scr_GetNumParam() > 0)
+	    SV_DropClient(client, reason);
+	else
+	    SV_DropClient(client, NULL);
+
+    stackPushBool(qtrue);
+}
+
+
 
 
 

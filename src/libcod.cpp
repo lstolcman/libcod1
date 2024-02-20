@@ -51,12 +51,16 @@ gentity_t *g_entities;
 Scr_GetNumParam_t Scr_GetNumParam;
 Scr_GetFunction_t Scr_GetFunction;
 Scr_GetMethod_t Scr_GetMethod;
+SV_GameSendServerCommand_t SV_GameSendServerCommand;
 Scr_Error_t Scr_Error;
+SV_GetConfigstringConst_t SV_GetConfigstringConst;
 //Scr_GetVector_t Scr_GetVector;
 Scr_AddBool_t Scr_AddBool;
+Scr_AddInt_t Scr_AddInt;
 Scr_AddString_t Scr_AddString;
 Scr_AddUndefined_t Scr_AddUndefined;
 Scr_AddVector_t Scr_AddVector;
+I_strlwr_t I_strlwr;
 //Player_GetUseList_t Player_GetUseList;
 
 
@@ -108,14 +112,25 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Scr_GetNumParam = (Scr_GetNumParam_t)dlsym(ret, "Scr_GetNumParam");
     Scr_GetFunction = (Scr_GetFunction_t)dlsym(ret, "Scr_GetFunction");
     Scr_GetMethod = (Scr_GetMethod_t)dlsym(ret, "Scr_GetMethod");
+
+    SV_GameSendServerCommand = (SV_GameSendServerCommand_t)dlsym(ret, "trap_SendServerCommand");
+
     Scr_Error = (Scr_Error_t)dlsym(ret, "Scr_Error");
+
+    SV_GetConfigstringConst = (SV_GetConfigstringConst_t)dlsym(ret, "trap_GetConfigstringConst");
+
     //Scr_GetVector = (Scr_GetVector_t)dlsym(ret, "Scr_GetVector");
     Scr_AddBool = (Scr_AddBool_t)dlsym(ret, "Scr_AddBool");
+    Scr_AddInt = (Scr_AddInt_t)dlsym(ret, "Scr_AddInt");
     Scr_AddString = (Scr_AddString_t)dlsym(ret, "Scr_AddString");
     Scr_AddUndefined = (Scr_AddUndefined_t)dlsym(ret, "Scr_AddUndefined");
     Scr_AddVector = (Scr_AddVector_t)dlsym(ret, "Scr_AddVector");
-    //Player_GetUseList = (Player_GetUseList_t)dlsym(ret, "G_GetActivateEnt");
 
+    I_strlwr = (I_strlwr_t)dlsym(ret, "Q_strlwr");
+
+
+
+    //Player_GetUseList = (Player_GetUseList_t)dlsym(ret, "G_GetActivateEnt");
 
     return ret;
 }
@@ -163,6 +178,7 @@ void common_init_complete_print(const char *format, ...)
 
 
     // Register custom cvars
+    Cvar_Get("libcod", "1", CVAR_SERVERINFO);
     Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
 
 

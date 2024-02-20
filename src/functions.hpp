@@ -146,6 +146,36 @@ static const Cvar_VariableString_t Cvar_VariableString = (Cvar_VariableString_t)
 
 
 
+typedef void (*SV_GameSendServerCommand_t)(int clientnum, int svscmd_type, const char *text);
+extern SV_GameSendServerCommand_t SV_GameSendServerCommand;
+
+
+
+
+
+typedef void (QDECL *SV_SendServerCommand_t)(client_t *cl, int type, const char *fmt, ...);
+#if COD_VERSION == COD1_1_1
+static const SV_SendServerCommand_t SV_SendServerCommand = (SV_SendServerCommand_t)0x0808b900;
+#elif COD_VERSION == COD1_1_5
+
+#endif
+
+
+
+
+
+typedef void (*SV_DropClient_t)(client_t *drop, const char *reason);
+#if COD_VERSION == COD1_1_1
+static const SV_DropClient_t SV_DropClient = (SV_DropClient_t)0x08085cf4;
+#elif COD_VERSION == COD1_1_5
+
+#endif
+
+
+
+
+
+
 
 
 
@@ -156,16 +186,22 @@ extern Scr_Error_t Scr_Error;
 
 
 
+typedef const char * (*SV_GetConfigstringConst_t)(int index);
+extern SV_GetConfigstringConst_t SV_GetConfigstringConst;
+
+
+
+
 //typedef void (*Scr_GetVector_t)(unsigned int param, vec3_t /***/vec);
 //extern Scr_GetVector_t Scr_GetVector;
-
-
 
 
 
 typedef void (*Scr_AddBool_t)(qboolean value);
 extern Scr_AddBool_t Scr_AddBool;
 
+typedef void (*Scr_AddInt_t)(int value);
+extern Scr_AddInt_t Scr_AddInt;
 
 
 typedef void (*Scr_AddString_t)(const char *string);
@@ -191,13 +227,20 @@ static const SV_GameClientNum_t SV_GameClientNum = (SV_GameClientNum_t)0x0808927
 #endif
 
 
+
+
+
+
+typedef char * (*I_strlwr_t)(char *s1);
+extern I_strlwr_t I_strlwr;
+
+
+
+
+
+
 /*
 typedef int (*Player_GetUseList_t)(gentity_t *player, useList_t *useList);
 extern Player_GetUseList_t Player_GetUseList;*/
-
-
-
-
-
 
 #endif
