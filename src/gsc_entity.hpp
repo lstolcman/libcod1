@@ -6,10 +6,7 @@
 
 
 
-#if 0
-void gsc_entity_addentityvelocity(scr_entref_t ref);
-void gsc_entity_setlight(scr_entref_t ref);
-#endif
+void gsc_entity_showtoplayer(scr_entref_t ref);
 
 
 

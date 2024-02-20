@@ -4,7 +4,6 @@
 
 
 
-#if 0
 void gsc_entity_setalive(scr_entref_t ref)
 {
     int id = ref.entnum;
@@ -23,65 +22,64 @@ void gsc_entity_setalive(scr_entref_t ref)
     stackPushBool(qtrue);
 }
 
-void gsc_entity_setlight(scr_entref_t ref)
+
+
+void gsc_entity_showtoplayer(scr_entref_t ref)
 {
     int id = ref.entnum;
-    gentity_t *ent = &g_entities[id];
-
-    if ( ent->classname == scr_const.script_model )
+    int playerNum;
+    
+    if ( !stackGetParams("i", &playerNum) )
     {
-        int r, g, b, i;
-
-        if ( !stackGetParams("iiii", &r, &g, &b, &i) )
-        {
-            stackError("gsc_entity_setlight() argument is undefined or has a wrong type");
-            stackPushUndefined();
-            return;
-        }
-
-        if ( r < 0 )
-        {
-            r = 0;
-        }
-        else if ( r > 255 )
-        {
-            r = 255;
-        }
-        if ( g < 0 )
-        {
-            g = 0;
-        }
-        else if ( g > 255 )
-        {
-            g = 255;
-        }
-        if ( b < 0 )
-        {
-            b = 0;
-        }
-        else if ( b > 255 )
-        {
-            b = 255;
-        }
-        if ( i < 0 )
-        {
-            i = 0;
-        }
-        else if ( i > 255 )
-        {
-            i = 255;
-        }
-        ent->s.constantLight = r | ( g << 8 ) | ( b << 16 ) | ( i << 24 );
-
-        stackPushBool(qtrue);
-    }
-    else
-    {
-        stackError("gsc_entity_setlight() entity is not a script_model");
+        stackError("gsc_entity_showtoplayer() argument is undefined or has a wrong type");
         stackPushUndefined();
+        return;
     }
+
+    if ( id >= MAX_CLIENTS )
+	{
+		stackError("gsc_entity_showtoplayer() entity %i is not a player", id);
+		stackPushUndefined();
+		return;
+	}
+
+    if ( playerNum >= MAX_GENTITIES )
+	{
+		stackError("gsc_entity_showtoplayer() %i is not a valid entity number", playerNum);
+		stackPushUndefined();
+		return;
+	}
+    
+    gentity_t *entity = &g_entities[id];
+    gentity_t *player = NULL;
+
+    if(Scr_GetType(0) != STACK_UNDEFINED)
+        player = Scr_GetEntity(0);
+
+    if(player == NULL)
+    {
+		entity->svFlags &= ~SVF_SINGLECLIENT;
+		entity->singleClient = 0;
+		return;
+	}
+
+    if(!player->client)
+    {
+        stackError("gsc_entity_showtoplayer() entity %i is not a player", player->s.number);
+		return;
+	}
+
+    entity->svFlags |= SVF_SINGLECLIENT;
+	entity->singleClient = player->s.number;
+
+    stackPushBool(qtrue);
 }
-#endif
+
+
+
+
+
+
 
 
 

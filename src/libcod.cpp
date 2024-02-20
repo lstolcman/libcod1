@@ -3,10 +3,6 @@
 
 #include <signal.h>
 
-
-
-
-
 // Stock cvars
 cvar_t *cl_paused;
 cvar_t *com_dedicated;
@@ -14,14 +10,13 @@ cvar_t *com_logfile;
 cvar_t *com_sv_running;
 cvar_t *sv_serverid;
 
-
+// Custom cvars
+cvar_t *fs_callbacks;
+cvar_t *g_debugCallbacks;
 
 cHook *hook_sys_loaddll;
-
-cHook *hook_add_opcode;
 cHook *hook_com_initdvars;
-
-
+cHook *hook_gametype_scripts;
 
 // Stock callbacks
 int codecallback_startgametype = 0;
@@ -30,6 +25,8 @@ int codecallback_playerdisconnect = 0;
 int codecallback_playerdamage = 0;
 int codecallback_playerkilled = 0;
 
+// Custom callbacks
+int codecallback_playercommand = 0;
 
 callback_t callbacks[] =
 {
@@ -38,114 +35,42 @@ callback_t callbacks[] =
     { &codecallback_playerdisconnect, "CodeCallback_PlayerDisconnect" }, // g_scr_data.gametype.playerdisconnect
     { &codecallback_playerdamage, "CodeCallback_PlayerDamage" }, // g_scr_data.gametype.playerdamage
     { &codecallback_playerkilled, "CodeCallback_PlayerKilled" }, // g_scr_data.gametype.playerkilled
+
+    { &codecallback_playercommand, "CodeCallback_PlayerCommand"},
 };
-
-
-
-
 
 // Game lib variables declarations
 gentity_t *g_entities;
 
 // Game lib functions declarations
+Scr_GetFunctionHandle_t Scr_GetFunctionHandle;
 Scr_GetNumParam_t Scr_GetNumParam;
+SV_Cmd_ArgvBuffer_t SV_Cmd_ArgvBuffer;
+ClientCommand_t ClientCommand;
 Scr_GetFunction_t Scr_GetFunction;
 Scr_GetMethod_t Scr_GetMethod;
 SV_GameSendServerCommand_t SV_GameSendServerCommand;
+Scr_ExecEntThread_t Scr_ExecEntThread;
+Scr_FreeThread_t Scr_FreeThread;
 Scr_Error_t Scr_Error;
 SV_GetConfigstringConst_t SV_GetConfigstringConst;
-//Scr_GetVector_t Scr_GetVector;
+Scr_IsSystemActive_t Scr_IsSystemActive;
+Scr_GetType_t Scr_GetType;
+Scr_GetEntity_t Scr_GetEntity;
 Scr_AddBool_t Scr_AddBool;
 Scr_AddInt_t Scr_AddInt;
 Scr_AddString_t Scr_AddString;
 Scr_AddUndefined_t Scr_AddUndefined;
 Scr_AddVector_t Scr_AddVector;
+Scr_MakeArray_t Scr_MakeArray;
+Scr_AddArray_t Scr_AddArray;
 I_strlwr_t I_strlwr;
+//Scr_GetVector_t Scr_GetVector;
 //Player_GetUseList_t Player_GetUseList;
 
-
-
-
-
-
-
-
-
-void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...))
+void custom_Com_InitCvars(void)
 {
-    hook_sys_loaddll->unhook();
-    void *(*Sys_LoadDll)(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...));
-    *(int *)&Sys_LoadDll = hook_sys_loaddll->from;
-    void *ret = Sys_LoadDll(name, fqpath, entryPoint, systemcalls);
-    hook_sys_loaddll->hook();
-
-    // Unprotect the game lib
-    char libPath[512];
-    cvar_t* fs_game = Cvar_FindVar("fs_game");
-    if (*fs_game->string)
-        sprintf(libPath, "%s/game.mp.i386.so", fs_game->string);
-    else
-        sprintf(libPath, "main/game.mp.i386.so");
-
-    char buf[512];
-    char flags[4];
-    void *low, *high;
-    FILE *fp;
-    fp = fopen("/proc/self/maps", "r");
-    if (!fp)
-        return 0;
-    while (fgets(buf, sizeof(buf), fp))
-    {
-        if (!strstr(buf, libPath))
-            continue;
-        if (sscanf (buf, "%p-%p %4c", &low, &high, flags) != 3)
-            continue;
-        mprotect((void *)low, (int)high-(int)low, PROT_READ | PROT_WRITE | PROT_EXEC);
-    }
-    fclose(fp);
-
-
-    // Game lib variables initializations
-    g_entities = (gentity_t*)dlsym(ret, "g_entities");
-
-    // Game lib functions initializations
-    Scr_GetNumParam = (Scr_GetNumParam_t)dlsym(ret, "Scr_GetNumParam");
-    Scr_GetFunction = (Scr_GetFunction_t)dlsym(ret, "Scr_GetFunction");
-    Scr_GetMethod = (Scr_GetMethod_t)dlsym(ret, "Scr_GetMethod");
-
-    SV_GameSendServerCommand = (SV_GameSendServerCommand_t)dlsym(ret, "trap_SendServerCommand");
-
-    Scr_Error = (Scr_Error_t)dlsym(ret, "Scr_Error");
-
-    SV_GetConfigstringConst = (SV_GetConfigstringConst_t)dlsym(ret, "trap_GetConfigstringConst");
-
-    //Scr_GetVector = (Scr_GetVector_t)dlsym(ret, "Scr_GetVector");
-    Scr_AddBool = (Scr_AddBool_t)dlsym(ret, "Scr_AddBool");
-    Scr_AddInt = (Scr_AddInt_t)dlsym(ret, "Scr_AddInt");
-    Scr_AddString = (Scr_AddString_t)dlsym(ret, "Scr_AddString");
-    Scr_AddUndefined = (Scr_AddUndefined_t)dlsym(ret, "Scr_AddUndefined");
-    Scr_AddVector = (Scr_AddVector_t)dlsym(ret, "Scr_AddVector");
-
-    I_strlwr = (I_strlwr_t)dlsym(ret, "Q_strlwr");
-
-
-
-    //Player_GetUseList = (Player_GetUseList_t)dlsym(ret, "G_GetActivateEnt");
-
-    return ret;
-}
-
-
-
-
-
-
-
-
-
-void custom_Com_InitDvars(void)
-{
-    printf("####### custom_Com_InitDvars \n");
+    printf("####### custom_Com_InitCvars \n");
 
 
     hook_com_initdvars->unhook();
@@ -165,9 +90,6 @@ void custom_Com_InitDvars(void)
 
 }
 
-
-
-
 void common_init_complete_print(const char *format, ...)
 {
     Com_Printf("--- Common Initialization Complete ---\n");
@@ -181,9 +103,84 @@ void common_init_complete_print(const char *format, ...)
     Cvar_Get("libcod", "1", CVAR_SERVERINFO);
     Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
 
+    fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
+    g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
+
 
 }
 
+
+
+
+
+int custom_GScr_LoadGameTypeScript()
+{
+	unsigned int i;
+	char path_for_cb[512] = "maps/mp/gametypes/_callbacksetup";
+
+	hook_gametype_scripts->unhook();
+	int (*GScr_LoadGameTypeScript)();
+	*(int *)&GScr_LoadGameTypeScript = hook_gametype_scripts->from;
+	int ret = GScr_LoadGameTypeScript();
+	hook_gametype_scripts->hook();
+
+	if ( strlen(fs_callbacks->string) )
+		strncpy(path_for_cb, fs_callbacks->string, sizeof(path_for_cb));
+
+	for ( i = 0; i < sizeof(callbacks)/sizeof(callbacks[0]); i++ )
+	{
+		*callbacks[i].pos = Scr_GetFunctionHandle(path_for_cb, callbacks[i].name, 0);
+		if ( *callbacks[i].pos && g_debugCallbacks->integer )
+			Com_Printf("%s found @ %p\n", callbacks[i].name, scrVarPub.programBuffer + *callbacks[i].pos);
+	}
+
+	return ret;
+}
+
+
+
+
+
+
+
+
+void hook_ClientCommand(int clientNum)
+{
+	if ( !Scr_IsSystemActive() )
+		return;
+			
+	if ( !codecallback_playercommand )
+	{	
+		ClientCommand(clientNum);
+		return;
+	}
+
+	stackPushArray();
+	int args = Cmd_Argc();
+	for ( int i = 0; i < args; i++ )
+	{
+		char tmp[MAX_STRINGLENGTH];
+		SV_Cmd_ArgvBuffer(i, tmp, sizeof(tmp));
+		if( i == 1 && tmp[0] >= 20 && tmp[0] <= 22 )
+		{
+			char *part = strtok(tmp + 1, " ");
+			while( part != NULL )
+			{
+				stackPushString(part);
+				stackPushArrayLast();
+				part = strtok(NULL, " ");
+			}
+		}
+		else
+		{
+			stackPushString(tmp);
+			stackPushArrayLast();
+		}
+	}
+
+	short ret = Scr_ExecEntThread(&g_entities[clientNum], codecallback_playercommand, 1);
+	Scr_FreeThread(ret);
+}
 
 
 
@@ -233,13 +230,80 @@ void ServerCrash(int sig)
 
 
 
+void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...))
+{
+    hook_sys_loaddll->unhook();
+    void *(*Sys_LoadDll)(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...));
+    *(int *)&Sys_LoadDll = hook_sys_loaddll->from;
+    void *ret = Sys_LoadDll(name, fqpath, entryPoint, systemcalls);
+    hook_sys_loaddll->hook();
+
+    // Unprotect the game lib
+    char libPath[512];
+    cvar_t* fs_game = Cvar_FindVar("fs_game");
+    if (*fs_game->string)
+        sprintf(libPath, "%s/game.mp.i386.so", fs_game->string);
+    else
+        sprintf(libPath, "main/game.mp.i386.so");
+
+    char buf[512];
+    char flags[4];
+    void *low, *high;
+    FILE *fp;
+    fp = fopen("/proc/self/maps", "r");
+    if (!fp)
+        return 0;
+    while (fgets(buf, sizeof(buf), fp))
+    {
+        if (!strstr(buf, libPath))
+            continue;
+        if (sscanf (buf, "%p-%p %4c", &low, &high, flags) != 3)
+            continue;
+        mprotect((void *)low, (int)high-(int)low, PROT_READ | PROT_WRITE | PROT_EXEC);
+    }
+    fclose(fp);
+
+    // Game lib variables initializations
+    g_entities = (gentity_t*)dlsym(ret, "g_entities");
+
+    // Game lib functions initializations
+    Scr_GetFunctionHandle = (Scr_GetFunctionHandle_t)dlsym(ret, "Scr_GetFunctionHandle");
+    Scr_GetNumParam = (Scr_GetNumParam_t)dlsym(ret, "Scr_GetNumParam");
+    SV_Cmd_ArgvBuffer = (SV_Cmd_ArgvBuffer_t)dlsym(ret, "trap_Argv");
+    ClientCommand = (ClientCommand_t)dlsym(ret, "ClientCommand");
+    Scr_GetFunction = (Scr_GetFunction_t)dlsym(ret, "Scr_GetFunction");
+    Scr_GetMethod = (Scr_GetMethod_t)dlsym(ret, "Scr_GetMethod");
+    SV_GameSendServerCommand = (SV_GameSendServerCommand_t)dlsym(ret, "trap_SendServerCommand");
+    Scr_ExecEntThread = (Scr_ExecEntThread_t)dlsym(ret, "Scr_ExecEntThread");
+    Scr_FreeThread = (Scr_FreeThread_t)dlsym(ret, "Scr_FreeThread");
+    Scr_Error = (Scr_Error_t)dlsym(ret, "Scr_Error");
+    SV_GetConfigstringConst = (SV_GetConfigstringConst_t)dlsym(ret, "trap_GetConfigstringConst");
+    Scr_IsSystemActive = (Scr_IsSystemActive_t)dlsym(ret, "Scr_IsSystemActive");
+    Scr_GetType = (Scr_GetType_t)dlsym(ret, "Scr_GetType");
+    Scr_GetEntity = (Scr_GetEntity_t)dlsym(ret, "Scr_GetEntity");
+    Scr_AddBool = (Scr_AddBool_t)dlsym(ret, "Scr_AddBool");
+    Scr_AddInt = (Scr_AddInt_t)dlsym(ret, "Scr_AddInt");
+    Scr_AddString = (Scr_AddString_t)dlsym(ret, "Scr_AddString");
+    Scr_AddUndefined = (Scr_AddUndefined_t)dlsym(ret, "Scr_AddUndefined");
+    Scr_AddVector = (Scr_AddVector_t)dlsym(ret, "Scr_AddVector");
+    Scr_MakeArray = (Scr_MakeArray_t)dlsym(ret, "Scr_MakeArray");
+    Scr_AddArray = (Scr_AddArray_t)dlsym(ret, "Scr_AddArray");
+    I_strlwr = (I_strlwr_t)dlsym(ret, "Q_strlwr");
+    //Scr_GetVector = (Scr_GetVector_t)dlsym(ret, "Scr_GetVector");
+    //Player_GetUseList = (Player_GetUseList_t)dlsym(ret, "G_GetActivateEnt");
+
+    // Game lib call instructions redirections
+    cracking_hook_call((int)dlsym(ret, "vmMain") + 0xB0, (int)hook_ClientCommand);
+
+    // Game lib functions replacements
+    hook_gametype_scripts = new cHook((int)dlsym(ret, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
+	hook_gametype_scripts->hook();
 
 
 
 
-
-
-
+    return ret;
+}
 
 class cCallOfDuty1Pro
 {
@@ -273,7 +337,11 @@ public:
 
 
         cracking_hook_call(0x0806ce77, (int)common_init_complete_print);
-        //cracking_hook_call(0x08091D0C, (int)hook_sv_spawnserver);
+
+
+        cracking_hook_call(0x08090BA0, (int)hook_ClientCommand);
+
+
         cracking_hook_call(0x08085213, (int)hook_AuthorizeState);
         cracking_hook_call(0x08094c54, (int)Scr_GetCustomFunction);
         cracking_hook_call(0x080951c4, (int)Scr_GetCustomMethod);
@@ -282,9 +350,8 @@ public:
         hook_sys_loaddll = new cHook(0x080c5fe4, (int)custom_Sys_LoadDll);
         hook_sys_loaddll->hook();
 
-
-
-        hook_com_initdvars = new cHook(0x080c6b90, (int)custom_Com_InitDvars);
+        
+        hook_com_initdvars = new cHook(0x080c6b90, (int)custom_Com_InitCvars);
         hook_com_initdvars->hook();
 
 

@@ -4,25 +4,25 @@
 #include <stdint.h>
 #include <sys/time.h>
 
-
-
-
-
-
-
-void NULL_FUNC_ENTITY(scr_entref_t id) {}
-void NULL_FUNC(void) {}
-
 scr_function_t scriptFunctions[] =
 {
-    
-    
-
     #if COMPILE_UTILS == 1
     {"sendCommandToClient", gsc_utils_sendcommandtoclient, 0},
+    #if ENABLE_UNSAFE == 1
+    //{"system", gsc_utils_system, 0},
+    #endif
 
+    {"logPrintConsole", gsc_utils_logprintconsole, 0},
     {"toLower", gsc_utils_tolower, 0},
     {"replace", gsc_utils_replace, 0},
+
+    #if ENABLE_UNSAFE == 1
+    {"file_exists", gsc_utils_file_exists, 0},
+    {"fopen", gsc_utils_fopen, 0},
+    {"fwrite", gsc_utils_fwrite, 0},
+    {"fread", gsc_utils_fread, 0},
+    {"fclose", gsc_utils_fclose, 0},
+    #endif
 
     {"getSystemTime", gsc_utils_getsystemtime, 0},
     
@@ -30,11 +30,8 @@ scr_function_t scriptFunctions[] =
     {"makeLocalizedString", gsc_utils_makelocalizedstring, 0},
     #endif
 
-
-
     {NULL, NULL, 0} // Terminator
 };
-
 
 xfunction_t Scr_GetCustomFunction(const char **fname, int *fdev)
 {
@@ -56,36 +53,22 @@ xfunction_t Scr_GetCustomFunction(const char **fname, int *fdev)
     return NULL;
 }
 
-
-
-
-
-
-
-
-
-
-
-
 scr_method_t scriptMethods[] =
 {
-
-
     #if COMPILE_ENTITY == 1
-
-    #if 0
-    {"addEntityVelocity", gsc_entity_addentityvelocity, 0},
-    {"disableBounce", gsc_entity_disablebounce, 0},
-    {"setLight", gsc_entity_setlight, 0},
+    {"showToPlayer", gsc_entity_showtoplayer, 0},
     #endif
-
-    #endif
-
 
     #if COMPILE_PLAYER == 1
     {"setVelocity", gsc_player_setvelocity, 0},
     {"getVelocity", gsc_player_getvelocity, 0},
     {"aimButtonPressed", gsc_player_button_ads, 0},
+    {"leftButtonPressed", gsc_player_button_left, 0},
+    {"rightButtonPressed", gsc_player_button_right, 0},
+    {"forwardButtonPressed", gsc_player_button_forward, 0},
+    {"backButtonPressed", gsc_player_button_back, 0},
+    {"moveUpButtonPressed", gsc_player_button_up, 0},
+    {"moveDownButtonPressed", gsc_player_button_down, 0},
     {"leanleftButtonPressed", gsc_player_button_leanleft, 0},
     {"leanrightButtonPressed", gsc_player_button_leanright, 0},
     {"reloadButtonPressed", gsc_player_button_reload, 0},
@@ -93,11 +76,10 @@ scr_method_t scriptMethods[] =
     {"getStance", gsc_player_getstance, 0},
     {"getIP", gsc_player_getip, 0},
     {"getPing", gsc_player_getping, 0},
-
+    {"processClientCommand", gsc_player_processclientcommand, 0},
     {"dropClient", gsc_player_dropclient, 0},
 
     #endif
-
 
     {NULL, NULL, 0} // Terminator
 };
@@ -125,12 +107,6 @@ xmethod_t Scr_GetCustomMethod(const char **fname, qboolean *fdev)
 
     return NULL;
 }
-
-
-
-
-
-
 
 void stackError(const char *format, ...)
 {
@@ -241,9 +217,6 @@ int stackGetParams(const char *params, ...)
     return errors == 0; // success if no errors
 }
 
-
-
-
 int stackGetParamInt(int param, int *value)
 {
     if ( param >= Scr_GetNumParam() )
@@ -351,19 +324,6 @@ int stackGetParamFloat(int param, float *value)
 
     return 1;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /**
  * @brief Base time in seconds

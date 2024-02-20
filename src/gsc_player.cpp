@@ -1,17 +1,6 @@
 #include "gsc_player.hpp"
 
-
-
 #if COMPILE_PLAYER == 1
-
-
-
-
-
-
-
-
-
 
 void gsc_player_setvelocity(scr_entref_t ref)
 {
@@ -38,13 +27,6 @@ void gsc_player_setvelocity(scr_entref_t ref)
     stackPushBool(qtrue);
 }
 
-
-
-
-
-
-
-
 void gsc_player_getvelocity(scr_entref_t ref)
 {
     int id = ref.entnum;
@@ -61,34 +43,117 @@ void gsc_player_getvelocity(scr_entref_t ref)
     stackPushVector(ps->velocity);
 }
 
-
-
-
-
-
-
 void gsc_player_button_ads(scr_entref_t ref)
 {
-	int id = ref.entnum;
+    int id = ref.entnum;
 
-	if ( id >= MAX_CLIENTS )
-	{
-		stackError("gsc_player_button_ads() entity %i is not a player", id);
-		stackPushUndefined();
-		return;
-	}
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_button_ads() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
 
-	client_t *client = &svs.clients[id];
+    client_t *client = &svs.clients[id];
 
-	stackPushBool(client->lastUsercmd.buttons & KEY_MASK_ADS_MODE ? qtrue : qfalse);
+    stackPushBool(client->lastUsercmd.buttons & KEY_MASK_ADS_MODE ? qtrue : qfalse);
 }
 
+void gsc_player_button_left(scr_entref_t ref)
+{
+    int id = ref.entnum;
 
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_button_left() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
 
+    client_t *client = &svs.clients[id];
 
+    stackPushBool(client->lastUsercmd.rightmove == KEY_MASK_MOVELEFT ? qtrue : qfalse);
+}
 
+void gsc_player_button_right(scr_entref_t ref)
+{
+    int id = ref.entnum;
 
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_button_right() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
 
+    client_t *client = &svs.clients[id];
+
+    stackPushBool(client->lastUsercmd.rightmove == KEY_MASK_MOVERIGHT ? qtrue : qfalse);
+}
+
+void gsc_player_button_forward(scr_entref_t ref)
+{
+    int id = ref.entnum;
+
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_button_forward() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    client_t *client = &svs.clients[id];
+
+    stackPushBool(client->lastUsercmd.forwardmove == KEY_MASK_FORWARD ? qtrue : qfalse);
+}
+
+void gsc_player_button_back(scr_entref_t ref)
+{
+    int id = ref.entnum;
+
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_button_back() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    client_t *client = &svs.clients[id];
+
+    stackPushBool(client->lastUsercmd.forwardmove == KEY_MASK_BACK ? qtrue : qfalse);
+}
+
+void gsc_player_button_up(scr_entref_t ref)
+{
+    int id = ref.entnum;
+
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_button_up() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    client_t *client = &svs.clients[id];
+
+    stackPushBool(client->lastUsercmd.upmove == KEY_MASK_MOVEUP ? qtrue : qfalse);
+}
+
+void gsc_player_button_down(scr_entref_t ref)
+{
+    int id = ref.entnum;
+
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_button_down() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    client_t *client = &svs.clients[id];
+
+    stackPushBool(client->lastUsercmd.upmove == KEY_MASK_MOVEDOWN ? qtrue : qfalse);
+}
 
 void gsc_player_button_leanleft(scr_entref_t ref)
 {
@@ -122,9 +187,6 @@ void gsc_player_button_leanright(scr_entref_t ref)
     stackPushBool(client->lastUsercmd.wbuttons & KEY_MASK_LEANRIGHT ? qtrue : qfalse);
 }
 
-
-
-
 void gsc_player_button_reload(scr_entref_t ref)
 {
     int id = ref.entnum;
@@ -141,12 +203,6 @@ void gsc_player_button_reload(scr_entref_t ref)
     stackPushBool(client->lastUsercmd.wbuttons & KEY_MASK_RELOAD ? qtrue : qfalse);
 }
 
-
-
-
-
-
-
 void gsc_player_gettagangles(scr_entref_t ref)
 {
     int id = ref.entnum;
@@ -162,13 +218,6 @@ void gsc_player_gettagangles(scr_entref_t ref)
 
     stackPushVector(ps->viewangles);
 }
-
-
-
-
-
-
-
 
 void gsc_player_getstance(scr_entref_t ref)
 {
@@ -190,12 +239,6 @@ void gsc_player_getstance(scr_entref_t ref)
         stackPushString("stand");
 }
 
-
-
-
-
-
-
 void gsc_player_getip(scr_entref_t ref)
 {
     int id = ref.entnum;
@@ -214,32 +257,36 @@ void gsc_player_getip(scr_entref_t ref)
     stackPushString(tmp);
 }
 
-
-
-
-
-
 void gsc_player_getping(scr_entref_t ref)
 {
-	int id = ref.entnum;
+    int id = ref.entnum;
 
-	if ( id >= MAX_CLIENTS )
-	{
-		stackError("gsc_player_getping() entity %i is not a player", id);
-		stackPushUndefined();
-		return;
-	}
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_getping() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
 
-	client_t *client = &svs.clients[id];
-	stackPushInt(client->ping);
+    client_t *client = &svs.clients[id];
+    stackPushInt(client->ping);
 }
 
+void gsc_player_processclientcommand(scr_entref_t ref)
+{
+    int id = ref.entnum;
 
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_processclientcommand() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
 
+    ClientCommand(id);
 
-
-
-
+    stackPushBool(qtrue);
+}
 
 void gsc_player_dropclient(scr_entref_t ref)
 {
@@ -263,20 +310,11 @@ void gsc_player_dropclient(scr_entref_t ref)
     client_t *client = &svs.clients[id];
 
     if(Scr_GetNumParam() > 0)
-	    SV_DropClient(client, reason);
-	else
-	    SV_DropClient(client, NULL);
+        SV_DropClient(client, reason);
+    else
+        SV_DropClient(client, NULL);
 
     stackPushBool(qtrue);
 }
-
-
-
-
-
-
-
-
-
 
 #endif

@@ -21,17 +21,14 @@
 
 
 #define ARCHIVEDSSBUF_SIZE          0x2000000
-#define BIG_INFO_STRING             0x2000
-#define ENTFIELD_MASK               0xC000
-#define FLOAT_INT_BITS              13
-#define FLOAT_INT_BIAS              ( 1 << ( FLOAT_INT_BITS - 1 ) ) // 0x1000
-#define FRAMETIME                   50
+#define GENTITYNUM_BITS             10
 #define PACKET_BACKUP               32
 
 #define MAX_CHALLENGES              1024
 #define MAX_CLIENTS                 64
 #define MAX_CONFIGSTRINGS           2048
 #define MAX_DOWNLOAD_WINDOW         8
+#define MAX_GENTITIES               ( 1 << GENTITYNUM_BITS )
 #define MAX_INFO_STRING             0x400
 #define MAX_MSGLEN                  0x4000
 #define MAX_QPATH                   64
@@ -44,6 +41,16 @@
 #define CVAR_SERVERINFO         (1 << 2)        // 0x0004
 
 
+
+#define SVF_SINGLECLIENT        0x800
+
+
+#define KEY_MASK_FORWARD    127
+#define KEY_MASK_BACK       129
+#define KEY_MASK_MOVERIGHT  127
+#define KEY_MASK_MOVELEFT   129
+#define KEY_MASK_MOVEUP   127
+#define KEY_MASK_MOVEDOWN   129
 
 #define KEY_MASK_RELOAD         0x8
 #define KEY_MASK_LEANLEFT       0x10
