@@ -1,8 +1,10 @@
-it was planned to wait for a more advanced adaptation before the fork creation
+Work in progress, not ready for a safe and reliable production
 
-currently for 1.1 only  
-if you don't have a valid cd-key, you can join the server using the `sv_cracked` cvar set to `1`
+Currently for 1.1 patch only  
+If you don't have a valid cd-key, you can join the server using the `sv_cracked` cvar set to `1`
 
-the initial objective of this fork is to make the 1.5 servers able to activate the 1.1 player movements, using a maintained base (zk_libcod)
-
-but ideally this fork would be able to replace codextended, because one of the reasons is that we (cod1 server owners) could continue working with a base (libcod1) which can receive support by the CoD2 hooking community (which is more active than the CoD1 one), more easily than using codextended
+One of the objectives of this fork is to have a modern alternative to CoDExtended, so that CoD1 server owners can continue working with an up-to-date base, and can more easily receive support from the CoD2 hooking community.
+___
+#### Credits
+- [CoDExtended](https://github.com/xtnded/codextended)
+- [CoD2rev_Server](https://github.com/voron00/CoD2rev_Server)
