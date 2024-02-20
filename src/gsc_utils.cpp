@@ -29,33 +29,25 @@ void gsc_utils_sendcommandtoclient()
 	int clientNum;
 	char *message;
 
-	if ( !stackGetParams("is", &clientNum, &message) )
+	if ( (Scr_GetNumParam() > 1 && !stackGetParams("is", &clientNum, &message)) 
+		|| !stackGetParams("s", &message) )
 	{
 		stackError("gsc_utils_sendcommandtoclient() one or more arguments is undefined or has a wrong type");
 		stackPushUndefined();
 		return;
 	}
 
-	SV_GameSendServerCommand(clientNum, 0, message);
+	if(Scr_GetNumParam() > 1)
+		SV_GameSendServerCommand(clientNum, SV_CMD_RELIABLE, message);
+	else
+	    SV_GameSendServerCommand(-1, SV_CMD_RELIABLE, message);
+
 	stackPushBool(qtrue);
 }
 
 
 
-void gsc_utils_sendcommandtoserver()
-{
-	char *message;
 
-	if ( !stackGetParams("s", &message) )
-	{
-		stackError("gsc_utils_sendcommandtoserver() argument is undefined or has a wrong type");
-		stackPushUndefined();
-		return;
-	}
-
-	SV_SendServerCommand(NULL, 1, message);
-	stackPushBool(qtrue);
-}
 
 
 

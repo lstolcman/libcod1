@@ -20,7 +20,6 @@ scr_function_t scriptFunctions[] =
 
     #if COMPILE_UTILS == 1
     {"sendCommandToClient", gsc_utils_sendcommandtoclient, 0},
-    {"sendCommandToServer", gsc_utils_sendcommandtoserver, 0},
 
     {"toLower", gsc_utils_tolower, 0},
     {"replace", gsc_utils_replace, 0},

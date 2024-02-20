@@ -7,7 +7,6 @@
 
 
 void gsc_utils_sendcommandtoclient();
-void gsc_utils_sendcommandtoserver();
 
 void gsc_utils_tolower();
 void gsc_utils_replace();

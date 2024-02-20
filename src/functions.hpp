@@ -146,7 +146,7 @@ static const Cvar_VariableString_t Cvar_VariableString = (Cvar_VariableString_t)
 
 
 
-typedef void (*SV_GameSendServerCommand_t)(int clientnum, int svscmd_type, const char *text);
+typedef void (*SV_GameSendServerCommand_t)(int clientnum, svscmd_type type, const char *text);
 extern SV_GameSendServerCommand_t SV_GameSendServerCommand;
 
 
