@@ -23,12 +23,9 @@
 #include <sys/stat.h> // fsize
 
 #include "config.hpp"
-#include "declarations.hpp" // voron tak reshil :)
+#include "declarations.hpp"
 #include "cracking.hpp"
 #include "functions.hpp"
-
-
-
 
 #if COMPILE_ENTITY == 1
 #include "gsc_entity.hpp"
@@ -42,19 +39,12 @@
 #include "gsc_utils.hpp"
 #endif
 
-
-
-
 #define STACK_UNDEFINED 0
 #define STACK_STRING 1
 #define STACK_LOCALIZED_STRING 2
 #define STACK_VECTOR 3
 #define STACK_FLOAT 4
 #define STACK_INT 5
-
-
-
-
 
 #define stackPushUndefined Scr_AddUndefined
 #define stackPushBool Scr_AddBool
@@ -76,25 +66,17 @@ int Q_vsnprintf(char *s0, size_t size, const char *fmt, va_list args);
 int strcmp_constant_time(const char *s1, const char *s2);
 #endif
 
-
-
 int stackGetParams(const char *params, ...);
 void stackError(const char *format, ...);
 
 int stackGetParamInt(int param, int *value);
-
 int stackGetParamString(int param, char **value);
 int stackGetParamConstString(int param, unsigned int *value);
 int stackGetParamLocalizedString(int param, char **value);
 int stackGetParamVector(int param, vec3_t value);
 int stackGetParamFloat(int param, float *value);
 
-
-
 xfunction_t Scr_GetCustomFunction(const char **fname, qboolean *fdev);
 xmethod_t Scr_GetCustomMethod(const char **fname, qboolean *fdev);
-
-
-uint64_t Sys_MilliSeconds64(void);
 
 #endif

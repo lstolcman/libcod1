@@ -2,8 +2,6 @@
 
 #if COMPILE_ENTITY == 1
 
-
-
 void gsc_entity_setalive(scr_entref_t ref)
 {
     int id = ref.entnum;
@@ -22,8 +20,6 @@ void gsc_entity_setalive(scr_entref_t ref)
     stackPushBool(qtrue);
 }
 
-
-
 void gsc_entity_showtoplayer(scr_entref_t ref)
 {
     int id = ref.entnum;
@@ -37,18 +33,18 @@ void gsc_entity_showtoplayer(scr_entref_t ref)
     }
 
     if ( id >= MAX_CLIENTS )
-	{
-		stackError("gsc_entity_showtoplayer() entity %i is not a player", id);
-		stackPushUndefined();
-		return;
-	}
+    {
+        stackError("gsc_entity_showtoplayer() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
 
     if ( playerNum >= MAX_GENTITIES )
-	{
-		stackError("gsc_entity_showtoplayer() %i is not a valid entity number", playerNum);
-		stackPushUndefined();
-		return;
-	}
+    {
+        stackError("gsc_entity_showtoplayer() %i is not a valid entity number", playerNum);
+        stackPushUndefined();
+        return;
+    }
     
     gentity_t *entity = &g_entities[id];
     gentity_t *player = NULL;
@@ -58,29 +54,21 @@ void gsc_entity_showtoplayer(scr_entref_t ref)
 
     if(player == NULL)
     {
-		entity->svFlags &= ~SVF_SINGLECLIENT;
-		entity->singleClient = 0;
-		return;
-	}
+        entity->svFlags &= ~SVF_SINGLECLIENT;
+        entity->singleClient = 0;
+        return;
+    }
 
     if(!player->client)
     {
         stackError("gsc_entity_showtoplayer() entity %i is not a player", player->s.number);
-		return;
-	}
+        return;
+    }
 
     entity->svFlags |= SVF_SINGLECLIENT;
-	entity->singleClient = player->s.number;
+    entity->singleClient = player->s.number;
 
     stackPushBool(qtrue);
 }
-
-
-
-
-
-
-
-
 
 #endif

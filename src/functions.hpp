@@ -117,6 +117,12 @@ extern SV_GetConfigstringConst_t SV_GetConfigstringConst;
 typedef int (*Scr_IsSystemActive_t)();
 extern Scr_IsSystemActive_t Scr_IsSystemActive;
 
+typedef int (*Scr_GetInt_t)(unsigned int param);
+extern Scr_GetInt_t Scr_GetInt;
+
+typedef const char * (*Scr_GetString_t)(unsigned int param);
+extern Scr_GetString_t Scr_GetString;
+
 typedef int (*Scr_GetType_t)(unsigned int param);
 extern Scr_GetType_t Scr_GetType;
 
@@ -143,6 +149,16 @@ extern Scr_MakeArray_t Scr_MakeArray;
 
 typedef void (*Scr_AddArray_t)(void);
 extern Scr_AddArray_t Scr_AddArray;
+
+
+
+
+typedef unsigned int (*Scr_LoadScript_t)(const char *filename);
+extern Scr_LoadScript_t Scr_LoadScript;
+
+
+
+
 
 typedef playerState_t * (*SV_GameClientNum_t)(int num);
 #if COD_VERSION == COD1_1_1

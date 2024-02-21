@@ -10,6 +10,7 @@ void gsc_utils_logprintconsole();
 
 void gsc_utils_tolower();
 void gsc_utils_replace();
+void gsc_utils_getsubstr();
 
 void gsc_utils_file_exists();
 void gsc_utils_fopen();

@@ -55,6 +55,8 @@ Scr_FreeThread_t Scr_FreeThread;
 Scr_Error_t Scr_Error;
 SV_GetConfigstringConst_t SV_GetConfigstringConst;
 Scr_IsSystemActive_t Scr_IsSystemActive;
+Scr_GetInt_t Scr_GetInt;
+Scr_GetString_t Scr_GetString;
 Scr_GetType_t Scr_GetType;
 Scr_GetEntity_t Scr_GetEntity;
 Scr_AddBool_t Scr_AddBool;
@@ -64,6 +66,7 @@ Scr_AddUndefined_t Scr_AddUndefined;
 Scr_AddVector_t Scr_AddVector;
 Scr_MakeArray_t Scr_MakeArray;
 Scr_AddArray_t Scr_AddArray;
+Scr_LoadScript_t Scr_LoadScript;
 I_strlwr_t I_strlwr;
 //Scr_GetVector_t Scr_GetVector;
 //Player_GetUseList_t Player_GetUseList;
@@ -72,22 +75,17 @@ void custom_Com_InitCvars(void)
 {
     printf("####### custom_Com_InitCvars \n");
 
-
     hook_com_initdvars->unhook();
     void (*Com_InitDvars)(void);
     *(int *)&Com_InitDvars = hook_com_initdvars->from;
     Com_InitDvars();
     hook_com_initdvars->hook();
 
-
-
     // Get references to early loaded stock dvars
     cl_paused = Cvar_FindVar("cl_paused");
     com_dedicated = Cvar_FindVar("dedicated");
     com_logfile = Cvar_FindVar("logfile");
     com_sv_running = Cvar_FindVar("sv_running");
-
-
 }
 
 void common_init_complete_print(const char *format, ...)
@@ -97,26 +95,20 @@ void common_init_complete_print(const char *format, ...)
     // Get references to stock cvars
     sv_serverid = Cvar_FindVar("sv_serverid");
 
-
-
     // Register custom cvars
     Cvar_Get("libcod", "1", CVAR_SERVERINFO);
     Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
 
     fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
     g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
-
-
 }
 
-
-
-
-
+//TODO: maybe not using another hardcoded path for custom callbacks
 int custom_GScr_LoadGameTypeScript()
 {
     unsigned int i;
     char path_for_cb[512] = "maps/mp/gametypes/_callbacksetup";
+    char path_for_cb_custom[512] = "callback";
 
     hook_gametype_scripts->unhook();
     int (*GScr_LoadGameTypeScript)();
@@ -124,17 +116,16 @@ int custom_GScr_LoadGameTypeScript()
     int ret = GScr_LoadGameTypeScript();
     hook_gametype_scripts->hook();
 
+    if(!Scr_LoadScript(path_for_cb_custom))
+        printf("####### custom_GScr_LoadGameTypeScript: Scr_LoadScript(path_for_cb_custom) FAILED \n");
+
     if ( strlen(fs_callbacks->string) )
         strncpy(path_for_cb, fs_callbacks->string, sizeof(path_for_cb));
         
     for ( i = 0; i < sizeof(callbacks)/sizeof(callbacks[0]); i++ )
     {
-        if(!strcmp(callbacks[i].name, "CodeCallback_PlayerCommand")) // Custom callback in a non-stock filename //TODO: think about handling better
-        {
-            printf("####### FOUND CodeCallback_PlayerCommand \n");
-            char path_for_cb_custom[512] = "callback";
+        if(!strcmp(callbacks[i].name, "CodeCallback_PlayerCommand")) // Custom callback
             *callbacks[i].pos = Scr_GetFunctionHandle(path_for_cb_custom, callbacks[i].name);
-        }
         else
             *callbacks[i].pos = Scr_GetFunctionHandle(path_for_cb, callbacks[i].name);
         
@@ -145,21 +136,13 @@ int custom_GScr_LoadGameTypeScript()
     return ret;
 }
 
-
-
-
-
-
-
-
 void hook_ClientCommand(int clientNum)
 {
     if ( !Scr_IsSystemActive() )
         return;
             
     if ( !codecallback_playercommand )
-    {	printf("####### hook_ClientCommand: !codecallback_playercommand \n");
-        ClientCommand(clientNum);
+    {	ClientCommand(clientNum);
         return;
     }
 
@@ -187,14 +170,8 @@ void hook_ClientCommand(int clientNum)
     }
 
     short ret = Scr_ExecEntThread(&g_entities[clientNum], codecallback_playercommand, 1);
-    printf("####### hook_ClientCommand: Scr_FreeThread \n");
     Scr_FreeThread(ret);
 }
-
-
-
-
-
 
 const char* hook_AuthorizeState(int arg)
 {
@@ -206,11 +183,6 @@ const char* hook_AuthorizeState(int arg)
 
     return s;
 }
-
-
-
-
-
 
 void ServerCrash(int sig)
 {
@@ -234,9 +206,6 @@ void ServerCrash(int sig)
     backtrace_symbols_fd(array, size, STDERR_FILENO);
     exit(1);
 }
-
-
-
 
 void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...))
 {
@@ -287,6 +256,8 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Scr_Error = (Scr_Error_t)dlsym(ret, "Scr_Error");
     SV_GetConfigstringConst = (SV_GetConfigstringConst_t)dlsym(ret, "trap_GetConfigstringConst");
     Scr_IsSystemActive = (Scr_IsSystemActive_t)dlsym(ret, "Scr_IsSystemActive");
+    Scr_GetInt = (Scr_GetInt_t)dlsym(ret, "Scr_GetInt");
+    Scr_GetString = (Scr_GetString_t)dlsym(ret, "Scr_GetString");
     Scr_GetType = (Scr_GetType_t)dlsym(ret, "Scr_GetType");
     Scr_GetEntity = (Scr_GetEntity_t)dlsym(ret, "Scr_GetEntity");
     Scr_AddBool = (Scr_AddBool_t)dlsym(ret, "Scr_AddBool");
@@ -296,6 +267,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Scr_AddVector = (Scr_AddVector_t)dlsym(ret, "Scr_AddVector");
     Scr_MakeArray = (Scr_MakeArray_t)dlsym(ret, "Scr_MakeArray");
     Scr_AddArray = (Scr_AddArray_t)dlsym(ret, "Scr_AddArray");
+    Scr_LoadScript = (Scr_LoadScript_t)dlsym(ret, "Scr_LoadScript");
     I_strlwr = (I_strlwr_t)dlsym(ret, "Q_strlwr");
     //Scr_GetVector = (Scr_GetVector_t)dlsym(ret, "Scr_GetVector");
     //Player_GetUseList = (Player_GetUseList_t)dlsym(ret, "G_GetActivateEnt");
@@ -303,12 +275,9 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     // Game lib call instructions redirections
     cracking_hook_call((int)dlsym(ret, "vmMain") + 0xB0, (int)hook_ClientCommand);
 
-    // Game lib functions replacements
+    // Game lib functions redirections
     hook_gametype_scripts = new cHook((int)dlsym(ret, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
     hook_gametype_scripts->hook();
-
-
-
 
     return ret;
 }
@@ -340,54 +309,31 @@ public:
         mprotect((void *)0x08048000, 0x135000, PROT_READ | PROT_WRITE | PROT_EXEC);
 
         #if COD_VERSION == COD1_1_1
-
-
-
-
         cracking_hook_call(0x0806ce77, (int)common_init_complete_print);
-
         cracking_hook_call(0x08085213, (int)hook_AuthorizeState);
         cracking_hook_call(0x08094c54, (int)Scr_GetCustomFunction);
         cracking_hook_call(0x080951c4, (int)Scr_GetCustomMethod);
 
-
         hook_sys_loaddll = new cHook(0x080c5fe4, (int)custom_Sys_LoadDll);
         hook_sys_loaddll->hook();
 
-        
         hook_com_initdvars = new cHook(0x080c6b90, (int)custom_Com_InitCvars);
         hook_com_initdvars->hook();
 
-
-
-
         #if COMPILE_PLAYER == 1
-
         #endif
 
         //cracking_hook_function(0x080E97F0, (int)custom_BG_IsWeaponValid);
         //cracking_hook_call(0x08094107, (int)hook_SV_DirectConnect);
 
-
-
         #elif COD_VERSION == COD1_1_5
 
         #if COMPILE_PLAYER == 1
-
         #endif
 
         #endif
 
         printf("> [PLUGIN LOADED]\n");
-        
-        
-        
-        printf("############## sizeof client_t = %i \n", sizeof(client_t));
-        printf("############## sizeof clientSnapshot_t = %i \n", sizeof(clientSnapshot_t));
-        
-
-
-
     }
 
     ~cCallOfDuty1Pro()

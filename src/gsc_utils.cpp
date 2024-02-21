@@ -5,18 +5,18 @@
 
 void gsc_utils_sendcommandtoclient()
 {
-	int clientNum;
-	char *message;
+    int clientNum;
+    char *message;
 
-	if ( !stackGetParams("is", &clientNum, &message) )
-	{
-		stackError("gsc_utils_sendcommandtoclient() one or more arguments is undefined or has a wrong type");
-		stackPushUndefined();
-		return;
-	}
+    if ( !stackGetParams("is", &clientNum, &message) )
+    {
+        stackError("gsc_utils_sendcommandtoclient() one or more arguments is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
 
-	SV_GameSendServerCommand(clientNum, SV_CMD_CAN_IGNORE, message);
-	stackPushBool(qtrue);
+    SV_GameSendServerCommand(clientNum, SV_CMD_CAN_IGNORE, message);
+    stackPushBool(qtrue);
 }
 
 void gsc_utils_logprintconsole()
@@ -118,6 +118,44 @@ void gsc_utils_replace()
     strcpy(tmp, orig);
     
     stackPushString(result);
+}
+
+void gsc_utils_getsubstr()
+{
+    int end;
+    char c;
+    int i;
+    int source;
+    int start;
+    const char *string;
+    char tempString[1024];
+
+    string = Scr_GetString(0);
+    start = Scr_GetInt(1u);
+
+    if ( Scr_GetNumParam() <= 2 )
+        end = 0x7FFFFFFF;
+    else
+        end = Scr_GetInt(2u);
+
+    source = start;
+
+    for ( i = 0; source < end; ++i )
+    {
+        if ( i > 1023 )
+            stackError("gsc_utils_getsubstr() string too long");
+
+        c = string[source];
+
+        if ( !c )
+            break;
+
+        tempString[i] = c;
+        ++source;
+    }
+
+    tempString[i] = 0;
+    stackPushString(tempString);
 }
 
 void gsc_utils_file_exists()

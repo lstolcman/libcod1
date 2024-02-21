@@ -8,13 +8,11 @@ scr_function_t scriptFunctions[] =
 {
     #if COMPILE_UTILS == 1
     {"sendCommandToClient", gsc_utils_sendcommandtoclient, 0},
-    #if ENABLE_UNSAFE == 1
-    //{"system", gsc_utils_system, 0},
-    #endif
 
     {"logPrintConsole", gsc_utils_logprintconsole, 0},
     {"toLower", gsc_utils_tolower, 0},
     {"replace", gsc_utils_replace, 0},
+    {"getSubStr", gsc_utils_getsubstr, 0, },
 
     #if ENABLE_UNSAFE == 1
     {"file_exists", gsc_utils_file_exists, 0},
@@ -123,7 +121,7 @@ void stackError(const char *format, ...)
     s[len + 1] = '\0';
     Com_PrintMessage(0, s);
     //Scr_CodeCallback_Error(qfalse, qfalse, "stackError", s);
-    Scr_Error(s); //TODO: check if need call Scr_CodeCallback_Error instead
+    Scr_Error(s); //TODO: look about calling Scr_CodeCallback_Error instead
 }
 
 int stackGetParams(const char *params, ...)
@@ -323,27 +321,4 @@ int stackGetParamFloat(int param, float *value)
     *value = var->u.floatValue;
 
     return 1;
-}
-
-/**
- * @brief Base time in seconds
- */
-time_t sys_timeBase = 0;
-
-/**
- * @brief Current time in ms, using sys_timeBase as origin
- */
-uint64_t Sys_MilliSeconds64(void)
-{
-    struct timeval tp;
-
-    gettimeofday(&tp, NULL);
-
-    if ( !sys_timeBase )
-    {
-        sys_timeBase = tp.tv_sec;
-        return tp.tv_usec / 1000;
-    }
-
-    return (tp.tv_sec - sys_timeBase) * 1000 + tp.tv_usec / 1000;
 }
