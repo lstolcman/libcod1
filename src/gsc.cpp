@@ -74,6 +74,8 @@ scr_method_t scriptMethods[] =
     {"getStance", gsc_player_getstance, 0},
     {"getIP", gsc_player_getip, 0},
     {"getPing", gsc_player_getping, 0},
+    {"getUserinfo", gsc_player_getuserinfo, 0},
+    {"setUserinfo", gsc_player_setuserinfo, 0},
     {"processClientCommand", gsc_player_processclientcommand, 0},
     {"dropClient", gsc_player_dropclient, 0},
 

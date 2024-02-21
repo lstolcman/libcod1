@@ -17,6 +17,7 @@ cvar_t *g_debugCallbacks;
 cHook *hook_sys_loaddll;
 cHook *hook_com_initdvars;
 cHook *hook_gametype_scripts;
+cHook *hook_g_localizedstringindex;
 
 // Stock callbacks
 int codecallback_startgametype = 0;
@@ -54,6 +55,7 @@ Scr_ExecEntThread_t Scr_ExecEntThread;
 Scr_FreeThread_t Scr_FreeThread;
 Scr_Error_t Scr_Error;
 SV_GetConfigstringConst_t SV_GetConfigstringConst;
+SV_GetConfigstring_t SV_GetConfigstring;
 Scr_IsSystemActive_t Scr_IsSystemActive;
 Scr_GetInt_t Scr_GetInt;
 Scr_GetString_t Scr_GetString;
@@ -73,8 +75,6 @@ I_strlwr_t I_strlwr;
 
 void custom_Com_InitCvars(void)
 {
-    printf("####### custom_Com_InitCvars \n");
-
     hook_com_initdvars->unhook();
     void (*Com_InitDvars)(void);
     *(int *)&Com_InitDvars = hook_com_initdvars->from;
@@ -130,10 +130,43 @@ int custom_GScr_LoadGameTypeScript()
             *callbacks[i].pos = Scr_GetFunctionHandle(path_for_cb, callbacks[i].name);
         
         /*if ( *callbacks[i].pos && g_debugCallbacks->integer )
-            Com_Printf("%s found @ %p\n", callbacks[i].name, scrVarPub.programBuffer + *callbacks[i].pos);*/
+            Com_Printf("%s found @ %p\n", callbacks[i].name, scrVarPub.programBuffer + *callbacks[i].pos);*/ //TODO: access scrVarPub
     }
 
     return ret;
+}
+
+static int localized_string_index = 128;
+int custom_G_LocalizedStringIndex(const char *string)
+{
+    // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/script.c#L944
+    
+    int i;
+    char s[MAX_STRINGLENGTH];
+
+    if(localized_string_index >= 256)
+        localized_string_index = 128;
+
+    if(!string || !*string)
+        return 0;
+    
+    int start = 1244;
+
+    for(i = 1; i < 256; i++)
+    {
+        SV_GetConfigstring(start + i, s, sizeof(s));
+        if(!*s)
+            break;
+        if (!strcmp(s, string))
+            return i;
+    }
+    if(i == 256)
+        i = localized_string_index;
+
+    SV_SetConfigstring(i + 1244, string);
+    ++localized_string_index;
+    
+    return i;
 }
 
 void hook_ClientCommand(int clientNum)
@@ -255,6 +288,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Scr_FreeThread = (Scr_FreeThread_t)dlsym(ret, "Scr_FreeThread");
     Scr_Error = (Scr_Error_t)dlsym(ret, "Scr_Error");
     SV_GetConfigstringConst = (SV_GetConfigstringConst_t)dlsym(ret, "trap_GetConfigstringConst");
+    SV_GetConfigstring = (SV_GetConfigstring_t)dlsym(ret, "trap_GetConfigstring");
     Scr_IsSystemActive = (Scr_IsSystemActive_t)dlsym(ret, "Scr_IsSystemActive");
     Scr_GetInt = (Scr_GetInt_t)dlsym(ret, "Scr_GetInt");
     Scr_GetString = (Scr_GetString_t)dlsym(ret, "Scr_GetString");
@@ -278,6 +312,9 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     // Game lib functions redirections
     hook_gametype_scripts = new cHook((int)dlsym(ret, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
     hook_gametype_scripts->hook();
+
+    hook_g_localizedstringindex = new cHook((int)dlsym(ret, "G_LocalizedStringIndex"), (int)custom_G_LocalizedStringIndex);
+    hook_g_localizedstringindex->hook();
 
     return ret;
 }

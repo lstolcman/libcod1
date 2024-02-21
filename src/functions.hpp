@@ -102,6 +102,18 @@ static const SV_DropClient_t SV_DropClient = (SV_DropClient_t)0x08085cf4;
 #elif COD_VERSION == COD1_1_5
 #endif
 
+typedef void (*Info_SetValueForKey_t)(char *s, const char *key, const char *value);
+#if COD_VERSION == COD1_1_1
+static const Info_SetValueForKey_t Info_SetValueForKey = (Info_SetValueForKey_t)0x080827d4;
+#elif COD_VERSION == COD1_1_5
+#endif
+
+typedef char * (*Info_ValueForKey_t)(const char *s, const char *key);
+#if COD_VERSION == COD1_1_1
+static const Info_ValueForKey_t Info_ValueForKey = (Info_ValueForKey_t)0x08082460;
+#elif COD_VERSION == COD1_1_5
+#endif
+
 typedef short (*Scr_ExecEntThread_t)(gentity_t* ent, int callbackHook, unsigned int numArgs);
 extern Scr_ExecEntThread_t Scr_ExecEntThread;
 
@@ -113,6 +125,15 @@ extern Scr_Error_t Scr_Error;
 
 typedef const char * (*SV_GetConfigstringConst_t)(int index);
 extern SV_GetConfigstringConst_t SV_GetConfigstringConst;
+
+typedef void (*SV_GetConfigstring_t)( int index, char *buffer, int bufferSize );
+extern SV_GetConfigstring_t SV_GetConfigstring;
+
+typedef void (*SV_SetConfigstring_t)(int index, const char *val);
+#if COD_VERSION == COD1_1_1
+static const SV_SetConfigstring_t SV_SetConfigstring = (SV_SetConfigstring_t)0x08089bf0;
+#elif COD_VERSION == COD1_1_5
+#endif
 
 typedef int (*Scr_IsSystemActive_t)();
 extern Scr_IsSystemActive_t Scr_IsSystemActive;
@@ -150,15 +171,8 @@ extern Scr_MakeArray_t Scr_MakeArray;
 typedef void (*Scr_AddArray_t)(void);
 extern Scr_AddArray_t Scr_AddArray;
 
-
-
-
 typedef unsigned int (*Scr_LoadScript_t)(const char *filename);
 extern Scr_LoadScript_t Scr_LoadScript;
-
-
-
-
 
 typedef playerState_t * (*SV_GameClientNum_t)(int num);
 #if COD_VERSION == COD1_1_1

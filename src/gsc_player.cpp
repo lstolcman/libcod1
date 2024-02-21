@@ -43,6 +43,59 @@ void gsc_player_getvelocity(scr_entref_t ref)
     stackPushVector(ps->velocity);
 }
 
+void gsc_player_getuserinfo(scr_entref_t ref)
+{
+    int id = ref.entnum;
+    char *key;
+
+    if ( !stackGetParams("s", &key) )
+    {
+        stackError("gsc_player_getuserinfo() argument is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_getuserinfo() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    client_t *client = &svs.clients[id];
+    char *val = Info_ValueForKey(client->userinfo, key);
+
+    if ( strlen(val) )
+        stackPushString(val);
+    else
+        stackPushString("");
+}
+
+void gsc_player_setuserinfo(scr_entref_t ref)
+{
+    int id = ref.entnum;
+    char *key, *value;
+
+    if ( !stackGetParams("ss", &key, &value) )
+    {
+        stackError("gsc_player_setuserinfo() one or more arguments is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_setuserinfo() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    client_t *client = &svs.clients[id];
+    Info_SetValueForKey(client->userinfo, key, value);
+
+    stackPushBool(qtrue);
+}
+
 void gsc_player_button_ads(scr_entref_t ref)
 {
     int id = ref.entnum;
