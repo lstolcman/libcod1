@@ -20,53 +20,30 @@ void gsc_entity_setalive(scr_entref_t ref)
     stackPushBool(qtrue);
 }
 
-void gsc_entity_showtoplayer(scr_entref_t ref)
+void gsc_entity_showtoplayer(scr_entref_t ref) //TODO: try like cod2rev instead
 {
     int id = ref.entnum;
-    int playerNum;
-    
-    if ( !stackGetParams("i", &playerNum) )
-    {
-        stackError("gsc_entity_showtoplayer() argument is undefined or has a wrong type");
-        stackPushUndefined();
-        return;
-    }
+    gentity_t *clientEnt;
+    gentity_t *pEnt;
 
-    if ( id >= MAX_CLIENTS )
+    pEnt = &g_entities[id];
+    if(Scr_GetType(0) == STACK_UNDEFINED)
     {
-        stackError("gsc_entity_showtoplayer() entity %i is not a player", id);
-        stackPushUndefined();
-        return;
-    }
-
-    if ( playerNum >= MAX_GENTITIES )
-    {
-        stackError("gsc_entity_showtoplayer() %i is not a valid entity number", playerNum);
-        stackPushUndefined();
+        pEnt->r.svFlags &= ~SVF_SINGLECLIENT;
+        pEnt->r.singleClient = 0;
+        stackPushBool(qtrue);
         return;
     }
     
-    gentity_t *entity = &g_entities[id];
-    gentity_t *player = NULL;
-
-    if(Scr_GetType(0) != STACK_UNDEFINED)
-        player = Scr_GetEntity(0);
-
-    if(player == NULL)
+    clientEnt = Scr_GetEntity(0);
+    if ( clientEnt->s.number >= MAX_CLIENTS )
     {
-        entity->svFlags &= ~SVF_SINGLECLIENT;
-        entity->singleClient = 0;
+        stackError("gsc_entity_showtoplayer() param must be a client entity");
         return;
     }
-
-    if(!player->client)
-    {
-        stackError("gsc_entity_showtoplayer() entity %i is not a player", player->s.number);
-        return;
-    }
-
-    entity->svFlags |= SVF_SINGLECLIENT;
-    entity->singleClient = player->s.number;
+    
+    pEnt->r.svFlags |= SVF_SINGLECLIENT;
+    pEnt->r.singleClient = clientEnt->s.number;
 
     stackPushBool(qtrue);
 }

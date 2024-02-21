@@ -5,20 +5,12 @@
 
 #define QDECL __attribute__((cdecl))
 
-
 #define qboolean int
 #define qtrue 1
 #define qfalse 0
 
-
-
-
-
 // 3D vectors
 #define VectorCopy( a, b )          ( ( b )[0] = ( a )[0],( b )[1] = ( a )[1],( b )[2] = ( a )[2] )
-
-
-
 
 #define ARCHIVEDSSBUF_SIZE          0x2000000
 #define GENTITYNUM_BITS             10
@@ -32,24 +24,21 @@
 #define MAX_INFO_STRING             0x400
 #define MAX_MSGLEN                  0x4000
 #define MAX_QPATH                   64
-#define	MAX_NAME_LENGTH				32
-#define MAX_RELIABLE_COMMANDS		64
+#define	MAX_NAME_LENGTH             32
+#define MAX_RELIABLE_COMMANDS       64
 #define MAX_STRINGLENGTH            1024
 
 #define CVAR_NOFLAG             0               // 0x0000
 #define CVAR_ARCHIVE            (1 << 0)        // 0x0001
 #define CVAR_SERVERINFO         (1 << 2)        // 0x0004
 
-
-
 #define SVF_SINGLECLIENT        0x800
-
 
 #define KEY_MASK_FORWARD    127
 #define KEY_MASK_BACK       129
 #define KEY_MASK_MOVERIGHT  127
 #define KEY_MASK_MOVELEFT   129
-#define KEY_MASK_MOVEUP   127
+#define KEY_MASK_MOVEUP     127
 #define KEY_MASK_MOVEDOWN   129
 
 #define KEY_MASK_RELOAD         0x8
@@ -57,14 +46,10 @@
 #define KEY_MASK_LEANRIGHT      0x20
 #define KEY_MASK_ADS_MODE       0x10
 
-
 // playerState_t->eFlags
 // entityState_t->eFlags
 #define EF_CROUCHING    0x20
 #define EF_PRONE        0x40
-
-
-
 
 typedef unsigned char byte;
 typedef signed char sbyte;
@@ -74,17 +59,11 @@ typedef struct gentity_s gentity_t;
 typedef gentity_t (*useList_t)[2050];
 typedef int clipHandle_t;
 
-
 typedef struct scr_entref_s
 {
     uint16_t entnum;
     uint16_t classnum;
 } scr_entref_t;
-
-
-
-
-
 
 typedef enum
 {
@@ -101,9 +80,6 @@ typedef enum
     ET_EVENTS = 0xA
 } entityType_t;
 
-
-
-
 typedef enum
 {
     CS_FREE,
@@ -112,10 +88,6 @@ typedef enum
     CS_PRIMED,
     CS_ACTIVE
 } clientConnectState_t;
-
-
-
-
 
 typedef enum
 {
@@ -128,9 +100,6 @@ typedef enum
     NA_BROADCAST_IPX = 6
 } netadrtype_t;
 
-
-
-
 typedef struct
 {
     netadrtype_t type;
@@ -139,22 +108,15 @@ typedef struct
     byte ipx[10];
 } netadr_t;
 
-
-
 typedef enum
 {
     NS_CLIENT,
     NS_SERVER
 } netsrc_t;
 
-
-
 typedef float vec_t;
 typedef vec_t vec2_t[2];
 typedef vec_t vec3_t[3];
-
-
-
 
 typedef struct cvar_s
 {
@@ -171,12 +133,6 @@ typedef struct cvar_s
     struct cvar_s *hashNext;
 } cvar_t;
 
-
-
-
-
-
-
 union VariableUnion
 {
     int intValue;
@@ -192,44 +148,6 @@ typedef struct
     int type;
 } VariableValue;
 
-
-
-
-
-typedef struct
-{
-	const char *fieldBuffer;
-	struct HunkUser *programHunkUser;
-	uint16_t canonicalStrCount;
-	byte developer;
-	byte developer_script;
-	byte evaluate;
-	byte pad[3];
-	const char *error_message;
-	int error_index;
-	unsigned int time;
-	unsigned int timeArrayId;
-	unsigned int pauseArrayId;
-	unsigned int levelId;
-	unsigned int gameId;
-	unsigned int animId;
-	unsigned int freeEntList;
-	unsigned int tempVariable;
-	byte bInited;
-	byte pad2;
-	uint16_t savecount;
-	unsigned int checksum;
-	unsigned int entId;
-	unsigned int entFieldName;
-	const char *programBuffer;
-	const char *endScriptBuffer;
-} scrVarPub_t;
-
-
-
-
-
-
 typedef struct
 {
     unsigned int *localVars;
@@ -238,20 +156,10 @@ typedef struct
     // some remains
 } scrVmPub_t;
 
-
-
-
-
-
-
-
-
-
 typedef int	fileHandle_t;
 
 typedef void (*xfunction_t)();
 typedef void (*xmethod_t)(scr_entref_t);
-
 
 typedef struct scr_function_s
 {
@@ -260,18 +168,12 @@ typedef struct scr_function_s
     qboolean        developer;
 } scr_function_t;
 
-
 typedef struct scr_method_s
 {
     const char     *name;
     xmethod_t      call;
     qboolean       developer;
 } scr_method_t;
-
-
-
-
-
 
 typedef struct usercmd_s
 {
@@ -284,11 +186,6 @@ typedef struct usercmd_s
     signed char forwardmove, rightmove, upmove;
     byte unknown;
 } usercmd_t;
-
-
-
-
-
 
 typedef struct
 {
@@ -307,22 +204,12 @@ typedef struct
     byte unsentBuffer[MAX_MSGLEN];
 } netchan_t;
 
-
-
-
-
-
-
 typedef struct
 {
     char command[MAX_STRINGLENGTH];
     int cmdTime;
     int cmdType;
 } reliableCommands_t;
-
-
-
-
 
 typedef struct
 {
@@ -335,11 +222,6 @@ typedef struct
     qboolean connected;
     int guid;
 } challenge_t;
-
-
-
-
-
 
 typedef enum
 {
@@ -354,12 +236,6 @@ typedef enum
     TR_DECCELERATE = 8
 } trType_t;
 
-
-
-
-
-
-
 typedef struct
 {
     trType_t trType;
@@ -368,8 +244,6 @@ typedef struct
     vec3_t trBase;
     vec3_t trDelta;
 } trajectory_t;
-
-
 
 typedef struct entityState_s
 {
@@ -408,11 +282,22 @@ typedef struct entityState_s
     int animMovetype; //224
 } entityState_t;
 
-
-
-
-
-
+typedef struct
+{
+    int linked;
+    int svFlags;
+    int singleClient;
+    int unk2;
+    vec3_t mins;
+    vec3_t maxs;
+    int contents;
+    vec3_t absmin;
+    vec3_t absmax;
+    vec3_t currentOrigin;
+    vec3_t currentAngles;
+    int ownerNum;
+    int eventTime;
+} entityShared_t;
 
 typedef enum
 {
@@ -425,14 +310,6 @@ typedef enum
     PM_DEAD = 0x6,
     PM_DEAD_LINKED = 0x7,
 } pmtype_t;
-
-
-
-
-
-
-
-
 
 typedef enum
 {
@@ -450,11 +327,6 @@ typedef enum
     WEAPON_MELEE_FIRE = 0xB,
     WEAPONSTATES_NUM = 0xC,
 } weaponstate_t;
-
-
-
-
-
 
 typedef struct playerState_s
 {
@@ -522,16 +394,6 @@ typedef struct playerState_s
     int end;
 } playerState_t;
 
-
-
-
-
-
-
-
-
-
-
 typedef struct gitem_s
 {
     char *classname;
@@ -543,19 +405,7 @@ struct gentity_s
     float PM_GetViewHeightLerpTime_unknown;
     float some_view_angle_when_prone;
     float some_view_angle_when_prone2;
-    int linked;
-    int svFlags;
-    int singleClient;
-    int unk2;
-    float mins[3];
-    float maxs[3];
-    int contents;
-    float absmin[3];
-    float absmax[3];
-    float currentOrigin[3];
-    float currentAngles[3];
-    int ownerNum;
-    int r_eventTime;
+    entityShared_t r;
     int unk3;
     gclient_t *client;
     int *turret_info;
@@ -644,17 +494,6 @@ struct gentity_s
     char rest[44];
 };
 
-
-
-
-
-
-
-
-
-
-
-
 typedef struct
 {
     playerState_t ps;
@@ -666,9 +505,6 @@ typedef struct
     unsigned int messageAcked;
     int messageSize;
 } clientSnapshot_t;
-
-
-
 
 typedef struct client_s
 {
@@ -722,95 +558,47 @@ typedef struct client_s
     int serverId;
 } client_t;
 
-
-
-
-
-
-//IDTECH3:
 typedef struct
 {
-    qboolean	initialized; 
-    int			time; 
-    int			snapFlagServerBit; 
-    client_t	*clients; 
-    int			numSnapshotEntities; 
-    int			nextSnapshotEntities;
-    entityState_t	*snapshotEntities;
-    int			nextHeartbeatTime;
-    challenge_t	challenges[MAX_CHALLENGES];
-    netadr_t	redirectAddress;
-    netadr_t	authorizeAddress;
+    qboolean initialized; 
+    int time; 
+    int snapFlagServerBit; 
+    client_t *clients; 
+    int numSnapshotEntities; 
+    int nextSnapshotEntities;
+    entityState_t *snapshotEntities;
+    int nextHeartbeatTime;
+    challenge_t challenges[MAX_CHALLENGES];
+    netadr_t redirectAddress;
+    netadr_t authorizeAddress;
 } serverStatic_t;
-
-
-
-
 
 enum svscmd_type
 {
-	SV_CMD_CAN_IGNORE = 0x0,
-	SV_CMD_RELIABLE = 0x1,
+    SV_CMD_CAN_IGNORE = 0x0,
+    SV_CMD_RELIABLE = 0x1,
 };
-
-
-
-
-#if COD_VERSION == COD1_1_1
-//static const int gclients_offset = 0x086F1480;
-#elif COD_VERSION == COD1_1_5
-//static const int gclients_offset = 0x087A2500;
-#endif
-
-
 
 #if COD_VERSION == COD1_1_1
 static const int varpub_offset = 0x082f17d8;
 #elif COD_VERSION == COD1_1_5
 #endif
 
-
-
-
-
 #if COD_VERSION == COD1_1_1
 static const int vmpub_offset = 0x082f57e0;
 #elif COD_VERSION == COD1_1_5
 #endif
-
-
-
 
 #if COD_VERSION == COD1_1_1
 static const int svs_offset = 0x083b67a0;
 #elif COD_VERSION == COD1_1_5
 #endif
 
-
-
-#if COD_VERSION == COD1_1_1
-//static const int gameInitialized_offset = 0x0;
-#elif COD_VERSION == COD1_1_5
-#endif
-
-
-
-
-
-
-
 extern gentity_t *g_entities;
-
 
 #define scrVarPub (*((scrVarPub_t*)( varpub_offset )))
 #define scrVmPub (*((scrVmPub_t*)( vmpub_offset )))
 #define svs (*((serverStatic_t*)( svs_offset )))
-//#define gameInitialized (*((int*)( gameInitialized_offset )))
-
-
-
-
-
 
 // Check for critical structure sizes and fail if not match
 #if __GNUC__ >= 6
@@ -819,12 +607,9 @@ extern gentity_t *g_entities;
 //static_assert((sizeof(client_t) == 370940), "ERROR: client_t size is invalid!");
 #elif COD_VERSION == COD1_1_5
 //static_assert((sizeof(client_t) == 371124), "ERROR: client_t size is invalid!");
- 
 #endif
 
 //static_assert((sizeof(gentity_t) == 560), "ERROR: gentity_t size is invalid!");
-//static_assert((sizeof(gclient_t) == 0x28A4), "ERROR: gclient_t size is invalid!");
-//static_assert((sizeof(scr_data_t) == 14072), "ERROR: scr_data_t size is invalid!");
 
 #endif
 
@@ -839,10 +624,6 @@ typedef struct src_error_s
     char internal_function[64];
     char message[1024];
 } scr_error_t;
-
-
-
-
 
 typedef struct callback_s
 {

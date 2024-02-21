@@ -103,7 +103,7 @@ void common_init_complete_print(const char *format, ...)
     g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
 }
 
-//TODO: maybe not using another hardcoded path for custom callbacks
+//TODO: maybe don't use another hardcoded path for custom callbacks
 int custom_GScr_LoadGameTypeScript()
 {
     unsigned int i;
@@ -129,8 +129,8 @@ int custom_GScr_LoadGameTypeScript()
         else
             *callbacks[i].pos = Scr_GetFunctionHandle(path_for_cb, callbacks[i].name);
         
-        if ( *callbacks[i].pos && g_debugCallbacks->integer )
-            Com_Printf("%s found @ %p\n", callbacks[i].name, scrVarPub.programBuffer + *callbacks[i].pos);
+        /*if ( *callbacks[i].pos && g_debugCallbacks->integer )
+            Com_Printf("%s found @ %p\n", callbacks[i].name, scrVarPub.programBuffer + *callbacks[i].pos);*/
     }
 
     return ret;
