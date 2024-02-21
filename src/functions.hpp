@@ -21,7 +21,7 @@ static const SL_ConvertToString_t SL_ConvertToString = (SL_ConvertToString_t)0x0
 #elif COD_VERSION == COD1_1_5
 #endif
 
-typedef int (*Scr_GetFunctionHandle_t)(const char* scriptName, const char* labelName, int isNeeded);
+typedef int (*Scr_GetFunctionHandle_t)(const char* scriptName, const char* labelName);
 extern Scr_GetFunctionHandle_t Scr_GetFunctionHandle;
 
 typedef int (*Scr_GetNumParam_t)(void);

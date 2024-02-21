@@ -5,23 +5,18 @@
 
 void gsc_utils_sendcommandtoclient()
 {
-    int clientNum;
-    char *message;
+	int clientNum;
+	char *message;
 
-    if ( (Scr_GetNumParam() > 1 && !stackGetParams("is", &clientNum, &message)) 
-        || !stackGetParams("s", &message) )
-    {
-        stackError("gsc_utils_sendcommandtoclient() one or more arguments is undefined or has a wrong type");
-        stackPushUndefined();
-        return;
-    }
+	if ( !stackGetParams("is", &clientNum, &message) )
+	{
+		stackError("gsc_utils_sendcommandtoclient() one or more arguments is undefined or has a wrong type");
+		stackPushUndefined();
+		return;
+	}
 
-    if(Scr_GetNumParam() > 1)
-        SV_GameSendServerCommand(clientNum, SV_CMD_RELIABLE, message);
-    else
-        SV_GameSendServerCommand(-1, SV_CMD_RELIABLE, message);
-
-    stackPushBool(qtrue);
+	SV_GameSendServerCommand(clientNum, SV_CMD_CAN_IGNORE, message);
+	stackPushBool(qtrue);
 }
 
 void gsc_utils_logprintconsole()
@@ -156,7 +151,7 @@ void gsc_utils_fopen()
 
     if ( !file )
     {
-        stackError("gsc_utils_fopen() returned a error");
+        stackError("gsc_utils_fopen() returned an error");
         stackPushUndefined();
         return;
     }
@@ -177,7 +172,7 @@ void gsc_utils_fread()
 
     if ( !file )
     {
-        stackError("gsc_utils_fread() returned a error");
+        stackError("gsc_utils_fread() returned an error");
         stackPushUndefined();
         return;
     }
@@ -209,7 +204,7 @@ void gsc_utils_fwrite()
 
     if ( !file )
     {
-        stackError("gsc_utils_fwrite() returned a error");
+        stackError("gsc_utils_fwrite() returned an error");
         stackPushUndefined();
         return;
     }
@@ -230,7 +225,7 @@ void gsc_utils_fclose()
 
     if ( !file )
     {
-        stackError("gsc_utils_fclose() returned a error");
+        stackError("gsc_utils_fclose() returned an error");
         stackPushUndefined();
         return;
     }

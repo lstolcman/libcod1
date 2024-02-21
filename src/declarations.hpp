@@ -192,6 +192,44 @@ typedef struct
     int type;
 } VariableValue;
 
+
+
+
+
+typedef struct
+{
+	const char *fieldBuffer;
+	struct HunkUser *programHunkUser;
+	uint16_t canonicalStrCount;
+	byte developer;
+	byte developer_script;
+	byte evaluate;
+	byte pad[3];
+	const char *error_message;
+	int error_index;
+	unsigned int time;
+	unsigned int timeArrayId;
+	unsigned int pauseArrayId;
+	unsigned int levelId;
+	unsigned int gameId;
+	unsigned int animId;
+	unsigned int freeEntList;
+	unsigned int tempVariable;
+	byte bInited;
+	byte pad2;
+	uint16_t savecount;
+	unsigned int checksum;
+	unsigned int entId;
+	unsigned int entFieldName;
+	const char *programBuffer;
+	const char *endScriptBuffer;
+} scrVarPub_t;
+
+
+
+
+
+
 typedef struct
 {
     unsigned int *localVars;
@@ -726,13 +764,19 @@ enum svscmd_type
 
 
 
+#if COD_VERSION == COD1_1_1
+static const int varpub_offset = 0x082f17d8;
+#elif COD_VERSION == COD1_1_5
+#endif
+
+
+
+
 
 #if COD_VERSION == COD1_1_1
 static const int vmpub_offset = 0x082f57e0;
 #elif COD_VERSION == COD1_1_5
-
 #endif
-
 
 
 
@@ -740,15 +784,13 @@ static const int vmpub_offset = 0x082f57e0;
 #if COD_VERSION == COD1_1_1
 static const int svs_offset = 0x083b67a0;
 #elif COD_VERSION == COD1_1_5
-
 #endif
 
 
 
-#if COD_VERSION == COD1_1_1 // Not tested
+#if COD_VERSION == COD1_1_1
 //static const int gameInitialized_offset = 0x0;
 #elif COD_VERSION == COD1_1_5
-//static const int gameInitialized_offset = 0x083E2F80;
 #endif
 
 
@@ -760,6 +802,7 @@ static const int svs_offset = 0x083b67a0;
 extern gentity_t *g_entities;
 
 
+#define scrVarPub (*((scrVarPub_t*)( varpub_offset )))
 #define scrVmPub (*((scrVmPub_t*)( vmpub_offset )))
 #define svs (*((serverStatic_t*)( svs_offset )))
 //#define gameInitialized (*((int*)( gameInitialized_offset )))

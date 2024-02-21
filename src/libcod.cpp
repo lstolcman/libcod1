@@ -115,26 +115,34 @@ void common_init_complete_print(const char *format, ...)
 
 int custom_GScr_LoadGameTypeScript()
 {
-	unsigned int i;
-	char path_for_cb[512] = "maps/mp/gametypes/_callbacksetup";
+    unsigned int i;
+    char path_for_cb[512] = "maps/mp/gametypes/_callbacksetup";
 
-	hook_gametype_scripts->unhook();
-	int (*GScr_LoadGameTypeScript)();
-	*(int *)&GScr_LoadGameTypeScript = hook_gametype_scripts->from;
-	int ret = GScr_LoadGameTypeScript();
-	hook_gametype_scripts->hook();
+    hook_gametype_scripts->unhook();
+    int (*GScr_LoadGameTypeScript)();
+    *(int *)&GScr_LoadGameTypeScript = hook_gametype_scripts->from;
+    int ret = GScr_LoadGameTypeScript();
+    hook_gametype_scripts->hook();
 
-	if ( strlen(fs_callbacks->string) )
-		strncpy(path_for_cb, fs_callbacks->string, sizeof(path_for_cb));
+    if ( strlen(fs_callbacks->string) )
+        strncpy(path_for_cb, fs_callbacks->string, sizeof(path_for_cb));
+        
+    for ( i = 0; i < sizeof(callbacks)/sizeof(callbacks[0]); i++ )
+    {
+        if(!strcmp(callbacks[i].name, "CodeCallback_PlayerCommand")) // Custom callback in a non-stock filename //TODO: think about handling better
+        {
+            printf("####### FOUND CodeCallback_PlayerCommand \n");
+            char path_for_cb_custom[512] = "callback";
+            *callbacks[i].pos = Scr_GetFunctionHandle(path_for_cb_custom, callbacks[i].name);
+        }
+        else
+            *callbacks[i].pos = Scr_GetFunctionHandle(path_for_cb, callbacks[i].name);
+        
+        if ( *callbacks[i].pos && g_debugCallbacks->integer )
+            Com_Printf("%s found @ %p\n", callbacks[i].name, scrVarPub.programBuffer + *callbacks[i].pos);
+    }
 
-	for ( i = 0; i < sizeof(callbacks)/sizeof(callbacks[0]); i++ )
-	{
-		*callbacks[i].pos = Scr_GetFunctionHandle(path_for_cb, callbacks[i].name, 0);
-		if ( *callbacks[i].pos && g_debugCallbacks->integer )
-			Com_Printf("%s found @ %p\n", callbacks[i].name, scrVarPub.programBuffer + *callbacks[i].pos);
-	}
-
-	return ret;
+    return ret;
 }
 
 
@@ -146,42 +154,42 @@ int custom_GScr_LoadGameTypeScript()
 
 void hook_ClientCommand(int clientNum)
 {
-	if ( !Scr_IsSystemActive() )
-		return;
-			
-	if ( !codecallback_playercommand )
-	{	
-		ClientCommand(clientNum);
-		return;
-	}
+    if ( !Scr_IsSystemActive() )
+        return;
+            
+    if ( !codecallback_playercommand )
+    {	printf("####### hook_ClientCommand: !codecallback_playercommand \n");
+        ClientCommand(clientNum);
+        return;
+    }
 
-	stackPushArray();
-	int args = Cmd_Argc();
-	for ( int i = 0; i < args; i++ )
-	{
-		char tmp[MAX_STRINGLENGTH];
-		SV_Cmd_ArgvBuffer(i, tmp, sizeof(tmp));
-		if( i == 1 && tmp[0] >= 20 && tmp[0] <= 22 )
-		{
-			char *part = strtok(tmp + 1, " ");
-			while( part != NULL )
-			{
-				stackPushString(part);
-				stackPushArrayLast();
-				part = strtok(NULL, " ");
-			}
-		}
-		else
-		{
-			stackPushString(tmp);
-			stackPushArrayLast();
-		}
-	}
+    stackPushArray();
+    int args = Cmd_Argc();
+    for ( int i = 0; i < args; i++ )
+    {
+        char tmp[MAX_STRINGLENGTH];
+        SV_Cmd_ArgvBuffer(i, tmp, sizeof(tmp));
+        if( i == 1 && tmp[0] >= 20 && tmp[0] <= 22 )
+        {
+            char *part = strtok(tmp + 1, " ");
+            while( part != NULL )
+            {
+                stackPushString(part);
+                stackPushArrayLast();
+                part = strtok(NULL, " ");
+            }
+        }
+        else
+        {
+            stackPushString(tmp);
+            stackPushArrayLast();
+        }
+    }
 
-	short ret = Scr_ExecEntThread(&g_entities[clientNum], codecallback_playercommand, 1);
-	Scr_FreeThread(ret);
+    short ret = Scr_ExecEntThread(&g_entities[clientNum], codecallback_playercommand, 1);
+    printf("####### hook_ClientCommand: Scr_FreeThread \n");
+    Scr_FreeThread(ret);
 }
-
 
 
 
@@ -297,7 +305,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 
     // Game lib functions replacements
     hook_gametype_scripts = new cHook((int)dlsym(ret, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
-	hook_gametype_scripts->hook();
+    hook_gametype_scripts->hook();
 
 
 
@@ -337,10 +345,6 @@ public:
 
 
         cracking_hook_call(0x0806ce77, (int)common_init_complete_print);
-
-
-        cracking_hook_call(0x08090BA0, (int)hook_ClientCommand);
-
 
         cracking_hook_call(0x08085213, (int)hook_AuthorizeState);
         cracking_hook_call(0x08094c54, (int)Scr_GetCustomFunction);
