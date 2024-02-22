@@ -10,9 +10,10 @@ scr_function_t scriptFunctions[] =
     {"sendCommandToClient", gsc_utils_sendcommandtoclient, 0},
 
     {"logPrintConsole", gsc_utils_logprintconsole, 0},
-    {"toLower", gsc_utils_tolower, 0},
-    {"replace", gsc_utils_replace, 0},
     {"getSubStr", gsc_utils_getsubstr, 0, },
+    {"toLower", gsc_utils_tolower, 0},
+    {"strtok", gsc_utils_strtok, 0},
+    {"replace", gsc_utils_replace, 0},
 
     #if ENABLE_UNSAFE == 1
     {"file_exists", gsc_utils_file_exists, 0},
