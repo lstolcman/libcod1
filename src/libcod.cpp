@@ -70,8 +70,6 @@ Scr_MakeArray_t Scr_MakeArray;
 Scr_AddArray_t Scr_AddArray;
 Scr_LoadScript_t Scr_LoadScript;
 I_strlwr_t I_strlwr;
-//Scr_GetVector_t Scr_GetVector;
-//Player_GetUseList_t Player_GetUseList;
 
 void custom_Com_InitCvars(void)
 {
@@ -103,12 +101,11 @@ void common_init_complete_print(const char *format, ...)
     g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
 }
 
-//TODO: maybe don't use another hardcoded path for custom callbacks
 int custom_GScr_LoadGameTypeScript()
 {
     unsigned int i;
     char path_for_cb[512] = "maps/mp/gametypes/_callbacksetup";
-    char path_for_cb_custom[512] = "callback";
+    char path_for_cb_custom[512] = "callback"; //TODO: maybe don't use another hardcoded path for custom callbacks
 
     hook_gametype_scripts->unhook();
     int (*GScr_LoadGameTypeScript)();
@@ -173,7 +170,15 @@ void hook_ClientCommand(int clientNum)
 {
     if ( !Scr_IsSystemActive() )
         return;
-            
+
+    #if COD_VERSION == COD1_1_1
+    char* cmd = Cmd_Argv(0);
+    if(!strcmp(cmd, "gc"))
+        return; // Prevent server crash
+    #elif COD_VERSION == COD1_1_5
+    //TODO: verify no need to ignore gc command
+    #endif
+      
     if ( !codecallback_playercommand )
     {	ClientCommand(clientNum);
         return;
@@ -273,10 +278,10 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     }
     fclose(fp);
 
-    // Game lib variables initializations
+    // Game lib objects linking
     g_entities = (gentity_t*)dlsym(ret, "g_entities");
 
-    // Game lib functions initializations
+    // Game lib functions linking
     Scr_GetFunctionHandle = (Scr_GetFunctionHandle_t)dlsym(ret, "Scr_GetFunctionHandle");
     Scr_GetNumParam = (Scr_GetNumParam_t)dlsym(ret, "Scr_GetNumParam");
     SV_Cmd_ArgvBuffer = (SV_Cmd_ArgvBuffer_t)dlsym(ret, "trap_Argv");
@@ -303,18 +308,23 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Scr_AddArray = (Scr_AddArray_t)dlsym(ret, "Scr_AddArray");
     Scr_LoadScript = (Scr_LoadScript_t)dlsym(ret, "Scr_LoadScript");
     I_strlwr = (I_strlwr_t)dlsym(ret, "Q_strlwr");
-    //Scr_GetVector = (Scr_GetVector_t)dlsym(ret, "Scr_GetVector");
-    //Player_GetUseList = (Player_GetUseList_t)dlsym(ret, "G_GetActivateEnt");
 
-    // Game lib call instructions redirections
+    // Game lib calls instructions redirections
     cracking_hook_call((int)dlsym(ret, "vmMain") + 0xB0, (int)hook_ClientCommand);
 
-    // Game lib functions redirections
     hook_gametype_scripts = new cHook((int)dlsym(ret, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
     hook_gametype_scripts->hook();
-
-    hook_g_localizedstringindex = new cHook((int)dlsym(ret, "G_LocalizedStringIndex"), (int)custom_G_LocalizedStringIndex);
-    hook_g_localizedstringindex->hook();
+    
+    // Game lib functions replacements
+    cracking_hook_function((int)dlsym(ret, "G_LocalizedStringIndex"), (int)custom_G_LocalizedStringIndex);
+    
+    // Patch codmsgboom
+    /* See:
+    - https://aluigi.altervista.org/adv/codmsgboom-adv.txt
+    - https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/librarymodule.c#L146
+    */
+    cracking_write_hex((int)dlsym(ret, "G_Say") + 0x50e, (char *)"0x37f");
+    cracking_write_hex((int)dlsym(ret, "G_Say") + 0x5ca, (char *)"0x37f");
 
     return ret;
 }
@@ -357,17 +367,14 @@ public:
         hook_com_initdvars = new cHook(0x080c6b90, (int)custom_Com_InitCvars);
         hook_com_initdvars->hook();
 
-        #if COMPILE_PLAYER == 1
-        #endif
-
-        //cracking_hook_function(0x080E97F0, (int)custom_BG_IsWeaponValid);
-        //cracking_hook_call(0x08094107, (int)hook_SV_DirectConnect);
+        // Patch q3infoboom
+        /* See:
+        - https://aluigi.altervista.org/adv/q3infoboom-adv.txt
+        - https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/codextended.c#L295
+        */
+        cracking_write_hex(0x807f459, (char *)"1");
 
         #elif COD_VERSION == COD1_1_5
-
-        #if COMPILE_PLAYER == 1
-        #endif
-
         #endif
 
         printf("> [PLUGIN LOADED]\n");

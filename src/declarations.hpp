@@ -56,9 +56,6 @@ typedef signed char sbyte;
 typedef struct gclient_s gclient_t;
 typedef struct gentity_s gentity_t;
 
-typedef gentity_t (*useList_t)[2050];
-typedef int clipHandle_t;
-
 typedef struct scr_entref_s
 {
     uint16_t entnum;
@@ -608,8 +605,6 @@ extern gentity_t *g_entities;
 #elif COD_VERSION == COD1_1_5
 //static_assert((sizeof(client_t) == 371124), "ERROR: client_t size is invalid!");
 #endif
-
-//static_assert((sizeof(gentity_t) == 560), "ERROR: gentity_t size is invalid!");
 
 #endif
 

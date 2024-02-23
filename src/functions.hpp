@@ -183,19 +183,4 @@ static const SV_GameClientNum_t SV_GameClientNum = (SV_GameClientNum_t)0x0808927
 typedef char * (*I_strlwr_t)(char *s1);
 extern I_strlwr_t I_strlwr;
 
-/*
-typedef char * (*Cvar_VariableString_t)(const char *var_name);
-#if COD_VERSION == COD1_1_1
-static const Cvar_VariableString_t Cvar_VariableString = (Cvar_VariableString_t)0x0806f910;
-#elif COD_VERSION == COD1_1_5
-#endif
-*/
-
-//typedef void (*Scr_GetVector_t)(unsigned int param, vec3_t /***/vec);
-//extern Scr_GetVector_t Scr_GetVector;
-
-/*
-typedef int (*Player_GetUseList_t)(gentity_t *player, useList_t *useList);
-extern Player_GetUseList_t Player_GetUseList;*/
-
 #endif
