@@ -12,17 +12,19 @@
 // 3D vectors
 #define VectorCopy( a, b )          ( ( b )[0] = ( a )[0],( b )[1] = ( a )[1],( b )[2] = ( a )[2] )
 
-#define ARCHIVEDSSBUF_SIZE          0x2000000
+#define BIG_INFO_STRING             0x2000
 #define GENTITYNUM_BITS             10
 #define PACKET_BACKUP               32
 
 #define MAX_CHALLENGES              1024
 #define MAX_CLIENTS                 64
 #define MAX_CONFIGSTRINGS           2048
+#define MAX_DOWNLOAD_BLKSIZE        2048
 #define MAX_DOWNLOAD_WINDOW         8
 #define MAX_GENTITIES               ( 1 << GENTITYNUM_BITS )
 #define MAX_INFO_STRING             0x400
 #define MAX_MSGLEN                  0x4000
+#define MAX_OSPATH                  256
 #define MAX_QPATH                   64
 #define	MAX_NAME_LENGTH             32
 #define MAX_RELIABLE_COMMANDS       64
@@ -61,6 +63,30 @@ typedef struct scr_entref_s
     uint16_t entnum;
     uint16_t classnum;
 } scr_entref_t;
+
+typedef enum
+{
+    ERR_FATAL = 0x0,
+    ERR_VID_FATAL = 0x1,
+    ERR_DROP = 0x2,
+    ERR_SERVERDISCONNECT = 0x3,
+    ERR_DISCONNECT = 0x4,
+    ERR_NEED_CD = 0x5,
+    ERR_AUTOUPDATE = 0x6,
+} errorParm_t;
+
+enum svc_ops_e
+{
+    svc_bad,
+    svc_nop,
+    svc_gamestate,
+    svc_configstring,
+    svc_baseline,
+    svc_serverCommand,
+    svc_download,
+    svc_snapshot,
+    svc_EOF
+};
 
 typedef enum
 {
@@ -111,6 +137,16 @@ typedef enum
     NS_SERVER
 } netsrc_t;
 
+typedef struct
+{
+    qboolean overflowed;
+    byte *data;
+    int maxsize;
+    int cursize;
+    int readcount;
+    int bit;
+} msg_t;
+
 typedef float vec_t;
 typedef vec_t vec2_t[2];
 typedef vec_t vec3_t[3];
@@ -154,7 +190,7 @@ typedef struct
 } scrVmPub_t;
 
 typedef int	fileHandle_t;
-
+typedef void *unzFile;
 typedef void (*xfunction_t)();
 typedef void (*xmethod_t)(scr_entref_t);
 
@@ -171,6 +207,34 @@ typedef struct scr_method_s
     xmethod_t      call;
     qboolean       developer;
 } scr_method_t;
+
+struct directory_t
+{
+    char path[MAX_OSPATH];
+    char gamedir[MAX_OSPATH];
+};
+
+struct pack_t
+{
+    char pakFilename[MAX_OSPATH];
+    char pakBasename[MAX_OSPATH];
+    char pakGamename[MAX_OSPATH];
+    unzFile handle;
+    int checksum;
+    int pure_checksum;
+    int numFiles;
+    int referenced;
+    int hashSize;
+    // some remains
+};
+
+struct searchpath_t
+{
+    searchpath_t *next;
+    pack_t *pak;
+    directory_t *dir;
+    // some might remain
+};
 
 typedef struct usercmd_s
 {
@@ -519,10 +583,7 @@ typedef struct client_s
     usercmd_t lastUsercmd;
     int lastClientCommand;
     char lastClientCommandString[MAX_STRINGLENGTH];
-
-    unsigned int gentity;
-    //gentity_t *gentity;
-
+    gentity_t *gentity;
     char name[MAX_NAME_LENGTH];
     char downloadName[MAX_QPATH];
     fileHandle_t download;
@@ -576,6 +637,8 @@ enum svscmd_type
     SV_CMD_RELIABLE = 0x1,
 };
 
+extern gentity_t *g_entities;
+
 #if COD_VERSION == COD1_1_1
 static const int varpub_offset = 0x082f17d8;
 #elif COD_VERSION == COD1_1_5
@@ -591,17 +654,21 @@ static const int svs_offset = 0x083b67a0;
 #elif COD_VERSION == COD1_1_5
 #endif
 
-extern gentity_t *g_entities;
+#if COD_VERSION == COD1_1_1
+static const int fs_searchpaths_offset = 0x080dd590;
+#elif COD_VERSION == COD1_1_5
+#endif
 
 #define scrVarPub (*((scrVarPub_t*)( varpub_offset )))
 #define scrVmPub (*((scrVmPub_t*)( vmpub_offset )))
 #define svs (*((serverStatic_t*)( svs_offset )))
+#define fs_searchpaths (*((searchpath_t**)( fs_searchpaths_offset )))
 
 // Check for critical structure sizes and fail if not match
 #if __GNUC__ >= 6
 
 #if COD_VERSION == COD1_1_1
-//static_assert((sizeof(client_t) == 370940), "ERROR: client_t size is invalid!");
+static_assert((sizeof(client_t) == 370940), "ERROR: client_t size is invalid!");
 #elif COD_VERSION == COD1_1_5
 //static_assert((sizeof(client_t) == 371124), "ERROR: client_t size is invalid!");
 #endif

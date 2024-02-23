@@ -69,6 +69,18 @@ static const Com_PrintMessage_t Com_PrintMessage = (Com_PrintMessage_t)0x0806b53
 typedef void (*ClientCommand_t)(int clientNum);
 extern ClientCommand_t ClientCommand;
 
+typedef long (*FS_SV_FOpenFileRead_t)(const char *filename, fileHandle_t *fp);
+#if COD_VERSION == COD1_1_1
+static const FS_SV_FOpenFileRead_t FS_SV_FOpenFileRead = (FS_SV_FOpenFileRead_t)0x0806ffb8;
+#elif COD_VERSION == COD1_1_5
+#endif
+
+typedef int (*FS_idPak_t)(const char *a1, const char *a2);
+#if COD_VERSION == COD1_1_1
+static const FS_idPak_t FS_idPak = (FS_idPak_t)0x080709c0;
+#elif COD_VERSION == COD1_1_5
+#endif
+
 typedef xfunction_t (*Scr_GetFunction_t)(const char** v_functionName, qboolean *v_developer);
 extern Scr_GetFunction_t Scr_GetFunction;
 
@@ -135,6 +147,48 @@ static const SV_SetConfigstring_t SV_SetConfigstring = (SV_SetConfigstring_t)0x0
 #elif COD_VERSION == COD1_1_5
 #endif
 
+typedef void * (*Z_MallocInternal_t)(int size);
+#if COD_VERSION == COD1_1_1
+static const Z_MallocInternal_t Z_MallocInternal = (Z_MallocInternal_t)0x080681e8;
+#elif COD_VERSION == COD1_1_5
+#endif
+
+typedef int (*FS_Read_t)(void *buffer, int len, fileHandle_t f);
+#if COD_VERSION == COD1_1_1
+static const FS_Read_t FS_Read = (FS_Read_t)0x080628f4;
+#elif COD_VERSION == COD1_1_5
+#endif
+
+typedef void (*MSG_WriteByte_t)(msg_t *msg, int c);
+#if COD_VERSION == COD1_1_1
+static const MSG_WriteByte_t MSG_WriteByte = (MSG_WriteByte_t)0x0807f090;
+#elif COD_VERSION == COD1_1_5
+#endif
+
+typedef void (*MSG_WriteShort_t)(msg_t *msg, int c);
+#if COD_VERSION == COD1_1_1
+static const MSG_WriteShort_t MSG_WriteShort = (MSG_WriteShort_t)0x0807f0bc;
+#elif COD_VERSION == COD1_1_5
+#endif
+
+typedef void (*MSG_WriteLong_t)(msg_t *msg, int c);
+#if COD_VERSION == COD1_1_1
+static const MSG_WriteLong_t MSG_WriteLong = (MSG_WriteLong_t)0x0807f0ec;
+#elif COD_VERSION == COD1_1_5
+#endif
+
+typedef void (*MSG_WriteString_t)(msg_t *msg, const char *s);
+#if COD_VERSION == COD1_1_1
+static const MSG_WriteString_t MSG_WriteString = (MSG_WriteString_t)0x0807a620;
+#elif COD_VERSION == COD1_1_5
+#endif
+
+typedef void (*MSG_WriteData_t)(msg_t *msg, const void *data, int length);
+#if COD_VERSION == COD1_1_1
+static const MSG_WriteData_t MSG_WriteData = (MSG_WriteData_t)0x0807eef0;
+#elif COD_VERSION == COD1_1_5
+#endif
+
 typedef int (*Scr_IsSystemActive_t)();
 extern Scr_IsSystemActive_t Scr_IsSystemActive;
 
@@ -180,7 +234,16 @@ static const SV_GameClientNum_t SV_GameClientNum = (SV_GameClientNum_t)0x0808927
 #elif COD_VERSION == COD1_1_5
 #endif
 
-typedef char * (*I_strlwr_t)(char *s1);
-extern I_strlwr_t I_strlwr;
+typedef char * (*Q_strlwr_t)(char *s1);
+extern Q_strlwr_t Q_strlwr;
+
+typedef void (*Q_strcat_t)(char *dest, int size, const char *src);
+extern Q_strcat_t Q_strcat;
+
+typedef void (*Com_Error_t)(errorParm_t code, const char *format, ...);
+#if COD_VERSION == COD1_1_1
+static const Com_Error_t Com_Error = (Com_Error_t)0x0806b93c;
+#elif COD_VERSION == COD1_1_5
+#endif
 
 #endif

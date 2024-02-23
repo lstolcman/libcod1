@@ -2,24 +2,6 @@
 
 #if COMPILE_ENTITY == 1
 
-void gsc_entity_setalive(scr_entref_t ref)
-{
-    int id = ref.entnum;
-    int isAlive;
-
-    if ( !stackGetParams("i", &isAlive) )
-    {
-        stackError("gsc_entity_setalive() argument is undefined or has a wrong type");
-        stackPushUndefined();
-        return;
-    }
-
-    gentity_t *entity = &g_entities[id];
-
-    entity->takedamage = isAlive;
-    stackPushBool(qtrue);
-}
-
 void gsc_entity_showtoplayer(scr_entref_t ref) //TODO: try like cod2rev instead
 {
     int id = ref.entnum;

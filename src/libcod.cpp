@@ -8,16 +8,20 @@ cvar_t *cl_paused;
 cvar_t *com_dedicated;
 cvar_t *com_logfile;
 cvar_t *com_sv_running;
+cvar_t *sv_allowDownload;
+cvar_t *sv_pure;
 cvar_t *sv_serverid;
 
 // Custom cvars
 cvar_t *fs_callbacks;
 cvar_t *g_debugCallbacks;
+cvar_t *sv_downloadMessage;
 
 cHook *hook_sys_loaddll;
 cHook *hook_com_initdvars;
 cHook *hook_gametype_scripts;
 cHook *hook_g_localizedstringindex;
+cHook *hook_sv_begindownload_f;
 
 // Stock callbacks
 int codecallback_startgametype = 0;
@@ -40,10 +44,10 @@ callback_t callbacks[] =
     { &codecallback_playercommand, "CodeCallback_PlayerCommand"},
 };
 
-// Game lib variables declarations
+// Game lib variables
 gentity_t *g_entities;
 
-// Game lib functions declarations
+// Game lib functions
 Scr_GetFunctionHandle_t Scr_GetFunctionHandle;
 Scr_GetNumParam_t Scr_GetNumParam;
 SV_Cmd_ArgvBuffer_t SV_Cmd_ArgvBuffer;
@@ -69,7 +73,8 @@ Scr_AddVector_t Scr_AddVector;
 Scr_MakeArray_t Scr_MakeArray;
 Scr_AddArray_t Scr_AddArray;
 Scr_LoadScript_t Scr_LoadScript;
-I_strlwr_t I_strlwr;
+Q_strlwr_t Q_strlwr;
+Q_strcat_t Q_strcat;
 
 void custom_Com_InitCvars(void)
 {
@@ -91,6 +96,8 @@ void common_init_complete_print(const char *format, ...)
     Com_Printf("--- Common Initialization Complete ---\n");
 
     // Get references to stock cvars
+    sv_allowDownload = Cvar_FindVar("sv_allowDownload");
+    sv_pure = Cvar_FindVar("sv_pure");
     sv_serverid = Cvar_FindVar("sv_serverid");
 
     // Register custom cvars
@@ -99,6 +106,7 @@ void common_init_complete_print(const char *format, ...)
 
     fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
     g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
+    sv_downloadMessage = Cvar_Get("sv_downloadMessage", "", CVAR_ARCHIVE);
 }
 
 int custom_GScr_LoadGameTypeScript()
@@ -222,6 +230,133 @@ const char* hook_AuthorizeState(int arg)
     return s;
 }
 
+qboolean FS_svrPak(const char *base)
+{
+    if(strstr(base, "_svr_"))
+        return qtrue;
+    return qfalse;
+}
+
+const char* custom_FS_ReferencedPakNames(void)
+{
+    static char info[BIG_INFO_STRING];
+    searchpath_t *search;
+
+    info[0] = 0;
+    
+    for ( search = fs_searchpaths ; search ; search = search->next )
+    {
+        if (!search->pak)
+            continue;
+
+        if(FS_svrPak(search->pak->pakBasename))
+        {
+            search->pak->referenced = 0;
+            continue;
+        }
+
+        if(*info)
+            Q_strcat(info, sizeof( info ), " ");
+        Q_strcat(info, sizeof( info ), search->pak->pakGamename);
+        Q_strcat(info, sizeof( info ), "/");
+        Q_strcat(info, sizeof( info ), search->pak->pakBasename);
+    }
+
+    return info;
+}
+
+const char* custom_FS_ReferencedPakChecksums(void)
+{
+    static char info[BIG_INFO_STRING];
+    searchpath_t *search;
+    
+    info[0] = 0;
+
+    for ( search = fs_searchpaths ; search ; search = search->next )
+    {
+        if (!search->pak)
+            continue;
+        
+        if(FS_svrPak(search->pak->pakBasename))
+        {
+            search->pak->referenced = 0;
+            continue;
+        }
+        
+        Q_strcat( info, sizeof( info ), custom_va( "%i ", search->pak->checksum ) );
+    }
+
+    return info;
+}
+
+qboolean IsReferencedPak(const char *requestedFilePath)
+{
+    static char localFilePath[BIG_INFO_STRING];
+    searchpath_t *search;
+
+    localFilePath[0] = 0;
+
+    for ( search = fs_searchpaths ; search ; search = search->next )
+    {
+        if(search->pak)
+        {
+            sprintf(localFilePath, "%s/%s.pk3", search->pak->pakGamename, search->pak->pakBasename);
+            if (!strcmp(localFilePath, requestedFilePath))
+                if (search->pak->referenced)
+                    return qtrue;
+        }
+    }
+    return qfalse;
+}
+
+void custom_SV_BeginDownload_f(client_t *cl)
+{
+    // Patch q3dirtrav
+    int args = Cmd_Argc();
+    if(args > 1)
+    {
+        const char* arg1 = Cmd_Argv(1);
+        if(!IsReferencedPak(arg1))
+            return;
+    }
+
+    hook_sv_begindownload_f->unhook();
+    void (*SV_BeginDownload_f)(client_t *cl);
+    *(int *)&SV_BeginDownload_f = hook_sv_begindownload_f->from;
+    SV_BeginDownload_f(cl);
+    hook_sv_begindownload_f->hook();
+}
+
+char *custom_va(const char *format, ...)
+{
+    // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/shared.c#L632
+
+    #define MAX_VA_STRING 32000
+    va_list argptr;
+    static char temp_buffer[MAX_VA_STRING];
+    static char string[MAX_VA_STRING];
+    static int index = 0;
+    char *buf;
+    int len;
+
+    va_start( argptr, format );
+    vsprintf( temp_buffer, format, argptr );
+    va_end( argptr );
+
+    if ( ( len = strlen( temp_buffer ) ) >= MAX_VA_STRING )
+        Com_Error( ERR_DROP, "Attempted to overrun string in call to va() \n" );
+
+    if ( len + index >= MAX_VA_STRING - 1 )
+        index = 0;
+
+    buf = &string[index];
+    memcpy( buf, temp_buffer, len + 1 );
+
+    index += len + 1;
+
+    return buf;
+}
+
 void ServerCrash(int sig)
 {
     int fd;
@@ -278,10 +413,10 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     }
     fclose(fp);
 
-    // Game lib objects linking
+    // Game lib variables
     g_entities = (gentity_t*)dlsym(ret, "g_entities");
 
-    // Game lib functions linking
+    // Game lib functions
     Scr_GetFunctionHandle = (Scr_GetFunctionHandle_t)dlsym(ret, "Scr_GetFunctionHandle");
     Scr_GetNumParam = (Scr_GetNumParam_t)dlsym(ret, "Scr_GetNumParam");
     SV_Cmd_ArgvBuffer = (SV_Cmd_ArgvBuffer_t)dlsym(ret, "trap_Argv");
@@ -307,7 +442,8 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Scr_MakeArray = (Scr_MakeArray_t)dlsym(ret, "Scr_MakeArray");
     Scr_AddArray = (Scr_AddArray_t)dlsym(ret, "Scr_AddArray");
     Scr_LoadScript = (Scr_LoadScript_t)dlsym(ret, "Scr_LoadScript");
-    I_strlwr = (I_strlwr_t)dlsym(ret, "Q_strlwr");
+    Q_strlwr = (Q_strlwr_t)dlsym(ret, "Q_strlwr");
+    Q_strcat = (Q_strcat_t)dlsym(ret, "Q_strcat");
 
     // Game lib calls instructions redirections
     cracking_hook_call((int)dlsym(ret, "vmMain") + 0xB0, (int)hook_ClientCommand);
@@ -363,9 +499,13 @@ public:
 
         hook_sys_loaddll = new cHook(0x080c5fe4, (int)custom_Sys_LoadDll);
         hook_sys_loaddll->hook();
-
         hook_com_initdvars = new cHook(0x080c6b90, (int)custom_Com_InitCvars);
         hook_com_initdvars->hook();
+        hook_sv_begindownload_f = new cHook(0x08087a64, (int)custom_SV_BeginDownload_f);
+        hook_sv_begindownload_f->hook();
+        
+        cracking_hook_function(0x080716cc, (int)custom_FS_ReferencedPakNames);
+        cracking_hook_function(0x080717a4, (int)custom_FS_ReferencedPakChecksums);
 
         // Patch q3infoboom
         /* See:
