@@ -5,6 +5,9 @@ Supported patch: **1.1**
 - New GSC functions
 - ...and more
 ___
+### Installation and usage
+See the [Wiki](https://github.com/codbridge/libcod1/wiki)
+___
 #### Credits
 - [CoDExtended](https://github.com/xtnded/codextended)
 - [CoD2rev_Server](https://github.com/voron00/CoD2rev_Server)
