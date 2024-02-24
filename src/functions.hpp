@@ -22,7 +22,6 @@ static const SL_ConvertToString_t SL_ConvertToString = (SL_ConvertToString_t)0x0
 #endif
 
 typedef int (*Scr_GetFunctionHandle_t)(const char* scriptName, const char* labelName);
-extern Scr_GetFunctionHandle_t Scr_GetFunctionHandle;
 
 typedef int (*Scr_GetNumParam_t)(void);
 extern Scr_GetNumParam_t Scr_GetNumParam;
@@ -39,8 +38,13 @@ static const Cmd_Argc_t Cmd_Argc = (Cmd_Argc_t)0x0805b24c;
 #elif COD_VERSION == COD1_1_5
 #endif
 
+typedef char * (*SV_Cmd_Argv_t)(unsigned int arg);
+#if COD_VERSION == COD1_1_1
+static const SV_Cmd_Argv_t SV_Cmd_Argv = (SV_Cmd_Argv_t)0x0805b258;
+#elif COD_VERSION == COD1_1_5
+#endif
+
 typedef void (*SV_Cmd_ArgvBuffer_t)(int arg, char *buffer, int bufferLength);
-extern SV_Cmd_ArgvBuffer_t SV_Cmd_ArgvBuffer;
 
 typedef void (*Com_Printf_t)(const char *format, ...);
 #if COD_VERSION == COD1_1_1
@@ -126,11 +130,47 @@ static const Info_ValueForKey_t Info_ValueForKey = (Info_ValueForKey_t)0x0808246
 #elif COD_VERSION == COD1_1_5
 #endif
 
+typedef short (*Scr_ExecThread_t)(int callbackHook, unsigned int numArgs);
+
 typedef short (*Scr_ExecEntThread_t)(gentity_t* ent, int callbackHook, unsigned int numArgs);
-extern Scr_ExecEntThread_t Scr_ExecEntThread;
 
 typedef short (*Scr_FreeThread_t)(short thread_id);
-extern Scr_FreeThread_t Scr_FreeThread;
+
+typedef void (*SVC_RemoteCommand_t)(netadr_t from, msg_t *msg);
+#if COD_VERSION == COD1_1_1
+static const SVC_RemoteCommand_t SVC_RemoteCommand = (SVC_RemoteCommand_t)0x0808c404;
+#elif COD_VERSION == COD1_1_5
+#endif
+
+typedef void (*SV_GetChallenge_t)(netadr_t from);
+#if COD_VERSION == COD1_1_1
+static const SV_GetChallenge_t SV_GetChallenge = (SV_GetChallenge_t)0x08084d90;
+#elif COD_VERSION == COD1_1_5
+#endif
+
+typedef void (*SV_DirectConnect_t)(netadr_t from);
+#if COD_VERSION == COD1_1_1
+static const SV_DirectConnect_t SV_DirectConnect = (SV_DirectConnect_t)0x08085498;
+#elif COD_VERSION == COD1_1_5
+#endif
+
+typedef void (*SVC_Info_t)(netadr_t from);
+#if COD_VERSION == COD1_1_1
+static const SVC_Info_t SVC_Info = (SVC_Info_t)0x0808c1ac;
+#elif COD_VERSION == COD1_1_5
+#endif
+
+typedef void (*SVC_Status_t)(netadr_t from);
+#if COD_VERSION == COD1_1_1
+static const SVC_Status_t SVC_Status = (SVC_Status_t)0x0808bd58;
+#elif COD_VERSION == COD1_1_5
+#endif
+
+typedef const char * (*NET_AdrToString_t)(netadr_t a);
+#if COD_VERSION == COD1_1_1
+static const NET_AdrToString_t NET_AdrToString = (NET_AdrToString_t)0x08080ef4;
+#elif COD_VERSION == COD1_1_5
+#endif
 
 typedef void (*Scr_Error_t)(const char *string);
 extern Scr_Error_t Scr_Error;
@@ -190,7 +230,6 @@ static const MSG_WriteData_t MSG_WriteData = (MSG_WriteData_t)0x0807eef0;
 #endif
 
 typedef int (*Scr_IsSystemActive_t)();
-extern Scr_IsSystemActive_t Scr_IsSystemActive;
 
 typedef int (*Scr_GetInt_t)(unsigned int param);
 extern Scr_GetInt_t Scr_GetInt;
@@ -226,7 +265,6 @@ typedef void (*Scr_AddArray_t)(void);
 extern Scr_AddArray_t Scr_AddArray;
 
 typedef unsigned int (*Scr_LoadScript_t)(const char *filename);
-extern Scr_LoadScript_t Scr_LoadScript;
 
 typedef playerState_t * (*SV_GameClientNum_t)(int num);
 #if COD_VERSION == COD1_1_1
@@ -238,11 +276,16 @@ typedef char * (*Q_strlwr_t)(char *s1);
 extern Q_strlwr_t Q_strlwr;
 
 typedef void (*Q_strcat_t)(char *dest, int size, const char *src);
-extern Q_strcat_t Q_strcat;
 
 typedef void (*Com_Error_t)(errorParm_t code, const char *format, ...);
 #if COD_VERSION == COD1_1_1
 static const Com_Error_t Com_Error = (Com_Error_t)0x0806b93c;
+#elif COD_VERSION == COD1_1_5
+#endif
+
+typedef void (*SV_AuthorizeIpPacket_t)(netadr_t from);
+#if COD_VERSION == COD1_1_1
+static const SV_AuthorizeIpPacket_t SV_AuthorizeIpPacket = (SV_AuthorizeIpPacket_t)0x0808514c;
 #elif COD_VERSION == COD1_1_5
 #endif
 

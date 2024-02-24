@@ -236,6 +236,17 @@ struct searchpath_t
     // some might remain
 };
 
+typedef struct leakyBucket_s leakyBucket_t;
+struct leakyBucket_s
+{
+    netadrtype_t type;
+    unsigned char adr[4];
+    uint64_t lastTime;
+    signed char	burst;
+    long hash;
+    leakyBucket_t *prev, *next;
+};
+
 typedef struct usercmd_s
 {
     int serverTime;

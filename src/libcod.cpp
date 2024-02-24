@@ -10,6 +10,7 @@ cvar_t *com_logfile;
 cvar_t *com_sv_running;
 cvar_t *sv_allowDownload;
 cvar_t *sv_pure;
+cvar_t *sv_rconPassword;
 cvar_t *sv_serverid;
 
 // Custom cvars
@@ -31,6 +32,7 @@ int codecallback_playerdamage = 0;
 int codecallback_playerkilled = 0;
 
 // Custom callbacks
+int codecallback_client_spam = 0;
 int codecallback_playercommand = 0;
 
 callback_t callbacks[] =
@@ -41,10 +43,11 @@ callback_t callbacks[] =
     { &codecallback_playerdamage, "CodeCallback_PlayerDamage" }, // g_scr_data.gametype.playerdamage
     { &codecallback_playerkilled, "CodeCallback_PlayerKilled" }, // g_scr_data.gametype.playerkilled
 
+    { &codecallback_client_spam, "CodeCallback_CLSpam"},
     { &codecallback_playercommand, "CodeCallback_PlayerCommand"},
 };
 
-// Game lib variables
+// Game lib objects
 gentity_t *g_entities;
 
 // Game lib functions
@@ -55,6 +58,7 @@ ClientCommand_t ClientCommand;
 Scr_GetFunction_t Scr_GetFunction;
 Scr_GetMethod_t Scr_GetMethod;
 SV_GameSendServerCommand_t SV_GameSendServerCommand;
+Scr_ExecThread_t Scr_ExecThread;
 Scr_ExecEntThread_t Scr_ExecEntThread;
 Scr_FreeThread_t Scr_FreeThread;
 Scr_Error_t Scr_Error;
@@ -98,6 +102,7 @@ void common_init_complete_print(const char *format, ...)
     // Get references to stock cvars
     sv_allowDownload = Cvar_FindVar("sv_allowDownload");
     sv_pure = Cvar_FindVar("sv_pure");
+    sv_rconPassword = Cvar_FindVar("rconpassword");
     sv_serverid = Cvar_FindVar("sv_serverid");
 
     // Register custom cvars
@@ -107,6 +112,65 @@ void common_init_complete_print(const char *format, ...)
     fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
     g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
     sv_downloadMessage = Cvar_Get("sv_downloadMessage", "", CVAR_ARCHIVE);
+}
+
+qboolean FS_svrPak(const char *base)
+{
+    if(strstr(base, "_svr_"))
+        return qtrue;
+    return qfalse;
+}
+
+const char* custom_FS_ReferencedPakNames(void)
+{
+    static char info[BIG_INFO_STRING];
+    searchpath_t *search;
+
+    info[0] = 0;
+    
+    for ( search = fs_searchpaths ; search ; search = search->next )
+    {
+        if (!search->pak)
+            continue;
+
+        if(FS_svrPak(search->pak->pakBasename))
+        {
+            search->pak->referenced = 0;
+            continue;
+        }
+
+        if(*info)
+            Q_strcat(info, sizeof( info ), " ");
+        Q_strcat(info, sizeof( info ), search->pak->pakGamename);
+        Q_strcat(info, sizeof( info ), "/");
+        Q_strcat(info, sizeof( info ), search->pak->pakBasename);
+    }
+
+    return info;
+}
+
+const char* custom_FS_ReferencedPakChecksums(void)
+{
+    static char info[BIG_INFO_STRING];
+    searchpath_t *search;
+    
+    info[0] = 0;
+
+    for ( search = fs_searchpaths ; search ; search = search->next )
+    {
+        if (!search->pak)
+            continue;
+        
+        if(FS_svrPak(search->pak->pakBasename))
+        {
+            search->pak->referenced = 0;
+            continue;
+        }
+        
+        Q_strcat( info, sizeof( info ), custom_va( "%i ", search->pak->checksum ) );
+    }
+
+    return info;
 }
 
 int custom_GScr_LoadGameTypeScript()
@@ -230,65 +294,6 @@ const char* hook_AuthorizeState(int arg)
     return s;
 }
 
-qboolean FS_svrPak(const char *base)
-{
-    if(strstr(base, "_svr_"))
-        return qtrue;
-    return qfalse;
-}
-
-const char* custom_FS_ReferencedPakNames(void)
-{
-    static char info[BIG_INFO_STRING];
-    searchpath_t *search;
-
-    info[0] = 0;
-    
-    for ( search = fs_searchpaths ; search ; search = search->next )
-    {
-        if (!search->pak)
-            continue;
-
-        if(FS_svrPak(search->pak->pakBasename))
-        {
-            search->pak->referenced = 0;
-            continue;
-        }
-
-        if(*info)
-            Q_strcat(info, sizeof( info ), " ");
-        Q_strcat(info, sizeof( info ), search->pak->pakGamename);
-        Q_strcat(info, sizeof( info ), "/");
-        Q_strcat(info, sizeof( info ), search->pak->pakBasename);
-    }
-
-    return info;
-}
-
-const char* custom_FS_ReferencedPakChecksums(void)
-{
-    static char info[BIG_INFO_STRING];
-    searchpath_t *search;
-    
-    info[0] = 0;
-
-    for ( search = fs_searchpaths ; search ; search = search->next )
-    {
-        if (!search->pak)
-            continue;
-        
-        if(FS_svrPak(search->pak->pakBasename))
-        {
-            search->pak->referenced = 0;
-            continue;
-        }
-        
-        Q_strcat( info, sizeof( info ), custom_va( "%i ", search->pak->checksum ) );
-    }
-
-    return info;
-}
-
 qboolean IsReferencedPak(const char *requestedFilePath)
 {
     static char localFilePath[BIG_INFO_STRING];
@@ -357,6 +362,297 @@ char *custom_va(const char *format, ...)
     return buf;
 }
 
+// ioquake3 rate limit connectionless requests
+// https://github.com/ioquake/ioq3/blob/master/code/server/sv_main.c
+
+// This is deliberately quite large to make it more of an effort to DoS
+#define MAX_BUCKETS	16384
+#define MAX_HASHES 1024
+
+static leakyBucket_t buckets[MAX_BUCKETS];
+static leakyBucket_t* bucketHashes[MAX_HASHES];
+leakyBucket_t outboundLeakyBucket;
+
+static long SVC_HashForAddress(netadr_t address)
+{
+    unsigned char *ip = address.ip;
+    int	i;
+    long hash = 0;
+
+    for ( i = 0; i < 4; i++ )
+    {
+        hash += (long)( ip[i] ) * ( i + 119 );
+    }
+
+    hash = ( hash ^ ( hash >> 10 ) ^ ( hash >> 20 ) );
+    hash &= ( MAX_HASHES - 1 );
+
+    return hash;
+}
+
+static leakyBucket_t * SVC_BucketForAddress(netadr_t address, int burst, int period)
+{
+    leakyBucket_t *bucket = NULL;
+    int i;
+    long hash = SVC_HashForAddress(address);
+    uint64_t now = Sys_Milliseconds64();
+
+    for ( bucket = bucketHashes[hash]; bucket; bucket = bucket->next )
+    {
+        if ( memcmp(bucket->adr, address.ip, 4) == 0 )
+            return bucket;
+    }
+
+    for ( i = 0; i < MAX_BUCKETS; i++ )
+    {
+        int interval;
+
+        bucket = &buckets[i];
+        interval = now - bucket->lastTime;
+
+        // Reclaim expired buckets
+        if ( bucket->lastTime > 0 && ( interval > ( burst * period ) ||
+                                       interval < 0 ) )
+        {
+            if ( bucket->prev != NULL )
+                bucket->prev->next = bucket->next;
+            else
+                bucketHashes[bucket->hash] = bucket->next;
+
+            if ( bucket->next != NULL )
+                bucket->next->prev = bucket->prev;
+
+            memset(bucket, 0, sizeof(leakyBucket_t));
+        }
+
+        if ( bucket->type == 0 )
+        {
+            bucket->type = address.type;
+            memcpy(bucket->adr, address.ip, 4);
+
+            bucket->lastTime = now;
+            bucket->burst = 0;
+            bucket->hash = hash;
+
+            // Add to the head of the relevant hash chain
+            bucket->next = bucketHashes[hash];
+            if ( bucketHashes[hash] != NULL )
+                bucketHashes[hash]->prev = bucket;
+
+            bucket->prev = NULL;
+            bucketHashes[hash] = bucket;
+
+            return bucket;
+        }
+    }
+
+    // Couldn't allocate a bucket for this address
+    return NULL;
+}
+
+bool SVC_RateLimit(leakyBucket_t *bucket, int burst, int period)
+{
+    if ( bucket != NULL )
+    {
+        uint64_t now = Sys_Milliseconds64();
+        int interval = now - bucket->lastTime;
+        int expired = interval / period;
+        int expiredRemainder = interval % period;
+
+        if ( expired > bucket->burst || interval < 0 )
+        {
+            bucket->burst = 0;
+            bucket->lastTime = now;
+        }
+        else
+        {
+            bucket->burst -= expired;
+            bucket->lastTime = now - expiredRemainder;
+        }
+
+        if ( bucket->burst < burst )
+        {
+            bucket->burst++;
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool SVC_RateLimitAddress(netadr_t from, int burst, int period)
+{
+    leakyBucket_t *bucket = SVC_BucketForAddress(from, burst, period);
+
+    return SVC_RateLimit(bucket, burst, period);
+}
+
+bool SVC_callback(const char *str, const char *ip)
+{	
+    if ( codecallback_client_spam && Scr_IsSystemActive() )
+    {
+        stackPushString(ip);
+        stackPushString(str);
+        short ret = Scr_ExecThread(codecallback_client_spam, 2);
+        Scr_FreeThread(ret);
+
+        return true;
+    }
+    
+    return false;
+}
+
+bool SVC_ApplyRconLimit(netadr_t from, qboolean badRconPassword)
+{
+    // Prevent using rcon as an amplifier and make dictionary attacks impractical
+    if ( SVC_RateLimitAddress(from, 10, 1000) )
+    {
+        if ( !SVC_callback("RCON:ADDRESS", NET_AdrToString(from)) )
+            Com_DPrintf("SVC_RemoteCommand: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
+        return true;
+    }
+    
+    if ( badRconPassword )
+    {
+        static leakyBucket_t bucket;
+
+        // Make DoS via rcon impractical
+        if ( SVC_RateLimit(&bucket, 10, 1000) )
+        {
+            if ( !SVC_callback("RCON:GLOBAL", NET_AdrToString(from)) )
+                Com_DPrintf("SVC_RemoteCommand: rate limit exceeded, dropping request\n");
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+bool SVC_ApplyStatusLimit(netadr_t from)
+{
+    // Prevent using getstatus as an amplifier
+    if ( SVC_RateLimitAddress(from, 10, 1000) )
+    {
+        if ( !SVC_callback("STATUS:ADDRESS", NET_AdrToString(from)) )
+            Com_DPrintf("SVC_Status: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
+        return true;
+    }
+
+    // Allow getstatus to be DoSed relatively easily, but prevent
+    // excess outbound bandwidth usage when being flooded inbound
+    if ( SVC_RateLimit(&outboundLeakyBucket, 10, 100) )
+    {
+        if ( !SVC_callback("STATUS:GLOBAL", NET_AdrToString(from)) )
+            Com_DPrintf("SVC_Status: rate limit exceeded, dropping request\n");
+        return true;
+    }
+
+    return false;
+}
+
+void hook_SV_GetChallenge(netadr_t from)
+{
+    // Prevent using getchallenge as an amplifier
+    if ( SVC_RateLimitAddress(from, 10, 1000) )
+    {
+        if ( !SVC_callback("CHALLENGE:ADDRESS", NET_AdrToString(from)) )
+            Com_DPrintf("SV_GetChallenge: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
+        return;
+    }
+
+    // Allow getchallenge to be DoSed relatively easily, but prevent
+    // excess outbound bandwidth usage when being flooded inbound
+    if ( SVC_RateLimit(&outboundLeakyBucket, 10, 100) )
+    {
+        if ( !SVC_callback("CHALLENGE:GLOBAL", NET_AdrToString(from)) )
+            Com_DPrintf("SV_GetChallenge: rate limit exceeded, dropping request\n");
+        return;
+    }
+
+    SV_GetChallenge(from);
+}
+
+void hook_SV_DirectConnect(netadr_t from)
+{
+    // Prevent using connect as an amplifier
+    if ( SVC_RateLimitAddress(from, 10, 1000) )
+    {
+        Com_DPrintf("SV_DirectConnect: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
+        return;
+    }
+
+    // Allow connect to be DoSed relatively easily, but prevent
+    // excess outbound bandwidth usage when being flooded inbound
+    if ( SVC_RateLimit(&outboundLeakyBucket, 10, 100) )
+    {
+        Com_DPrintf("SV_DirectConnect: rate limit exceeded, dropping request\n");
+        return;
+    }
+
+    SV_DirectConnect(from);
+}
+
+void hook_SV_AuthorizeIpPacket(netadr_t from)
+{
+    // Prevent ipAuthorize log spam DoS
+    if ( SVC_RateLimitAddress(from, 20, 1000) )
+    {
+        Com_DPrintf("SV_AuthorizeIpPacket: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
+        return;
+    }
+
+    // Allow ipAuthorize to be DoSed relatively easily, but prevent
+    // excess outbound bandwidth usage when being flooded inbound
+    if ( SVC_RateLimit(&outboundLeakyBucket, 10, 100) )
+    {
+        Com_DPrintf("SV_AuthorizeIpPacket: rate limit exceeded, dropping request\n");
+        return;
+    }
+
+    SV_AuthorizeIpPacket(from);
+}
+
+void hook_SVC_Info(netadr_t from)
+{
+    // Prevent using getinfo as an amplifier
+    if ( SVC_RateLimitAddress(from, 10, 1000) )
+    {
+        if ( !SVC_callback("INFO:ADDRESS", NET_AdrToString(from)) )
+            Com_DPrintf("SVC_Info: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
+        return;
+    }
+
+    // Allow getinfo to be DoSed relatively easily, but prevent
+    // excess outbound bandwidth usage when being flooded inbound
+    if ( SVC_RateLimit(&outboundLeakyBucket, 10, 100) )
+    {
+        if ( !SVC_callback("INFO:GLOBAL", NET_AdrToString(from)) )
+            Com_DPrintf("SVC_Info: rate limit exceeded, dropping request\n");
+        return;
+    }
+
+    SVC_Info(from);
+}
+
+void hook_SVC_Status(netadr_t from)
+{
+    if ( SVC_ApplyStatusLimit(from) )
+        return;
+    
+    SVC_Status(from);
+}
+
+void hook_SVC_RemoteCommand(netadr_t from, msg_t *msg)
+{
+    char* password = SV_Cmd_Argv(1);
+    qboolean badRconPassword = !strlen(sv_rconPassword->string) || !strcmp_constant_time(password, sv_rconPassword->string);
+    
+    if ( SVC_ApplyRconLimit(from, badRconPassword) )
+        return;
+    
+    SVC_RemoteCommand(from, msg);
+}
+
 void ServerCrash(int sig)
 {
     int fd;
@@ -413,10 +709,8 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     }
     fclose(fp);
 
-    // Game lib variables
     g_entities = (gentity_t*)dlsym(ret, "g_entities");
 
-    // Game lib functions
     Scr_GetFunctionHandle = (Scr_GetFunctionHandle_t)dlsym(ret, "Scr_GetFunctionHandle");
     Scr_GetNumParam = (Scr_GetNumParam_t)dlsym(ret, "Scr_GetNumParam");
     SV_Cmd_ArgvBuffer = (SV_Cmd_ArgvBuffer_t)dlsym(ret, "trap_Argv");
@@ -424,6 +718,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Scr_GetFunction = (Scr_GetFunction_t)dlsym(ret, "Scr_GetFunction");
     Scr_GetMethod = (Scr_GetMethod_t)dlsym(ret, "Scr_GetMethod");
     SV_GameSendServerCommand = (SV_GameSendServerCommand_t)dlsym(ret, "trap_SendServerCommand");
+    Scr_ExecThread = (Scr_ExecThread_t)dlsym(ret, "Scr_ExecThread");
     Scr_ExecEntThread = (Scr_ExecEntThread_t)dlsym(ret, "Scr_ExecEntThread");
     Scr_FreeThread = (Scr_FreeThread_t)dlsym(ret, "Scr_FreeThread");
     Scr_Error = (Scr_Error_t)dlsym(ret, "Scr_Error");
@@ -445,13 +740,11 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Q_strlwr = (Q_strlwr_t)dlsym(ret, "Q_strlwr");
     Q_strcat = (Q_strcat_t)dlsym(ret, "Q_strcat");
 
-    // Game lib calls instructions redirections
     cracking_hook_call((int)dlsym(ret, "vmMain") + 0xB0, (int)hook_ClientCommand);
 
     hook_gametype_scripts = new cHook((int)dlsym(ret, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
     hook_gametype_scripts->hook();
     
-    // Game lib functions replacements
     cracking_hook_function((int)dlsym(ret, "G_LocalizedStringIndex"), (int)custom_G_LocalizedStringIndex);
     
     // Patch codmsgboom
@@ -507,12 +800,29 @@ public:
         cracking_hook_function(0x080716cc, (int)custom_FS_ReferencedPakNames);
         cracking_hook_function(0x080717a4, (int)custom_FS_ReferencedPakChecksums);
 
+        cracking_hook_call(0x0808c74e, (int)hook_SVC_Info);
+        cracking_hook_call(0x0808c71c, (int)hook_SVC_Status);
+        cracking_hook_call(0x0808c780, (int)hook_SV_GetChallenge);
+        cracking_hook_call(0x0808c7b8, (int)hook_SV_DirectConnect);
+        cracking_hook_call(0x0808c7ea, (int)hook_SV_AuthorizeIpPacket);
+        cracking_hook_call(0x0808c81d, (int)hook_SVC_RemoteCommand);
+
         // Patch q3infoboom
         /* See:
         - https://aluigi.altervista.org/adv/q3infoboom-adv.txt
         - https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/codextended.c#L295
         */
         cracking_write_hex(0x807f459, (char *)"1");
+
+        // Patch RCON half-second limit
+        /* See:
+        - https://aluigi.altervista.org/patches/q3rconz.lpatch
+        - https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/codextended.c#L291
+        - https://github.com/ibuddieat/zk_libcod/blob/0f07cacf303d104a0375bf6235b8013e30b668ca/code/libcod.cpp#L3486
+        */
+        //cracking_write_hex(0x0808c41f, (char *)"0xeb"); // Not working
+        *(unsigned char*)0x808C41F = 0xeb; // Works
+
 
         #elif COD_VERSION == COD1_1_5
         #endif
