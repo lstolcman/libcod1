@@ -131,10 +131,13 @@ static const Info_ValueForKey_t Info_ValueForKey = (Info_ValueForKey_t)0x0808246
 #endif
 
 typedef short (*Scr_ExecThread_t)(int callbackHook, unsigned int numArgs);
+extern Scr_ExecThread_t Scr_ExecThread;
 
 typedef short (*Scr_ExecEntThread_t)(gentity_t* ent, int callbackHook, unsigned int numArgs);
+extern Scr_ExecEntThread_t Scr_ExecEntThread;
 
 typedef short (*Scr_FreeThread_t)(short thread_id);
+extern Scr_FreeThread_t Scr_FreeThread;
 
 typedef void (*SVC_RemoteCommand_t)(netadr_t from, msg_t *msg);
 #if COD_VERSION == COD1_1_1
@@ -249,6 +252,9 @@ extern Scr_AddBool_t Scr_AddBool;
 typedef void (*Scr_AddInt_t)(int value);
 extern Scr_AddInt_t Scr_AddInt;
 
+typedef void (*Scr_AddFloat_t)(float value);
+extern Scr_AddFloat_t Scr_AddFloat;
+
 typedef void (*Scr_AddString_t)(const char *string);
 extern Scr_AddString_t Scr_AddString;
 
@@ -263,6 +269,9 @@ extern Scr_MakeArray_t Scr_MakeArray;
 
 typedef void (*Scr_AddArray_t)(void);
 extern Scr_AddArray_t Scr_AddArray;
+
+typedef void (*Scr_AddObject_t)(unsigned int object);
+extern Scr_AddObject_t Scr_AddObject;
 
 typedef unsigned int (*Scr_LoadScript_t)(const char *filename);
 

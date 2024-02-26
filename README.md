@@ -11,3 +11,4 @@ ___
 #### Credits
 - [CoDExtended](https://github.com/xtnded/codextended)
 - [CoD2rev_Server](https://github.com/voron00/CoD2rev_Server)
+- [voron's libcod fork](https://github.com/voron00/libcod)

@@ -172,6 +172,8 @@ union VariableUnion
     float floatValue;
     unsigned int stringValue;
     const float *vectorValue;
+    const char *codePosValue;
+    unsigned int pointerValue;
     // some might remain
 };
 
@@ -180,6 +182,35 @@ typedef struct
     union VariableUnion u;
     int type;
 } VariableValue;
+
+typedef struct
+{
+    const char *fieldBuffer;
+    struct HunkUser *programHunkUser;
+    uint16_t canonicalStrCount;
+    byte developer;
+    byte developer_script;
+    byte evaluate;
+    byte pad[3];
+    const char *error_message;
+    int error_index;
+    unsigned int time;
+    unsigned int timeArrayId;
+    unsigned int pauseArrayId;
+    unsigned int levelId;
+    unsigned int gameId;
+    unsigned int animId;
+    unsigned int freeEntList;
+    unsigned int tempVariable;
+    byte bInited;
+    byte pad2;
+    uint16_t savecount;
+    unsigned int checksum;
+    unsigned int entId;
+    unsigned int entFieldName;
+    const char *programBuffer;
+    const char *endScriptBuffer;
+} scrVarPub_t; // Not verified
 
 typedef struct
 {

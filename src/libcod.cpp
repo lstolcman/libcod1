@@ -71,11 +71,13 @@ Scr_GetType_t Scr_GetType;
 Scr_GetEntity_t Scr_GetEntity;
 Scr_AddBool_t Scr_AddBool;
 Scr_AddInt_t Scr_AddInt;
+Scr_AddFloat_t Scr_AddFloat;
 Scr_AddString_t Scr_AddString;
 Scr_AddUndefined_t Scr_AddUndefined;
 Scr_AddVector_t Scr_AddVector;
 Scr_MakeArray_t Scr_MakeArray;
 Scr_AddArray_t Scr_AddArray;
+Scr_AddObject_t Scr_AddObject;
 Scr_LoadScript_t Scr_LoadScript;
 Q_strlwr_t Q_strlwr;
 Q_strcat_t Q_strcat;
@@ -112,6 +114,17 @@ void common_init_complete_print(const char *format, ...)
     fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
     g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
     sv_downloadMessage = Cvar_Get("sv_downloadMessage", "", CVAR_ARCHIVE);
+}
+
+void hook_sv_spawnserver(const char *format, ...)
+{
+    Com_Printf("------ Server Initialization ------\n");
+    
+    // Do stuff after sv has been spawned here
+
+#if COMPILE_SQLITE == 1
+    free_sqlite_db_stores_and_tasks();
+#endif
 }
 
 qboolean FS_svrPak(const char *base)
@@ -731,11 +744,13 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Scr_GetEntity = (Scr_GetEntity_t)dlsym(ret, "Scr_GetEntity");
     Scr_AddBool = (Scr_AddBool_t)dlsym(ret, "Scr_AddBool");
     Scr_AddInt = (Scr_AddInt_t)dlsym(ret, "Scr_AddInt");
+    Scr_AddFloat = (Scr_AddFloat_t)dlsym(ret, "Scr_AddFloat");
     Scr_AddString = (Scr_AddString_t)dlsym(ret, "Scr_AddString");
     Scr_AddUndefined = (Scr_AddUndefined_t)dlsym(ret, "Scr_AddUndefined");
     Scr_AddVector = (Scr_AddVector_t)dlsym(ret, "Scr_AddVector");
     Scr_MakeArray = (Scr_MakeArray_t)dlsym(ret, "Scr_MakeArray");
     Scr_AddArray = (Scr_AddArray_t)dlsym(ret, "Scr_AddArray");
+    Scr_AddObject = (Scr_AddObject_t)dlsym(ret, "Scr_AddObject");
     Scr_LoadScript = (Scr_LoadScript_t)dlsym(ret, "Scr_LoadScript");
     Q_strlwr = (Q_strlwr_t)dlsym(ret, "Q_strlwr");
     Q_strcat = (Q_strcat_t)dlsym(ret, "Q_strcat");
@@ -786,6 +801,7 @@ public:
 
         #if COD_VERSION == COD1_1_1
         cracking_hook_call(0x0806ce77, (int)common_init_complete_print);
+        cracking_hook_call(0x0808a36c, (int)hook_sv_spawnserver);
         cracking_hook_call(0x08085213, (int)hook_AuthorizeState);
         cracking_hook_call(0x08094c54, (int)Scr_GetCustomFunction);
         cracking_hook_call(0x080951c4, (int)Scr_GetCustomMethod);

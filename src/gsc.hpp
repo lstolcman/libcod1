@@ -31,6 +31,10 @@
 #include "gsc_entity.hpp"
 #endif
 
+#if COMPILE_SQLITE == 1
+#include "gsc_sqlite.hpp"
+#endif
+
 #if COMPILE_PLAYER == 1
 #include "gsc_player.hpp"
 #endif
@@ -45,6 +49,8 @@
 #define STACK_VECTOR 3
 #define STACK_FLOAT 4
 #define STACK_INT 5
+#define STACK_OBJECT 7
+#define STACK_FUNCTION 9
 
 #define stackPushUndefined Scr_AddUndefined
 #define stackPushBool Scr_AddBool
@@ -70,11 +76,13 @@ int stackGetParams(const char *params, ...);
 void stackError(const char *format, ...);
 
 int stackGetParamInt(int param, int *value);
+int stackGetParamFunction(int param, int *value);
 int stackGetParamString(int param, char **value);
 int stackGetParamConstString(int param, unsigned int *value);
 int stackGetParamLocalizedString(int param, char **value);
 int stackGetParamVector(int param, vec3_t value);
 int stackGetParamFloat(int param, float *value);
+int stackGetParamObject(int param, unsigned int *value);
 
 xfunction_t Scr_GetCustomFunction(const char **fname, qboolean *fdev);
 xmethod_t Scr_GetCustomMethod(const char **fname, qboolean *fdev);

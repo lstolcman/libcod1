@@ -6,6 +6,19 @@
 
 scr_function_t scriptFunctions[] =
 {
+    #if COMPILE_SQLITE == 1
+    {"sqlite_open", gsc_sqlite_open, 0},
+    {"sqlite_query", gsc_sqlite_query, 0},
+    {"sqlite_close", gsc_sqlite_close, 0},
+    {"sqlite_escape_string", gsc_sqlite_escape_string, 0},
+    {"sqlite_databases_count", gsc_sqlite_databases_count, 0},
+    {"sqlite_tasks_count", gsc_sqlite_tasks_count, 0},
+    {"async_sqlite_initialize", gsc_async_sqlite_initialize, 0},
+    {"async_sqlite_create_query", gsc_async_sqlite_create_query, 0},
+    {"async_sqlite_create_query_nosave", gsc_async_sqlite_create_query_nosave, 0},
+    {"async_sqlite_checkdone", gsc_async_sqlite_checkdone, 0},
+    #endif
+
     #if COMPILE_UTILS == 1
     {"sendCommandToClient", gsc_utils_sendcommandtoclient, 0},
 
@@ -56,6 +69,11 @@ scr_method_t scriptMethods[] =
 {
     #if COMPILE_ENTITY == 1
     {"showToPlayer", gsc_entity_showtoplayer, 0},
+    #endif
+
+    #if COMPILE_SQLITE == 1
+    {"async_sqlite_create_entity_query", gsc_async_sqlite_create_entity_query, 0},
+    {"async_sqlite_create_entity_query_nosave", gsc_async_sqlite_create_entity_query_nosave, 0},
     #endif
 
     #if COMPILE_PLAYER == 1
@@ -240,6 +258,25 @@ int stackGetParamInt(int param, int *value)
     return 1;
 }
 
+int stackGetParamFunction(int param, int *value)
+{
+    printf("####### stackGetParamFunction \n");
+    
+
+    if ( param >= Scr_GetNumParam() )
+        return 0;
+
+    VariableValue *var;
+    var = &scrVmPub.top[-param];
+
+    if ( var->type != STACK_FUNCTION )
+        return 0;
+
+    *value = var->u.codePosValue - scrVarPub.programBuffer;
+
+    return 1;
+}
+
 int stackGetParamString(int param, char **value)
 {
     if ( param >= Scr_GetNumParam() )
@@ -322,6 +359,22 @@ int stackGetParamFloat(int param, float *value)
         return 0;
 
     *value = var->u.floatValue;
+
+    return 1;
+}
+
+int stackGetParamObject(int param, unsigned int *value)
+{
+    if ( param >= Scr_GetNumParam() )
+        return 0;
+
+    VariableValue *var;
+    var = &scrVmPub.top[-param];
+
+    if ( var->type != STACK_OBJECT )
+        return 0;
+
+    *value = var->u.pointerValue;
 
     return 1;
 }
