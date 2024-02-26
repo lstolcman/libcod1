@@ -80,6 +80,27 @@ void gsc_utils_getsubstr()
     stackPushString(tempString);
 }
 
+void gsc_utils_toupper()
+{
+	char *str;
+
+	if ( !stackGetParams("s", &str) )
+	{
+		stackError("gsc_utils_toupper() argument is undefined or has a wrong type");
+		stackPushUndefined();
+		return;
+	}
+
+	if ( !strlen(str) )
+	{
+		stackError("gsc_utils_toupper() string length is 0");
+		stackPushUndefined();
+		return;
+	}
+
+	stackPushString(Q_strupr(str));
+}
+
 void gsc_utils_tolower()
 {
     char *str;

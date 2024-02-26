@@ -80,6 +80,7 @@ Scr_AddArray_t Scr_AddArray;
 Scr_AddObject_t Scr_AddObject;
 Scr_LoadScript_t Scr_LoadScript;
 Q_strlwr_t Q_strlwr;
+Q_strupr_t Q_strupr;
 Q_strcat_t Q_strcat;
 
 void custom_Com_InitCvars(void)
@@ -753,6 +754,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Scr_AddObject = (Scr_AddObject_t)dlsym(ret, "Scr_AddObject");
     Scr_LoadScript = (Scr_LoadScript_t)dlsym(ret, "Scr_LoadScript");
     Q_strlwr = (Q_strlwr_t)dlsym(ret, "Q_strlwr");
+    Q_strupr = (Q_strupr_t)dlsym(ret, "Q_strupr");
     Q_strcat = (Q_strcat_t)dlsym(ret, "Q_strcat");
 
     cracking_hook_call((int)dlsym(ret, "vmMain") + 0xB0, (int)hook_ClientCommand);

@@ -24,6 +24,7 @@ scr_function_t scriptFunctions[] =
 
     {"logPrintConsole", gsc_utils_logprintconsole, 0},
     {"getSubStr", gsc_utils_getsubstr, 0, },
+    {"toUpper", gsc_utils_toupper, 0},
     {"toLower", gsc_utils_tolower, 0},
     {"strtok", gsc_utils_strtok, 0},
     {"replace", gsc_utils_replace, 0},

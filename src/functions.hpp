@@ -284,6 +284,9 @@ static const SV_GameClientNum_t SV_GameClientNum = (SV_GameClientNum_t)0x0808927
 typedef char * (*Q_strlwr_t)(char *s1);
 extern Q_strlwr_t Q_strlwr;
 
+typedef char * (*Q_strupr_t)(char *s1);
+extern Q_strupr_t Q_strupr;
+
 typedef void (*Q_strcat_t)(char *dest, int size, const char *src);
 
 typedef void (*Com_Error_t)(errorParm_t code, const char *format, ...);
