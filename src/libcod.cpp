@@ -128,12 +128,14 @@ void hook_sv_spawnserver(const char *format, ...)
 #endif
 }
 
+#if COD_VERSION == COD1_1_1
 qboolean FS_svrPak(const char *base)
 {
     if(strstr(base, "_svr_"))
         return qtrue;
     return qfalse;
 }
+#endif
 
 const char* custom_FS_ReferencedPakNames(void)
 {
@@ -148,10 +150,7 @@ const char* custom_FS_ReferencedPakNames(void)
             continue;
 
         if(FS_svrPak(search->pak->pakBasename))
-        {
-            search->pak->referenced = 0;
             continue;
-        }
 
         if(*info)
             Q_strcat(info, sizeof( info ), " ");
@@ -176,10 +175,7 @@ const char* custom_FS_ReferencedPakChecksums(void)
             continue;
         
         if(FS_svrPak(search->pak->pakBasename))
-        {
-            search->pak->referenced = 0;
             continue;
-        }
         
         Q_strcat( info, sizeof( info ), custom_va( "%i ", search->pak->checksum ) );
     }
@@ -257,13 +253,11 @@ void hook_ClientCommand(int clientNum)
     if ( !Scr_IsSystemActive() )
         return;
 
-    #if COD_VERSION == COD1_1_1
+#if COD_VERSION == COD1_1_1
     char* cmd = Cmd_Argv(0);
     if(!strcmp(cmd, "gc"))
         return; // Prevent server crash
-    #elif COD_VERSION == COD1_1_5
-    //TODO: verify no need to ignore gc command
-    #endif
+#endif
       
     if ( !codecallback_playercommand )
     {	ClientCommand(clientNum);
@@ -308,21 +302,21 @@ const char* hook_AuthorizeState(int arg)
     return s;
 }
 
-qboolean IsReferencedPak(const char *requestedFilePath)
+qboolean ShouldServeFile(const char *requestedFilePath)
 {
-    static char localFilePath[BIG_INFO_STRING];
+    static char localFilePath[MAX_OSPATH*2+5];
     searchpath_t *search;
 
     localFilePath[0] = 0;
 
-    for ( search = fs_searchpaths ; search ; search = search->next )
+    for(search = fs_searchpaths; search; search = search->next)
     {
         if(search->pak)
         {
-            sprintf(localFilePath, "%s/%s.pk3", search->pak->pakGamename, search->pak->pakBasename);
+            snprintf(localFilePath, sizeof(localFilePath), "%s/%s.pk3", search->pak->pakGamename, search->pak->pakBasename);
             if (!strcmp(localFilePath, requestedFilePath))
-                if (search->pak->referenced)
-                    return qtrue;
+                if(!FS_svrPak(search->pak->pakBasename))
+                        return qtrue;
         }
     }
     return qfalse;
@@ -335,8 +329,13 @@ void custom_SV_BeginDownload_f(client_t *cl)
     if(args > 1)
     {
         const char* arg1 = Cmd_Argv(1);
-        if(!IsReferencedPak(arg1))
+        if(!ShouldServeFile(arg1))
+        {
+            char ip[16];
+            snprintf(ip, sizeof(ip), "%d.%d.%d.%d", cl->netchan.remoteAddress.ip[0], cl->netchan.remoteAddress.ip[1], cl->netchan.remoteAddress.ip[2], cl->netchan.remoteAddress.ip[3]);
+            printf("####### WARNING: %s (%s) tried to download %s. \n", cl->name, ip, arg1);
             return;
+        }
     }
 
     hook_sv_begindownload_f->unhook();
@@ -757,13 +756,18 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Q_strupr = (Q_strupr_t)dlsym(ret, "Q_strupr");
     Q_strcat = (Q_strcat_t)dlsym(ret, "Q_strcat");
 
+#if COD_VERSION == COD1_1_1
     cracking_hook_call((int)dlsym(ret, "vmMain") + 0xB0, (int)hook_ClientCommand);
+#elif COD_VERSION == COD1_1_5
+    cracking_hook_call((int)dlsym(ret, "vmMain") + 0xF0, (int)hook_ClientCommand);
+#endif
 
     hook_gametype_scripts = new cHook((int)dlsym(ret, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
     hook_gametype_scripts->hook();
     
     cracking_hook_function((int)dlsym(ret, "G_LocalizedStringIndex"), (int)custom_G_LocalizedStringIndex);
-    
+
+#if COD_VERSION == COD1_1_1
     // Patch codmsgboom
     /* See:
     - https://aluigi.altervista.org/adv/codmsgboom-adv.txt
@@ -771,6 +775,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     */
     cracking_write_hex((int)dlsym(ret, "G_Say") + 0x50e, (char *)"0x37f");
     cracking_write_hex((int)dlsym(ret, "G_Say") + 0x5ca, (char *)"0x37f");
+#endif
 
     return ret;
 }
@@ -790,18 +795,18 @@ public:
         // Otherwise the printf()'s are printed at crash/end on older os/compiler versions
         setbuf(stdout, NULL);
 
-        #if COD_VERSION == COD1_1_1
+#if COD_VERSION == COD1_1_1
         printf("> [LIBCOD] Compiled for: CoD1 1.1\n");
-        #elif COD_VERSION == COD1_1_5
+#elif COD_VERSION == COD1_1_5
         printf("> [LIBCOD] Compiled for: CoD1 1.5\n");
-        #endif
+#endif
 
         printf("> [LIBCOD] Compiled %s %s using GCC %s\n", __DATE__, __TIME__, __VERSION__);
 
         // Allow to write in executable memory
         mprotect((void *)0x08048000, 0x135000, PROT_READ | PROT_WRITE | PROT_EXEC);
 
-        #if COD_VERSION == COD1_1_1
+#if COD_VERSION == COD1_1_1
         cracking_hook_call(0x0806ce77, (int)common_init_complete_print);
         cracking_hook_call(0x0808a36c, (int)hook_sv_spawnserver);
         cracking_hook_call(0x08085213, (int)hook_AuthorizeState);
@@ -841,9 +846,30 @@ public:
         //cracking_write_hex(0x0808c41f, (char *)"0xeb"); // Not working
         *(unsigned char*)0x808C41F = 0xeb; // Works
 
+#elif COD_VERSION == COD1_1_5
+        cracking_hook_call(0x080714ba, (int)common_init_complete_print);
+        cracking_hook_call(0x08090e8f, (int)hook_sv_spawnserver);
+        cracking_hook_call(0x080894c5, (int)hook_AuthorizeState);
+        cracking_hook_call(0x0809d8f5, (int)Scr_GetCustomFunction);
+        cracking_hook_call(0x0809db31, (int)Scr_GetCustomMethod);
 
-        #elif COD_VERSION == COD1_1_5
-        #endif
+        hook_sys_loaddll = new cHook(0x080d3cdd, (int)custom_Sys_LoadDll);
+        hook_sys_loaddll->hook();
+        hook_com_initdvars = new cHook(0x080d3c86, (int)custom_Com_InitCvars);
+        hook_com_initdvars->hook();
+        hook_sv_begindownload_f = new cHook(0x0808b456, (int)custom_SV_BeginDownload_f);
+        hook_sv_begindownload_f->hook();
+
+        cracking_hook_call(0x0809360e, (int)hook_SVC_Info);
+        cracking_hook_call(0x080935cb, (int)hook_SVC_Status);
+        cracking_hook_call(0x08093651, (int)hook_SV_GetChallenge);
+        cracking_hook_call(0x0809370b, (int)hook_SV_DirectConnect);
+        cracking_hook_call(0x0809374e, (int)hook_SV_AuthorizeIpPacket);
+        cracking_hook_call(0x08093798, (int)hook_SVC_RemoteCommand);
+
+        // Patch RCON half-second limit        
+        *(unsigned char*)0x080930e9 = 0xeb;
+#endif
 
         printf("> [PLUGIN LOADED]\n");
     }

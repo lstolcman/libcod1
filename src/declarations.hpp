@@ -215,7 +215,7 @@ typedef struct
 typedef struct
 {
     unsigned int *localVars;
-    char pad[356];
+    byte pad[356];
     VariableValue *top;
     // some remains
 } scrVmPub_t;
@@ -290,6 +290,8 @@ typedef struct usercmd_s
     byte unknown;
 } usercmd_t;
 
+typedef void netProfileInfo_t;
+
 typedef struct
 {
     netsrc_t sock;
@@ -299,12 +301,13 @@ typedef struct
     int incomingSequence;
     int outgoingSequence;
     int fragmentSequence;
-    int fragmentLength;	
+    int fragmentLength;
     byte fragmentBuffer[MAX_MSGLEN];
     qboolean unsentFragments;
     int unsentFragmentStart;
     int unsentLength;
     byte unsentBuffer[MAX_MSGLEN];
+    netProfileInfo_t *netProfile;
 } netchan_t;
 
 typedef struct
@@ -324,6 +327,10 @@ typedef struct
     int firstPing;
     qboolean connected;
     int guid;
+#if COD_VERSION == COD1_1_5
+    char pbguid[64];
+    int ipAuthorize;
+#endif
 } challenge_t;
 
 typedef enum
@@ -468,33 +475,11 @@ typedef struct playerState_s
     int adsDelayTime;
     //TODO: check if one of two the above is "int viewmodelIndex" instead
     vec3_t viewangles;
-    int viewHeightTarget;
-    float viewHeightCurrent;
-    int viewHeightLerpTime;
-    int viewHeightLerpTarget;
-    int viewHeightLerpDown;
-    float viewHeightLerpPosAdj;
-    vec2_t viewAngleClampBase;
-    vec2_t viewAngleClampRange;
-
-    int health;
-    char gap_F8[556];
-    vec3_t mins;
-    vec3_t maxs;
-    float viewheight_prone;
-    int viewheight_crouched;
-    float viewheight_standing;
-    int field_348;
-    float runSpeedScale;
-    float sprintSpeedScale;
-    char gap_354[40];
-    float friction;
-    char gap_380[68];
-    float fTorsoHeight;
-    float fTorsoPitch;
-    float fWaistPitch;
-    char rest[7416];
-    int end;
+#if COD_VERSION == COD1_1_1
+    byte pad[8196];
+#elif COD_VERSION == COD1_1_5
+    byte pad[8192];
+#endif
 } playerState_t;
 
 typedef struct gitem_s
@@ -638,7 +623,13 @@ typedef struct client_s
     int downloadBlockSize[MAX_DOWNLOAD_WINDOW];
     qboolean downloadEOF;
     int downloadSendTime;
-    char wwwDownloadURL[128];
+#if COD_VERSION == COD1_1_5
+    char wwwDownloadURL[MAX_OSPATH];
+    qboolean wwwDownload;
+    qboolean wwwDownloadStarted;
+    qboolean wwwDlAck;
+    qboolean wwwDl_failed;
+#endif
     int deltaMessage;
     int nextReliableTime;
     int lastPacketTime;
@@ -652,25 +643,27 @@ typedef struct client_s
     int snapshotMsec;
     int pureAuthentic;
     netchan_t netchan;
+#if COD_VERSION == COD1_1_5
     int guid;
+#endif
     unsigned short clscriptid;
     int bot;
     int serverId;
+#if COD_VERSION == COD1_1_5
+    char PBguid[33];
+#endif
 } client_t;
 
 typedef struct
 {
-    qboolean initialized; 
-    int time; 
-    int snapFlagServerBit; 
-    client_t *clients; 
-    int numSnapshotEntities; 
-    int nextSnapshotEntities;
-    entityState_t *snapshotEntities;
-    int nextHeartbeatTime;
-    challenge_t challenges[MAX_CHALLENGES];
-    netadr_t redirectAddress;
-    netadr_t authorizeAddress;
+    qboolean initialized;
+#if COD_VERSION == COD1_1_1
+    byte pad[8];
+#elif COD_VERSION == COD1_1_5
+    byte pad[10];
+#endif
+    client_t *clients;
+    // some remains
 } serverStatic_t;
 
 enum svscmd_type
@@ -684,21 +677,25 @@ extern gentity_t *g_entities;
 #if COD_VERSION == COD1_1_1
 static const int varpub_offset = 0x082f17d8;
 #elif COD_VERSION == COD1_1_5
+static const int varpub_offset = 0x08306cb8;
 #endif
 
 #if COD_VERSION == COD1_1_1
 static const int vmpub_offset = 0x082f57e0;
 #elif COD_VERSION == COD1_1_5
+static const int vmpub_offset = 0x0830acc0;
 #endif
 
 #if COD_VERSION == COD1_1_1
 static const int svs_offset = 0x083b67a0;
 #elif COD_VERSION == COD1_1_5
+static const int svs_offset = 0x083ccd80;
 #endif
 
 #if COD_VERSION == COD1_1_1
 static const int fs_searchpaths_offset = 0x080dd590;
 #elif COD_VERSION == COD1_1_5
+static const int fs_searchpaths_offset = 0x080e8c30;
 #endif
 
 #define scrVarPub (*((scrVarPub_t*)( varpub_offset )))
@@ -709,10 +706,13 @@ static const int fs_searchpaths_offset = 0x080dd590;
 // Check for critical structure sizes and fail if not match
 #if __GNUC__ >= 6
 
+static_assert((sizeof(netchan_t) == 32832), "ERROR: netchan_t size is invalid!");
 #if COD_VERSION == COD1_1_1
 static_assert((sizeof(client_t) == 370940), "ERROR: client_t size is invalid!");
+static_assert((sizeof(playerState_t) == 8400), "ERROR: client_t size is invalid!");
 #elif COD_VERSION == COD1_1_5
-//static_assert((sizeof(client_t) == 371124), "ERROR: client_t size is invalid!");
+static_assert((sizeof(client_t) == 371124), "ERROR: client_t size is invalid!");
+static_assert((sizeof(playerState_t) == 8396), "ERROR: client_t size is invalid!");
 #endif
 
 #endif

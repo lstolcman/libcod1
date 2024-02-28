@@ -135,7 +135,6 @@ int cracking_write_hex(int address, char *hex)
     int i;
     bytes = hexToBuffer(hex, buffer, 128);
 
-
     for (i=0; i<bytes; i++)
         ptr[i] = buffer[i];
 

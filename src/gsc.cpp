@@ -98,8 +98,10 @@ scr_method_t scriptMethods[] =
     {"setUserinfo", gsc_player_setuserinfo, 0},
     {"processClientCommand", gsc_player_processclientcommand, 0},
     {"dropClient", gsc_player_dropclient, 0},
-
     #endif
+
+
+    //{"testCommand", gsc_testcommand, 0},
 
     {NULL, NULL, 0} // Terminator
 };
@@ -402,3 +404,23 @@ uint64_t Sys_Milliseconds64(void)
 
     return (tp.tv_sec - sys_timeBase) * 1000 + tp.tv_usec / 1000;
 }
+
+
+/*
+void gsc_testcommand(scr_entref_t ref)
+{
+    int id = ref.entnum;
+
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_testcommand() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    client_t *client = &svs.clients[id];
+
+    printf("####### client->name = %s \n", client->name);
+    printf("####### client->ping = %i \n", client->ping);
+    printf("####### client->rate = %i \n", client->rate);
+}*/

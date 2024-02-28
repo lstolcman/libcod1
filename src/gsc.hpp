@@ -90,4 +90,7 @@ xmethod_t Scr_GetCustomMethod(const char **fname, qboolean *fdev);
 uint64_t Sys_Milliseconds64(void);
 char *custom_va(const char *format, ...);
 
+
+//void gsc_testcommand(scr_entref_t ref);
+
 #endif

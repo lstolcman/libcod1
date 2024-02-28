@@ -1,37 +1,99 @@
 #!/bin/bash
 
-# ./doit.sh debug
+# E.g.: ./doit.sh -1 -d --sqlite
 
 cc="g++"
 options="-I. -m32 -fPIC -Wall -fvisibility=hidden"
-# -g -ggdb -O0 // debug build without optimization
 # -Wno-write-strings // not full warnings
+
+separator="---------------------"
+
+while [[ $# -gt 0 ]]; do
+    arg="$1"
+    case $arg in
+        -1 | --1.1)
+            patch=1.1
+            ;;
+        -5 | --1.5)
+            patch=1.5
+            ;;
+        -d | --debug)
+            debug="-g -ggdb -O0" # debug build without optimization
+            ;;
+        -s | --sqlite)
+            sqlite=true
+            ;;
+        -u | --unsafe)
+            unsafe=true
+            ;;
+        *)
+            unrecognized_arg=$arg
+            break
+            ;;
+    esac
+    shift
+done
+
+if [ -v unrecognized_arg ]; then
+    echo "Unrecognized argument \"$unrecognized_arg\", aborting."
+    exit 1
+fi
+
+if [ ! -v patch ]; then
+    echo "Patch version not specified, aborting."
+    exit 1
+fi
+
+echo $separator
+
+echo "Patch:  $patch"
+if [ $patch == 1.1 ]; then
+    set -- "cod1_1_1"
+    constants+="-D COD_VERSION=COD1_1_1"
+elif [ $patch == 1.5 ]; then
+    set -- "cod1_1_5"
+    constants+="-D COD_VERSION=COD1_1_5"
+fi
+
+echo -n "Debug: "
+if [ -v debug ]; then
+    echo " ON"
+else
+    echo " OFF"
+    debug=""
+fi
+
+echo -n "Unsafe: "
+if [ -v unsafe ]; then
+    echo "ON"
+    constants+=" -D ENABLE_UNSAFE=1"
+else
+    echo "OFF"
+    constants+=" -D ENABLE_UNSAFE=0"
+fi
 
 sqlite_found=0
 sqlite_link=""
 sqlite_libpath="/usr/lib32/libsqlite3.so"
 sqlite_libpath2="/usr/lib/i386-linux-gnu/libsqlite3.so"
 sqlite_libpath3="/usr/lib/libsqlite3.so"
-
-if [ "$1" == "sqlite" ] || [ "$2" == "sqlite" ]; then
+echo -n "SQLite: "
+if [ -v sqlite ]; then
     if [ -e "$sqlite_libpath" ] || [ -e "$sqlite_libpath2" ] || [ -e "$sqlite_libpath3" ]; then
         sqlite_found=1
         sqlite_link="-lsqlite3"
-        sed -i "/#define COMPILE_SQLITE 0/c\\#define COMPILE_SQLITE 1" config.hpp
+        constants+=" -D COMPILE_SQLITE=1"
+        echo "ON"
     else
-        echo "##### WARNING: SQLite lib not found, aborting #####"
-        exit 0
+        echo "requested but lib not found, aborting."
+        exit 1
     fi
-fi
-
-if [ "$1" == "debug" ] || [ "$2" == "debug" ]; then
-    debug="-g -ggdb -O0"
 else
-    debug=""
+    echo "OFF"
+    constants+=" -D COMPILE_SQLITE=0"
 fi
 
-set -- "cod1_1_1"
-constants="-D COD_VERSION=COD1_1_1"
+echo $separator
 
 mkdir -p ../bin
 mkdir -p objects_$1
@@ -71,10 +133,7 @@ $cc $debug $options $constants -c lib/qvsnprintf.c -o objects_"$1"/qvsnprintf.op
 echo "##### COMPILE $1 STRCMP_CONSTANT_TIME.C #####"
 $cc $debug $options $constants -c lib/strcmp_constant_time.c -o objects_"$1"/strcmp_constant_time.opp
 
-echo "##### LINKING lib$1.so #####"
+echo "##### LINK    lib$1.so #####"
 objects="$(ls objects_$1/*.opp)"
 $cc -m32 -shared -L/lib32 -o ../bin/lib$1.so -ldl $objects -lpthread $sqlite_link
 rm objects_$1 -r
-
-# Read leftover
-#rm 0
