@@ -12,9 +12,17 @@ while [[ $# -gt 0 ]]; do
     arg="$1"
     case $arg in
         -1 | --1.1)
+            if [ -v patch ]; then
+                multiple_patch_attempt=true
+                break
+            fi
             patch=1.1
             ;;
         -5 | --1.5)
+            if [ -v patch ]; then
+                multiple_patch_attempt=true
+                break
+            fi
             patch=1.5
             ;;
         -d | --debug)
@@ -41,6 +49,9 @@ fi
 
 if [ ! -v patch ]; then
     echo "Patch version not specified, aborting."
+    exit 1
+elif [ -v multiple_patch_attempt ]; then
+    echo "Only one patch version must be specified, aborting."
     exit 1
 fi
 

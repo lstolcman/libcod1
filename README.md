@@ -1,5 +1,5 @@
 ## Server extension for Call of Duty 1 (2003)
-Supported patch: **1.1**
+Supported patches: **1.1**, **1.5**
 ### Adding security, fixes, and features
 - Directory traversal protection
 - New GSC functions
