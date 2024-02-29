@@ -672,6 +672,13 @@ enum svscmd_type
     SV_CMD_RELIABLE = 0x1,
 };
 
+struct pmove_t
+{
+    playerState_t *ps;
+    usercmd_t cmd;
+    // some remains
+};
+
 extern gentity_t *g_entities;
 
 #if COD_VERSION == COD1_1_1

@@ -61,9 +61,11 @@ echo "Patch:  $patch"
 if [ $patch == 1.1 ]; then
     set -- "cod1_1_1"
     constants+="-D COD_VERSION=COD1_1_1"
+    constants+=" -D COMPILE_JUMP=0"
 elif [ $patch == 1.5 ]; then
     set -- "cod1_1_5"
     constants+="-D COD_VERSION=COD1_1_5"
+    constants+=" -D COMPILE_JUMP=1"
 fi
 
 echo -n "Debug: "
@@ -133,6 +135,11 @@ fi
 if grep -q "COMPILE_UTILS 1" config.hpp; then
     echo "##### COMPILE $1 GSC_UTILS.CPP #####"
     $cc $debug $options $constants -c gsc_utils.cpp -o objects_$1/gsc_utils.opp
+fi
+
+if [ $patch == 1.5 ]; then
+    echo "##### COMPILE $1 JUMP.CPP #####"
+    $cc $debug $options $constants -c jump.cpp -o objects_"$1"/jump.opp
 fi
 
 echo "##### COMPILE $1 LIBCOD.CPP #####"

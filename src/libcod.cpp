@@ -16,13 +16,14 @@ cvar_t *sv_serverid;
 // Custom cvars
 cvar_t *fs_callbacks;
 cvar_t *g_debugCallbacks;
-cvar_t *sv_downloadMessage;
+cvar_t *jump_slowdownEnable;
 
 cHook *hook_sys_loaddll;
 cHook *hook_com_initdvars;
 cHook *hook_gametype_scripts;
 cHook *hook_g_localizedstringindex;
 cHook *hook_sv_begindownload_f;
+cHook *hook_pm_walkmove;
 
 // Stock callbacks
 int codecallback_startgametype = 0;
@@ -49,6 +50,7 @@ callback_t callbacks[] =
 
 // Game lib objects
 gentity_t *g_entities;
+pmove_t *pm;
 
 // Game lib functions
 Scr_GetFunctionHandle_t Scr_GetFunctionHandle;
@@ -111,10 +113,10 @@ void common_init_complete_print(const char *format, ...)
     // Register custom cvars
     Cvar_Get("libcod", "1", CVAR_SERVERINFO);
     Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
+    jump_slowdownEnable =  Cvar_Get("jump_slowdownEnable", "1", CVAR_ARCHIVE);
 
     fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
     g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
-    sv_downloadMessage = Cvar_Get("sv_downloadMessage", "", CVAR_ARCHIVE);
 }
 
 void hook_sv_spawnserver(const char *format, ...)
@@ -723,6 +725,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     fclose(fp);
 
     g_entities = (gentity_t*)dlsym(ret, "g_entities");
+    pm = (pmove_t*)dlsym(ret, "pm");
 
     Scr_GetFunctionHandle = (Scr_GetFunctionHandle_t)dlsym(ret, "Scr_GetFunctionHandle");
     Scr_GetNumParam = (Scr_GetNumParam_t)dlsym(ret, "Scr_GetNumParam");
@@ -775,6 +778,11 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     */
     cracking_write_hex((int)dlsym(ret, "G_Say") + 0x50e, (char *)"0x37f");
     cracking_write_hex((int)dlsym(ret, "G_Say") + 0x5ca, (char *)"0x37f");
+#endif
+
+#if COMPILE_JUMP == 1 && COD_VERSION == COD1_1_5
+    hook_pm_walkmove = new cHook((int)dlsym(ret, "PM_GetEffectiveStance") + 0x1698, (int)Jump_ActivateSlowdown);
+    hook_pm_walkmove->hook();     
 #endif
 
     return ret;
