@@ -4,6 +4,8 @@
 /* gsc functions */
 #include "gsc.hpp"
 
-void Jump_ActivateSlowdown();
+void custom_PM_CheckDuck();
+void custom_Jump_Start(float height);
+void custom_PM_WalkMove();
 
 #endif
