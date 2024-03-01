@@ -4,6 +4,8 @@
 
 extern cvar_t *jump_slowdownEnable;
 
+#define JUMP_LAND_SLOWDOWN_TIME 1800
+
 extern cHook *hook_pm_checkduck;
 extern cHook *hook_jump_start;
 extern cHook *hook_pm_walkmove;
@@ -21,7 +23,7 @@ void custom_PM_CheckDuck()
     if(!jump_slowdownEnable->integer)
     {
         playerState_t *ps = ((pmove_t*)*((int*)pm))->ps;
-        ps->pm_flags &= ~0x2000;
+        ps->pm_flags &= ~0x2000u;
     }
 }
 
@@ -36,7 +38,8 @@ void custom_Jump_Start(float height)
     if(!jump_slowdownEnable->integer)
     {
         playerState_t *ps = ((pmove_t*)*((int*)pm))->ps;
-        ps->pm_flags &= ~0x2008;
+        ps->pm_flags &= ~0x2008u;
+        ps->pm_flags |= 8;
     }
 }
 
@@ -45,24 +48,24 @@ void custom_PM_WalkMove()
     if(!jump_slowdownEnable->integer)
     {
         playerState_t *ps = ((pmove_t*)*((int*)pm))->ps;
-        if(ps->pm_time < 0x709)
+        if(ps->pm_time <= JUMP_LAND_SLOWDOWN_TIME)
         {
-            if (ps->pm_time == 0)
+            if (!ps->pm_time)
             {
-                if (ps->origin[2] < ps->jumpOriginZ + 18.0)
+                if ((float)(ps->jumpOriginZ + 18.0) <= ps->origin[2])
                 {
-                    ps->pm_time = 0x708;
+                    ps->pm_time = 1200;
                 }
                 else
                 {
-                    ps->pm_time = 0x4b0;
+                    ps->pm_time = JUMP_LAND_SLOWDOWN_TIME;
                 }
             }
         }
         else
         {
             // Jump_ClearState
-            ps->pm_flags &= ~0xffffdfff;
+            ps->pm_flags &= ~0x2000u;
             ps->jumpOriginZ = 0;
         }
     }
