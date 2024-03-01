@@ -25,7 +25,6 @@ cHook *hook_g_localizedstringindex;
 cHook *hook_sv_begindownload_f;
 cHook *hook_pm_checkduck;
 cHook *hook_jump_start;
-cHook *hook_pm_walkmove;
 
 // Stock callbacks
 int codecallback_startgametype = 0;
@@ -787,8 +786,6 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_pm_checkduck->hook();
     hook_jump_start = new cHook((int)dlsym(ret, "PM_GetEffectiveStance") + 0xEDD, (int)custom_Jump_Start);
     hook_jump_start->hook();
-    hook_pm_walkmove = new cHook((int)dlsym(ret, "PM_GetEffectiveStance") + 0x1698, (int)custom_PM_WalkMove);
-    hook_pm_walkmove->hook();
 #endif
 
     return ret;
