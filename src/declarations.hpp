@@ -33,6 +33,8 @@
 #define CVAR_NOFLAG             0               // 0x0000
 #define CVAR_ARCHIVE            (1 << 0)        // 0x0001
 #define CVAR_SERVERINFO         (1 << 2)        // 0x0004
+#define CVAR_SYSTEMINFO         (1 << 3)        // 0x0008
+#define CVAR_CHEAT              (1 << 9)        // 0x0200
 
 #define SVF_SINGLECLIENT        0x800
 
@@ -358,38 +360,39 @@ typedef struct
 typedef struct entityState_s
 {
     int number;
-    entityType_t eType; //4
-    int eFlags; //8
-    trajectory_t pos; //12
-    trajectory_t apos; //48
-    int unk; //84 //time??
-    int unk2; //88 //time2??
-    vec3_t origin2; //92
-    vec3_t angles2; //104 (guessed name)
-    int otherEntityNum; //116
-    int otherEntityNum2; //120
-    int groundEntityNum; //124
-    int constantLight; //128
-    int loopSound; //132
-    int surfaceFlags; //136
-    int modelindex; //140
-    int clientNum; //144
-    char ___gap[0x34];
-    /*
-    gentity_t *teammaster; //152
-    int eventParm; //160
-    int eventSequence; //164
-    int events[4]; //168
-    int eventParms[4]; //184
-    */
-    
-    int weapon; //200
-    int legsAnim; //204
-    int torsoAnim; //208
-    float leanf; //212
-    int loopfxid; //216
-    int hintstring; //220
-    int animMovetype; //224
+    entityType_t eType;
+    int eFlags;
+    trajectory_t pos;
+    trajectory_t apos;
+    int time;
+    int time2;
+    vec3_t origin2;
+    vec3_t angles2;
+    int otherEntityNum;
+    int attackerEntityNum;
+    int groundEntityNum;
+    int constantLight;
+    int loopSound;
+    int surfType;
+    int index; // modelIndex
+    int clientNum;
+    int iHeadIcon;
+    int iHeadIconTeam;
+    int solid;
+    int eventParm;
+    int eventSequence;
+    int events[4];
+    unsigned int eventParms[4];
+    int weapon;
+    int legsAnim;
+    int torsoAnim;
+    int leanf;
+    int scale; // used as loopfxid, hintstring, ... and doesn't actually scale a player's model size
+    int dmgFlags;
+    int animMovetype;
+    float fTorsoHeight;
+    float fTorsoPitch;
+    float fWaistPitch;
 } entityState_t;
 
 typedef struct
@@ -666,6 +669,13 @@ typedef struct
     // some remains
 } serverStatic_t;
 
+typedef enum
+{
+    SS_DEAD,
+    SS_LOADING,
+    SS_GAME
+} serverState_t;
+
 enum svscmd_type
 {
     SV_CMD_CAN_IGNORE = 0x0,
@@ -694,6 +704,11 @@ static const int vmpub_offset = 0x0830acc0;
 #endif
 
 #if COD_VERSION == COD1_1_1
+#elif COD_VERSION == COD1_1_5
+static const int sv_offset = 0x0836b820;
+#endif
+
+#if COD_VERSION == COD1_1_1
 static const int svs_offset = 0x083b67a0;
 #elif COD_VERSION == COD1_1_5
 static const int svs_offset = 0x083ccd80;
@@ -707,6 +722,7 @@ static const int fs_searchpaths_offset = 0x080e8c30;
 
 #define scrVarPub (*((scrVarPub_t*)( varpub_offset )))
 #define scrVmPub (*((scrVmPub_t*)( vmpub_offset )))
+//#define sv (*((server_t*)( sv_offset )))
 #define svs (*((serverStatic_t*)( svs_offset )))
 #define fs_searchpaths (*((searchpath_t**)( fs_searchpaths_offset )))
 
@@ -714,12 +730,13 @@ static const int fs_searchpaths_offset = 0x080e8c30;
 #if __GNUC__ >= 6
 
 static_assert((sizeof(netchan_t) == 32832), "ERROR: netchan_t size is invalid!");
+static_assert((sizeof(entityState_t) == 240), "ERROR: entityState_t size is invalid!");
 #if COD_VERSION == COD1_1_1
 static_assert((sizeof(client_t) == 370940), "ERROR: client_t size is invalid!");
-static_assert((sizeof(playerState_t) == 8400), "ERROR: client_t size is invalid!");
+static_assert((sizeof(playerState_t) == 8400), "ERROR: playerState_t size is invalid!");
 #elif COD_VERSION == COD1_1_5
 static_assert((sizeof(client_t) == 371124), "ERROR: client_t size is invalid!");
-static_assert((sizeof(playerState_t) == 8396), "ERROR: client_t size is invalid!");
+static_assert((sizeof(playerState_t) == 8396), "ERROR: playerState_t size is invalid!");
 #endif
 
 #endif

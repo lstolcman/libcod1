@@ -139,6 +139,12 @@ static const SV_DropClient_t SV_DropClient = (SV_DropClient_t)0x08085cf4;
 static const SV_DropClient_t SV_DropClient = (SV_DropClient_t)0x0808ac11;
 #endif
 
+typedef void (*SV_UpdateServerCommandsToClient_t)(client_t *client, msg_t *msg);
+#if COD_VERSION == COD1_1_1
+#elif COD_VERSION == COD1_1_5
+static const SV_UpdateServerCommandsToClient_t SV_UpdateServerCommandsToClient = (SV_UpdateServerCommandsToClient_t)0x080959d0;
+#endif
+
 typedef void (*Info_SetValueForKey_t)(char *s, const char *key, const char *value);
 #if COD_VERSION == COD1_1_1
 static const Info_SetValueForKey_t Info_SetValueForKey = (Info_SetValueForKey_t)0x080827d4;
@@ -234,6 +240,12 @@ static const FS_Read_t FS_Read = (FS_Read_t)0x080628f4;
 static const FS_Read_t FS_Read = (FS_Read_t)0x08062960;
 #endif
 
+typedef void (*MSG_Init_t)(msg_t *buf, byte *data, int length);
+#if COD_VERSION == COD1_1_1
+#elif COD_VERSION == COD1_1_5
+static const MSG_Init_t MSG_Init = (MSG_Init_t)0x0807f928;
+#endif
+
 typedef void (*MSG_WriteByte_t)(msg_t *msg, int c);
 #if COD_VERSION == COD1_1_1
 static const MSG_WriteByte_t MSG_WriteByte = (MSG_WriteByte_t)0x0807f090;
@@ -255,6 +267,12 @@ static const MSG_WriteLong_t MSG_WriteLong = (MSG_WriteLong_t)0x0807f0ec;
 static const MSG_WriteLong_t MSG_WriteLong = (MSG_WriteLong_t)0x0807fdb5;
 #endif
 
+typedef void (*MSG_WriteBigString_t)(msg_t *msg, const char *s);
+#if COD_VERSION == COD1_1_1
+#elif COD_VERSION == COD1_1_5
+static const MSG_WriteBigString_t MSG_WriteBigString = (MSG_WriteBigString_t)0x0807fedb;
+#endif
+
 typedef void (*MSG_WriteString_t)(msg_t *msg, const char *s);
 #if COD_VERSION == COD1_1_1
 static const MSG_WriteString_t MSG_WriteString = (MSG_WriteString_t)0x0807a620;
@@ -267,6 +285,24 @@ typedef void (*MSG_WriteData_t)(msg_t *msg, const void *data, int length);
 static const MSG_WriteData_t MSG_WriteData = (MSG_WriteData_t)0x0807eef0;
 #elif COD_VERSION == COD1_1_5
 static const MSG_WriteData_t MSG_WriteData = (MSG_WriteData_t)0x0807fd10;
+#endif
+
+typedef void (*MSG_WriteDeltaEntity_t)(msg_t *msg, struct entityState_s *from, struct entityState_s *to, qboolean force);
+#if COD_VERSION == COD1_1_1
+#elif COD_VERSION == COD1_1_5
+static const MSG_WriteDeltaEntity_t MSG_WriteDeltaEntity = (MSG_WriteDeltaEntity_t)0x0808149a;
+#endif
+
+typedef void (*SV_SendMessageToClient_t)(msg_t *msg, client_t *cl);
+#if COD_VERSION == COD1_1_1
+#elif COD_VERSION == COD1_1_5
+static const SV_SendMessageToClient_t SV_SendMessageToClient = (SV_SendMessageToClient_t)0x08097a2f;
+#endif
+
+typedef void (*SV_Netchan_TransmitNextFragment_t)(netchan_t *chan);
+#if COD_VERSION == COD1_1_1
+#elif COD_VERSION == COD1_1_5
+static const SV_Netchan_TransmitNextFragment_t SV_Netchan_TransmitNextFragment = (SV_Netchan_TransmitNextFragment_t)0x080948d0;
 #endif
 
 typedef int (*Scr_IsSystemActive_t)();

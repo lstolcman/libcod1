@@ -23,8 +23,7 @@ cHook *hook_com_initdvars;
 cHook *hook_gametype_scripts;
 cHook *hook_g_localizedstringindex;
 cHook *hook_sv_begindownload_f;
-cHook *hook_pm_checkduck;
-cHook *hook_jump_start;
+cHook *hook_pm_walkmove;
 
 // Stock callbacks
 int codecallback_startgametype = 0;
@@ -114,7 +113,7 @@ void common_init_complete_print(const char *format, ...)
     // Register custom cvars
     Cvar_Get("libcod", "1", CVAR_SERVERINFO);
     Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
-    jump_slowdownEnable =  Cvar_Get("jump_slowdownEnable", "1", CVAR_ARCHIVE);
+    jump_slowdownEnable =  Cvar_Get("jump_slowdownEnable", "1", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
 
     fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
     g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
@@ -782,10 +781,8 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 #endif
 
 #if COMPILE_JUMP == 1 && COD_VERSION == COD1_1_5
-    hook_pm_checkduck = new cHook((int)dlsym(ret, "PM_GetEffectiveStance") + 0x491F, (int)custom_PM_CheckDuck);
-    hook_pm_checkduck->hook();
-    hook_jump_start = new cHook((int)dlsym(ret, "PM_GetEffectiveStance") + 0xEDD, (int)custom_Jump_Start);
-    hook_jump_start->hook();
+    hook_pm_walkmove = new cHook((int)dlsym(ret, "PM_GetEffectiveStance") + 0x1698, (int)custom_PM_WalkMove);
+    hook_pm_walkmove->hook();
 #endif
 
     return ret;
@@ -878,7 +875,7 @@ public:
         cracking_hook_call(0x0809374e, (int)hook_SV_AuthorizeIpPacket);
         cracking_hook_call(0x08093798, (int)hook_SVC_RemoteCommand);
 
-        // Patch RCON half-second limit        
+        // Patch RCON half-second limit
         *(unsigned char*)0x080930e9 = 0xeb;
 #endif
 

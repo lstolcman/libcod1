@@ -4,42 +4,24 @@
 
 extern cvar_t *jump_slowdownEnable;
 
-#define JUMP_LAND_SLOWDOWN_TIME 1800
-
-extern cHook *hook_pm_checkduck;
-extern cHook *hook_jump_start;
-
 extern pmove_t *pm;
 
-void custom_PM_CheckDuck()
-{
-    hook_pm_checkduck->unhook();
-    void (*PM_CheckDuck)();
-    *(int *)&PM_CheckDuck = hook_pm_checkduck->from;
-    PM_CheckDuck();
-    hook_pm_checkduck->hook();
+extern cHook *hook_pm_walkmove;
 
+void custom_PM_WalkMove()
+{
     if(!jump_slowdownEnable->integer)
     {
         playerState_t *ps = ((pmove_t*)*((int*)pm))->ps;
         ps->pm_flags &= ~0x2000u;
-        ps->pm_time -= JUMP_LAND_SLOWDOWN_TIME;
+        ps->pm_time = 0;
     }
-}
-
-void custom_Jump_Start(float height)
-{
-    hook_jump_start->unhook();
-    void (*Jump_Start)(float height);
-    *(int *)&Jump_Start = hook_jump_start->from;
-    Jump_Start(height);
-    hook_jump_start->hook();
-
-    if(!jump_slowdownEnable->integer)
-    {
-        playerState_t *ps = ((pmove_t*)*((int*)pm))->ps;
-        ps->pm_flags &= ~0x2000u;
-    }
+    
+    hook_pm_walkmove->unhook();
+    void (*PM_WalkMove)();
+    *(int *)&PM_WalkMove = hook_pm_walkmove->from;
+    PM_WalkMove();
+    hook_pm_walkmove->hook();
 }
 
 #endif
