@@ -85,6 +85,10 @@ Q_strlwr_t Q_strlwr;
 Q_strupr_t Q_strupr;
 Q_strcat_t Q_strcat;
 
+// Resume addresses
+uintptr_t resume_addr_Jump_ApplySlowdown;
+uintptr_t resume_addr_hook_PM_SlideMove;
+
 void custom_Com_InitCvars(void)
 {
     hook_com_initdvars->unhook();
@@ -113,8 +117,9 @@ void common_init_complete_print(const char *format, ...)
     // Register custom cvars
     Cvar_Get("libcod", "1", CVAR_SERVERINFO);
     Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
+#if COMPILE_JUMP == 1 && COD_VERSION == COD1_1_5
     jump_slowdownEnable =  Cvar_Get("jump_slowdownEnable", "1", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
-
+#endif
     fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
     g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
 }
@@ -706,7 +711,6 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
         sprintf(libPath, "%s/game.mp.i386.so", fs_game->string);
     else
         sprintf(libPath, "main/game.mp.i386.so");
-
     char buf[512];
     char flags[4];
     void *low, *high;
@@ -723,7 +727,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
         mprotect((void *)low, (int)high-(int)low, PROT_READ | PROT_WRITE | PROT_EXEC);
     }
     fclose(fp);
-
+    
     g_entities = (gentity_t*)dlsym(ret, "g_entities");
     pm = (pmove_t*)dlsym(ret, "pm");
 
@@ -781,8 +785,12 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 #endif
 
 #if COMPILE_JUMP == 1 && COD_VERSION == COD1_1_5
-    hook_pm_walkmove = new cHook((int)dlsym(ret, "PM_GetEffectiveStance") + 0x1698, (int)custom_PM_WalkMove);
-    hook_pm_walkmove->hook();
+    cracking_hook_function((int)dlsym(ret, "PM_GetEffectiveStance") + 0x16C1, (int)Jump_ApplySlowdown_Stub);
+    resume_addr_Jump_ApplySlowdown = (uintptr_t)dlsym(ret, "PM_GetEffectiveStance") + 0x18AA;
+    cracking_hook_function((int)dlsym(ret, "PM_SlideMove") + 0xB6A, (int)hook_PM_SlideMove_Stub);
+    resume_addr_hook_PM_SlideMove = (uintptr_t)dlsym(ret, "PM_SlideMove") + 0xBA5;
+    cracking_hook_function((int)dlsym(ret, "PM_GetEffectiveStance") + 0xAD, (int)custom_Jump_GetLandFactor);
+    cracking_hook_function((int)dlsym(ret, "PM_GetEffectiveStance") + 0x4C, (int)custom_PM_GetReducedFriction);
 #endif
 
     return ret;
@@ -845,7 +853,7 @@ public:
         */
         cracking_write_hex(0x807f459, (char *)"1");
 
-        // Patch RCON half-second limit
+        // Patch RCON half-second limit //TODO: Do like zk_libcod
         /* See:
         - https://aluigi.altervista.org/patches/q3rconz.lpatch
         - https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/codextended.c#L291

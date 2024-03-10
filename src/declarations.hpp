@@ -11,6 +11,7 @@
 
 // 3D vectors
 #define VectorCopy( a, b )          ( ( b )[0] = ( a )[0],( b )[1] = ( a )[1],( b )[2] = ( a )[2] )
+#define VectorScale( v, s, o )      ( ( o )[0] = ( v )[0] * ( s ),( o )[1] = ( v )[1] * ( s ),( o )[2] = ( v )[2] * ( s ) )
 
 #define BIG_INFO_STRING             0x2000
 #define GENTITYNUM_BITS             10
@@ -54,6 +55,10 @@
 // entityState_t->eFlags
 #define EF_CROUCHING    0x20
 #define EF_PRONE        0x40
+
+#if COD_VERSION == COD1_1_5
+#define PMF_JUMPING         0x2000
+#endif
 
 typedef unsigned char byte;
 typedef signed char sbyte;
