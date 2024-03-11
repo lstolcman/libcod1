@@ -86,16 +86,16 @@ __attribute__ ((naked)) void hook_PM_SlideMove_Naked()
     );
 }
 
-extern "C" void hook_PM_SlideMove(float primal_velocity_1, float primal_velocity_2, float primal_velocity_3)
+extern "C" void hook_PM_SlideMove(float primal_velocity_0, float primal_velocity_1, float primal_velocity_2)
 {
     if(jump_slowdownEnable->integer) // Not to disable wallrun after jump
     {
         playerState_t *ps = ((pmove_t*)*((int*)pm))->ps;
         if (ps->pm_time)
         {
-            ps->velocity[0] = primal_velocity_1;
-            ps->velocity[1] = primal_velocity_2;
-            ps->velocity[2] = primal_velocity_3;
+            ps->velocity[0] = primal_velocity_0;
+            ps->velocity[1] = primal_velocity_1;
+            ps->velocity[2] = primal_velocity_2;
         }
     }
 }
