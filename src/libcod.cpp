@@ -86,8 +86,8 @@ Q_strupr_t Q_strupr;
 Q_strcat_t Q_strcat;
 
 // Resume addresses
-uintptr_t resume_addr_Jump_ApplySlowdown;
-uintptr_t resume_addr_hook_PM_SlideMove;
+uintptr_t resume_addr_PM_WalkMove;
+uintptr_t resume_addr_PM_SlideMove;
 
 void custom_Com_InitCvars(void)
 {
@@ -785,10 +785,12 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 #endif
 
 #if COMPILE_JUMP == 1 && COD_VERSION == COD1_1_5
-    cracking_hook_function((int)dlsym(ret, "PM_GetEffectiveStance") + 0x16C1, (int)Jump_ApplySlowdown_Stub);
-    resume_addr_Jump_ApplySlowdown = (uintptr_t)dlsym(ret, "PM_GetEffectiveStance") + 0x18AA;
-    cracking_hook_function((int)dlsym(ret, "PM_SlideMove") + 0xB6A, (int)hook_PM_SlideMove_Stub);
-    resume_addr_hook_PM_SlideMove = (uintptr_t)dlsym(ret, "PM_SlideMove") + 0xBA5;
+    cracking_hook_function((int)dlsym(ret, "PM_GetEffectiveStance") + 0x16C1, (int)hook_PM_WalkMove_Naked);
+    resume_addr_PM_WalkMove = (uintptr_t)dlsym(ret, "PM_GetEffectiveStance") + 0x18AA;
+
+    cracking_hook_function((int)dlsym(ret, "PM_SlideMove") + 0xB6A, (int)hook_PM_SlideMove_Naked);
+    resume_addr_PM_SlideMove = (uintptr_t)dlsym(ret, "PM_SlideMove") + 0xBA5;
+
     cracking_hook_function((int)dlsym(ret, "PM_GetEffectiveStance") + 0xAD, (int)custom_Jump_GetLandFactor);
     cracking_hook_function((int)dlsym(ret, "PM_GetEffectiveStance") + 0x4C, (int)custom_PM_GetReducedFriction);
 #endif

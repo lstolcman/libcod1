@@ -8,10 +8,10 @@ extern cvar_t *jump_slowdownEnable;
 
 extern pmove_t *pm;
 
-extern uintptr_t resume_addr_Jump_ApplySlowdown;
-extern uintptr_t resume_addr_hook_PM_SlideMove;
+extern uintptr_t resume_addr_PM_WalkMove;
+extern uintptr_t resume_addr_PM_SlideMove;
 
-__attribute__ ((naked)) void Jump_ApplySlowdown_Stub()
+__attribute__ ((naked)) void hook_PM_WalkMove_Naked()
 {
     asm volatile (
         "pushal\n"
@@ -19,7 +19,7 @@ __attribute__ ((naked)) void Jump_ApplySlowdown_Stub()
         "popal\n"
         "jmp *%0\n"
         :
-        : "r"(resume_addr_Jump_ApplySlowdown)
+        : "r"(resume_addr_PM_WalkMove)
         : "memory"
     );
 }
@@ -61,7 +61,7 @@ extern "C" void Jump_ApplySlowdown()
     }
 }
 
-__attribute__ ((naked)) void hook_PM_SlideMove_Stub()
+__attribute__ ((naked)) void hook_PM_SlideMove_Naked()
 {
     asm volatile (
         "pushal\n"
@@ -81,7 +81,7 @@ __attribute__ ((naked)) void hook_PM_SlideMove_Stub()
         "popal\n"
         "jmp *%0\n"
         :
-        : "r"(resume_addr_hook_PM_SlideMove)
+        : "r"(resume_addr_PM_SlideMove)
         : "%eax", "memory"
     );
 }
