@@ -3,7 +3,7 @@
 
 #include "gsc.hpp"
 
-void cracking_hook_function(int from, int to);
+void cracking_hook_jmp(int from, int to);
 void cracking_hook_call(int from, int to);
 
 int cracking_write_hex(int address, char *hex);

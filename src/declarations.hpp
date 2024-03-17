@@ -181,7 +181,7 @@ union VariableUnion
     const float *vectorValue;
     const char *codePosValue;
     unsigned int pointerValue;
-    // some might remain
+    //...
 };
 
 typedef struct
@@ -217,14 +217,14 @@ typedef struct
     unsigned int entFieldName;
     const char *programBuffer;
     const char *endScriptBuffer;
-} scrVarPub_t; // Not verified
+} scrVarPub_t; // TODO: verify
 
 typedef struct
 {
     unsigned int *localVars;
     byte pad[356];
     VariableValue *top;
-    // some remains
+    //...
 } scrVmPub_t;
 
 typedef int	fileHandle_t;
@@ -263,7 +263,7 @@ struct pack_t
     int numFiles;
     int referenced;
     int hashSize;
-    // some remains
+    //...
 };
 
 struct searchpath_t
@@ -271,7 +271,7 @@ struct searchpath_t
     searchpath_t *next;
     pack_t *pak;
     directory_t *dir;
-    // some might remain
+    //...
 };
 
 typedef struct leakyBucket_s leakyBucket_t;
@@ -493,7 +493,7 @@ typedef struct playerState_s
 typedef struct gitem_s
 {
     char *classname;
-    // some might remain
+    //...
 } gitem_t;
 struct gentity_s
 {
@@ -671,7 +671,7 @@ typedef struct
     byte pad[10];
 #endif
     client_t *clients;
-    // some remains
+    //...
 } serverStatic_t;
 
 typedef enum
@@ -687,11 +687,50 @@ enum svscmd_type
     SV_CMD_RELIABLE = 0x1,
 };
 
+#if COD_VERSION == COD1_1_5
+typedef struct WeaponDef_t
+{
+    int number;
+    char* name;
+    char* displayName;
+    byte pad[0x1E4];
+    int reloadAddTime;
+    byte pad2[0x20];
+    float moveSpeedScale;
+    float adsZoomFov;
+    float adsZoomInFrac;
+    float adsZoomOutFrac;
+    byte pad3[0x44];
+    int adsTransInTime;
+    int adsTransOutTime;
+    byte pad4[0x8];
+    float idleCrouchFactor;
+    float idleProneFactor;
+    byte pad5[0x50];
+    int rechamberWhileAds;
+    float adsViewErrorMin;
+    float adsViewErrorMax;
+    //...
+} WeaponDef_t;
+
+struct WeaponProperties // Custom struct for g_legacyStyle
+{
+    int reloadAddTime;
+    int adsTransInTime;
+    float adsZoomInFrac;
+    float idleCrouchFactor;
+    float idleProneFactor;
+    int rechamberWhileAds;
+    float adsViewErrorMin;
+    float adsViewErrorMax;
+};
+#endif
+
 struct pmove_t
 {
     playerState_t *ps;
     usercmd_t cmd;
-    // some remains
+    //...
 };
 
 extern gentity_t *g_entities;

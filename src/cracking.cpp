@@ -1,6 +1,6 @@
 #include "cracking.hpp"
 
-void cracking_hook_function(int from, int to)
+void cracking_hook_jmp(int from, int to)
 {
     int relative = to - (from+5); // +5 is the position of next opcode
     memset((void *)from, 0xE9, 1); // JMP-OPCODE
@@ -150,7 +150,7 @@ cHook::cHook(int from, int to)
 void cHook::hook()
 {
     memcpy((void *)oldCode, (void *)from, 5);
-    cracking_hook_function(from, to);
+    cracking_hook_jmp(from, to);
 }
 
 void cHook::unhook()

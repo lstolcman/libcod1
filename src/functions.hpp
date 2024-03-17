@@ -43,13 +43,6 @@ static const Cmd_Argc_t Cmd_Argc = (Cmd_Argc_t)0x0805b24c;
 static const Cmd_Argc_t Cmd_Argc = (Cmd_Argc_t)0x080600ea;
 #endif
 
-typedef char * (*SV_Cmd_Argv_t)(unsigned int arg);
-#if COD_VERSION == COD1_1_1
-static const SV_Cmd_Argv_t SV_Cmd_Argv = (SV_Cmd_Argv_t)0x0805b258;
-#elif COD_VERSION == COD1_1_5
-static const SV_Cmd_Argv_t SV_Cmd_Argv = (SV_Cmd_Argv_t)0x080600f4;
-#endif
-
 typedef void (*SV_Cmd_ArgvBuffer_t)(int arg, char *buffer, int bufferLength);
 
 typedef void (*Com_Printf_t)(const char *format, ...);
@@ -108,11 +101,10 @@ extern Scr_GetFunction_t Scr_GetFunction;
 typedef xmethod_t (*Scr_GetMethod_t)(const char** v_methodName, qboolean *v_developer);
 extern Scr_GetMethod_t Scr_GetMethod;
 
-typedef cvar_t * (*Cvar_FindVar_t)(const char *var_name);
+typedef cvar_t * (*Cvar_Set2_t)(const char *var_name, const char *value, qboolean force);
 #if COD_VERSION == COD1_1_1
-static const Cvar_FindVar_t Cvar_FindVar = (Cvar_FindVar_t)0x0806e9b4;
 #elif COD_VERSION == COD1_1_5
-static const Cvar_FindVar_t Cvar_FindVar = (Cvar_FindVar_t)0x08072916;
+static const Cvar_Set2_t Cvar_Set2 = (Cvar_Set2_t)0x08072da8;
 #endif
 
 typedef cvar_t * (*Cvar_Get_t)(const char *var_name, const char *var_value, unsigned short flags);
@@ -120,6 +112,13 @@ typedef cvar_t * (*Cvar_Get_t)(const char *var_name, const char *var_value, unsi
 static const Cvar_Get_t Cvar_Get = (Cvar_Get_t)0x0806ea34;
 #elif COD_VERSION == COD1_1_5
 static const Cvar_Get_t Cvar_Get = (Cvar_Get_t)0x08072a7c;
+#endif
+
+typedef cvar_t * (*Cvar_FindVar_t)(const char *var_name);
+#if COD_VERSION == COD1_1_1
+static const Cvar_FindVar_t Cvar_FindVar = (Cvar_FindVar_t)0x0806e9b4;
+#elif COD_VERSION == COD1_1_5
+static const Cvar_FindVar_t Cvar_FindVar = (Cvar_FindVar_t)0x08072916;
 #endif
 
 typedef void (*SV_GameSendServerCommand_t)(int clientnum, svscmd_type type, const char *text);
@@ -304,6 +303,12 @@ typedef void (*SV_Netchan_TransmitNextFragment_t)(netchan_t *chan);
 #elif COD_VERSION == COD1_1_5
 static const SV_Netchan_TransmitNextFragment_t SV_Netchan_TransmitNextFragment = (SV_Netchan_TransmitNextFragment_t)0x080948d0;
 #endif
+
+#if COD_VERSION == COD1_1_5
+typedef WeaponDef_t * (*BG_GetInfoForWeapon_t)(unsigned int weaponIndex);
+#endif
+
+typedef int (*BG_GetWeaponIndexForName_t)(const char *name);
 
 typedef int (*Scr_IsSystemActive_t)();
 
