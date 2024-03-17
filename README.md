@@ -2,7 +2,7 @@
 Supported patches: **1.1**, **1.5**
 ### Adding security, fixes, and features
 - Directory traversal protection
-- New GSC functions
+- 1.1 player movements on 1.5
 - ...and more
 ___
 ### Installation and usage
