@@ -19,7 +19,6 @@ cvar_t *g_debugCallbacks;
 #if COMPILE_JUMP == 1 && COD_VERSION == COD1_1_5
     cvar_t* g_legacyStyle;
 #endif
-cvar_t *sv_cracked;
 #if COMPILE_JUMP == 1 && COD_VERSION == COD1_1_5
     cvar_t *jump_slowdownEnable;
 #endif
@@ -181,13 +180,14 @@ void custom_Cvar_Set2(const char *var_name, const char *value, qboolean force)
     bool g_legacyStyle_before;
     bool g_legacyStyle_after;
 
-    g_legacyStyle = Cvar_FindVar("g_legacyStyle");
-
-
-    if(g_legacyStyle != NULL && !strcasecmp(var_name, g_legacyStyle->name))
+    if(com_sv_running != NULL && com_sv_running->integer)
     {
-        check_g_legacyStyle = true;
-        g_legacyStyle_before = g_legacyStyle->integer ? true : false;
+        g_legacyStyle = Cvar_FindVar("g_legacyStyle");
+        if(g_legacyStyle != NULL && !strcasecmp(var_name, g_legacyStyle->name))
+        {
+            check_g_legacyStyle = true;
+            g_legacyStyle_before = g_legacyStyle->integer ? true : false;
+        }
     }
     
     hook_cvar_set2->unhook();
@@ -229,7 +229,6 @@ void custom_Com_InitCvars(void)
 #if COMPILE_JUMP == 1 && COD_VERSION == COD1_1_5
     g_legacyStyle = Cvar_FindVar("g_legacyStyle");
 #endif
-    sv_cracked = Cvar_FindVar("sv_cracked");
 }
 
 void common_init_complete_print(const char *format, ...)
@@ -421,6 +420,7 @@ void hook_ClientCommand(int clientNum)
 const char* hook_AuthorizeState(int arg)
 {
     const char* s = Cmd_Argv(arg);
+    cvar_t* sv_cracked = Cvar_FindVar("sv_cracked");
     if (sv_cracked->integer && !strcmp(s, "deny"))
         return "accept";
     return s;
