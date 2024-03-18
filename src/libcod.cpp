@@ -130,6 +130,7 @@ void toggleLegacyStyle(bool enable)
         else
             properties_kar98k_sniper = &weapons_properties[weapon_kar98k_sniper->name]["default"];
         weapon_kar98k_sniper->adsTransInTime = properties_kar98k_sniper->adsTransInTime;
+        weapon_kar98k_sniper->OOPosAnimLength[0] = 1.0 / (float)weapon_kar98k_sniper->adsTransInTime;
         weapon_kar98k_sniper->adsZoomInFrac = properties_kar98k_sniper->adsZoomInFrac;
         weapon_kar98k_sniper->idleCrouchFactor = properties_kar98k_sniper->idleCrouchFactor;
         weapon_kar98k_sniper->idleProneFactor = properties_kar98k_sniper->idleProneFactor;
@@ -147,6 +148,7 @@ void toggleLegacyStyle(bool enable)
             properties_mosin_nagant_sniper = &weapons_properties[weapon_mosin_nagant_sniper->name]["default"];
         weapon_mosin_nagant_sniper->reloadAddTime = properties_mosin_nagant_sniper->reloadAddTime;
         weapon_mosin_nagant_sniper->adsTransInTime = properties_mosin_nagant_sniper->adsTransInTime;
+        weapon_mosin_nagant_sniper->OOPosAnimLength[0] = 1.0 / (float)weapon_mosin_nagant_sniper->adsTransInTime;
         weapon_mosin_nagant_sniper->adsZoomInFrac = properties_mosin_nagant_sniper->adsZoomInFrac;
         weapon_mosin_nagant_sniper->idleCrouchFactor = properties_mosin_nagant_sniper->idleCrouchFactor;
         weapon_mosin_nagant_sniper->idleProneFactor = properties_mosin_nagant_sniper->idleProneFactor;
@@ -163,6 +165,7 @@ void toggleLegacyStyle(bool enable)
         else
             properties_springfield = &weapons_properties[weapon_springfield->name]["default"];
         weapon_springfield->adsTransInTime = properties_springfield->adsTransInTime;
+        weapon_springfield->OOPosAnimLength[0] = 1.0 / (float)weapon_springfield->adsTransInTime;
         weapon_springfield->adsZoomInFrac = properties_springfield->adsZoomInFrac;
         weapon_springfield->idleCrouchFactor = properties_springfield->idleCrouchFactor;
         weapon_springfield->idleProneFactor = properties_springfield->idleProneFactor;
