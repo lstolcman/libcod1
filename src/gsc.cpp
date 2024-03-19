@@ -19,7 +19,6 @@ scr_function_t scriptFunctions[] =
     {"async_sqlite_checkdone", gsc_async_sqlite_checkdone, 0},
     #endif
 
-    #if COMPILE_UTILS == 1
     {"sendCommandToClient", gsc_utils_sendcommandtoclient, 0},
 
     {"logPrintConsole", gsc_utils_logprintconsole, 0},
@@ -41,7 +40,6 @@ scr_function_t scriptFunctions[] =
     
     {"getConfigString", gsc_utils_getconfigstring, 0},
     {"makeLocalizedString", gsc_utils_makelocalizedstring, 0},
-    #endif
 
     {NULL, NULL, 0} // Terminator
 };
@@ -68,16 +66,13 @@ xfunction_t Scr_GetCustomFunction(const char **fname, int *fdev)
 
 scr_method_t scriptMethods[] =
 {
-    #if COMPILE_ENTITY == 1
     {"showToPlayer", gsc_entity_showtoplayer, 0},
-    #endif
 
     #if COMPILE_SQLITE == 1
     {"async_sqlite_create_entity_query", gsc_async_sqlite_create_entity_query, 0},
     {"async_sqlite_create_entity_query_nosave", gsc_async_sqlite_create_entity_query_nosave, 0},
     #endif
 
-    #if COMPILE_PLAYER == 1
     {"setVelocity", gsc_player_setvelocity, 0},
     {"getVelocity", gsc_player_getvelocity, 0},
     {"aimButtonPressed", gsc_player_button_ads, 0},
@@ -98,7 +93,6 @@ scr_method_t scriptMethods[] =
     {"setUserinfo", gsc_player_setuserinfo, 0},
     {"processClientCommand", gsc_player_processclientcommand, 0},
     {"dropClient", gsc_player_dropclient, 0},
-    #endif
 
 
     //{"testCommand", gsc_testcommand, 0},

@@ -16,23 +16,18 @@ cvar_t *sv_serverid;
 // Custom cvars
 cvar_t *fs_callbacks;
 cvar_t *g_debugCallbacks;
-#if COMPILE_JUMP == 1 && COD_VERSION == COD1_1_5
-    cvar_t* g_legacyStyle;
-#endif
-#if COMPILE_JUMP == 1 && COD_VERSION == COD1_1_5
-    cvar_t *jump_slowdownEnable;
-#endif
+cvar_t* g_legacyStyle;
+cvar_t *sv_cracked;
+cvar_t *jump_slowdownEnable;
 
 cHook *hook_sys_loaddll;
 cHook *hook_cvar_set2;
-cHook *hook_com_initcvars;
+cHook *hook_com_init;
 cHook *hook_gametype_scripts;
 cHook *hook_g_localizedstringindex;
 cHook *hook_sv_spawnserver;
 cHook *hook_sv_begindownload_f;
-#if COMPILE_JUMP == 1 && COD_VERSION == COD1_1_5
 cHook *hook_sv_maprestart_f;
-#endif
 cHook *hook_pm_walkmove;
 
 // Stock callbacks
@@ -103,7 +98,7 @@ Q_strcat_t Q_strcat;
 uintptr_t resume_addr_PM_WalkMove;
 uintptr_t resume_addr_PM_SlideMove;
 
-#if COMPILE_JUMP == 1 && COD_VERSION == COD1_1_5
+#if COD_VERSION == COD1_1_5
 #include <map>
 #include <string>
 std::map<std::string, std::map<std::string, WeaponProperties>> weapons_properties;
@@ -176,7 +171,7 @@ void toggleLegacyStyle(bool enable)
 }
 #endif
 
-#if COMPILE_JUMP == 1 && COD_VERSION == COD1_1_5
+#if COD_VERSION == COD1_1_5
 void custom_Cvar_Set2(const char *var_name, const char *value, qboolean force)
 {
     bool check_g_legacyStyle = false;
@@ -185,8 +180,7 @@ void custom_Cvar_Set2(const char *var_name, const char *value, qboolean force)
 
     if(com_sv_running != NULL && com_sv_running->integer)
     {
-        g_legacyStyle = Cvar_FindVar("g_legacyStyle");
-        if(g_legacyStyle != NULL && !strcasecmp(var_name, g_legacyStyle->name))
+        if(!strcasecmp(var_name, g_legacyStyle->name))
         {
             check_g_legacyStyle = true;
             g_legacyStyle_before = g_legacyStyle->integer ? true : false;
@@ -214,31 +208,19 @@ void custom_Cvar_Set2(const char *var_name, const char *value, qboolean force)
 }
 #endif
 
-void custom_Com_InitCvars(void)
+void custom_Com_Init(char *commandLine)
 {
-    hook_com_initcvars->unhook();
-    void (*Com_InitCvars)(void);
-    *(int *)&Com_InitCvars = hook_com_initcvars->from;
-    Com_InitCvars();
-    hook_com_initcvars->hook();
-
-    // Get references to early loaded stock cvars
+    hook_com_init->unhook();
+    void (*Com_Init)(char *commandLine);
+    *(int *)&Com_Init = hook_com_init->from;
+    Com_Init(commandLine);
+    hook_com_init->hook();
+    
+    // Get references to stock cvars
     cl_paused = Cvar_FindVar("cl_paused");
     com_dedicated = Cvar_FindVar("dedicated");
     com_logfile = Cvar_FindVar("logfile");
     com_sv_running = Cvar_FindVar("sv_running");
-
-    // Get references to early loaded custom cvars
-#if COMPILE_JUMP == 1 && COD_VERSION == COD1_1_5
-    g_legacyStyle = Cvar_FindVar("g_legacyStyle");
-#endif
-}
-
-void common_init_complete_print(const char *format, ...)
-{
-    Com_Printf("--- Common Initialization Complete ---\n");
-
-    // Get references to stock cvars
     sv_allowDownload = Cvar_FindVar("sv_allowDownload");
     sv_pure = Cvar_FindVar("sv_pure");
     sv_rconPassword = Cvar_FindVar("rconpassword");
@@ -246,13 +228,13 @@ void common_init_complete_print(const char *format, ...)
 
     // Register custom cvars
     Cvar_Get("libcod", "1", CVAR_SERVERINFO);
-    Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
-#if COMPILE_JUMP == 1 && COD_VERSION == COD1_1_5
-    Cvar_Get("g_legacyStyle", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
+    sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
+#if COD_VERSION == COD1_1_5
+    g_legacyStyle = Cvar_Get("g_legacyStyle", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
 #endif
     fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
     g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
-#if COMPILE_JUMP == 1 && COD_VERSION == COD1_1_5
+#if COD_VERSION == COD1_1_5
     jump_slowdownEnable =  Cvar_Get("jump_slowdownEnable", "1", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
 #endif
 }
@@ -423,7 +405,7 @@ void hook_ClientCommand(int clientNum)
 const char* hook_AuthorizeState(int arg)
 {
     const char* s = Cmd_Argv(arg);
-    cvar_t* sv_cracked = Cvar_FindVar("sv_cracked");
+    //cvar_t* sv_cracked = Cvar_FindVar("sv_cracked");
     if (sv_cracked->integer && !strcmp(s, "deny"))
         return "accept";
     return s;
@@ -437,28 +419,25 @@ void custom_SV_SpawnServer(char *server)
     SV_SpawnServer(server);
     hook_sv_spawnserver->hook();
 
-#if COMPILE_JUMP == 1 && COD_VERSION == COD1_1_5
-    if(g_legacyStyle != NULL)
+#if COD_VERSION == COD1_1_5
+    if (weapons_properties.empty())
     {
-        if (weapons_properties.empty())
-        {
-            weapons_properties["kar98k_sniper_mp"]["default"] = { 199, 449, 0.1, 0.6, 0.2, 0, 1.2, 1.4 };
-            weapons_properties["kar98k_sniper_mp"]["legacy"] = { 199, 299, 0.42, 0.2, 0.085, 1, 0, 0 };
+        weapons_properties["kar98k_sniper_mp"]["default"] = { 199, 449, 0.1, 0.6, 0.2, 0, 1.2, 1.4 };
+        weapons_properties["kar98k_sniper_mp"]["legacy"] = { 199, 299, 0.42, 0.2, 0.085, 1, 0, 0 };
 
-            weapons_properties["mosin_nagant_sniper_mp"]["default"] = { 1339, 449, 0.1, 0.6, 0.2, 0, 1.2, 1.4 };
-            weapons_properties["mosin_nagant_sniper_mp"]["legacy"] = { 339, 299, 0.42, 0.2, 0.085, 1, 0, 0 };
+        weapons_properties["mosin_nagant_sniper_mp"]["default"] = { 1339, 449, 0.1, 0.6, 0.2, 0, 1.2, 1.4 };
+        weapons_properties["mosin_nagant_sniper_mp"]["legacy"] = { 339, 299, 0.42, 0.2, 0.085, 1, 0, 0 };
 
-            weapons_properties["springfield_mp"]["default"] = { 199, 449, 0.1, 0.6, 0.2, 0, 1.2, 1.4 };
-            weapons_properties["springfield_mp"]["legacy"] = { 199, 299, 0.5, 0.2, 0.085, 1, 0, 0 };
-            /*
-            springfield_mp adsZoomInFrac in 1.1 patch weapon file = 0.05.
-            There must be an error somewhere. Now replacing by 0.5 to fix slowness.
-            */
-        }
-
-        if(g_legacyStyle->integer)
-            toggleLegacyStyle(true);
+        weapons_properties["springfield_mp"]["default"] = { 199, 449, 0.1, 0.6, 0.2, 0, 1.2, 1.4 };
+        weapons_properties["springfield_mp"]["legacy"] = { 199, 299, 0.5, 0.2, 0.085, 1, 0, 0 };
+        /*
+        springfield_mp adsZoomInFrac in 1.1 patch weapon file = 0.05.
+        There must be an error somewhere. Now replacing by 0.5 to fix slowness.
+        */
     }
+
+    if(g_legacyStyle->integer)
+        toggleLegacyStyle(true);
 #endif
 
 #if COMPILE_SQLITE == 1
@@ -509,7 +488,7 @@ void custom_SV_BeginDownload_f(client_t *cl)
     hook_sv_begindownload_f->hook();
 }
 
-#if COMPILE_JUMP == 1 && COD_VERSION == COD1_1_5
+#if COD_VERSION == COD1_1_5
 void custom_SV_MapRestart_f(void)
 {
     hook_sv_maprestart_f->unhook();
@@ -944,7 +923,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     cracking_hook_call((int)dlsym(ret, "vmMain") + 0xF0, (int)hook_ClientCommand);
 #endif
 
-#if COMPILE_JUMP == 1 && COD_VERSION == COD1_1_5
+#if COD_VERSION == COD1_1_5
     cracking_hook_jmp((int)dlsym(ret, "PM_GetEffectiveStance") + 0x16C1, (int)hook_PM_WalkMove_Naked);
     resume_addr_PM_WalkMove = (uintptr_t)dlsym(ret, "PM_GetEffectiveStance") + 0x18AA;
     cracking_hook_jmp((int)dlsym(ret, "PM_SlideMove") + 0xB6A, (int)hook_PM_SlideMove_Naked);
@@ -997,7 +976,6 @@ public:
         mprotect((void *)0x08048000, 0x135000, PROT_READ | PROT_WRITE | PROT_EXEC);
 
 #if COD_VERSION == COD1_1_1
-        cracking_hook_call(0x0806ce77, (int)common_init_complete_print);
         cracking_hook_call(0x08085213, (int)hook_AuthorizeState);
         cracking_hook_call(0x08094c54, (int)Scr_GetCustomFunction);
         cracking_hook_call(0x080951c4, (int)Scr_GetCustomMethod);
@@ -1029,14 +1007,13 @@ public:
 
         hook_sys_loaddll = new cHook(0x080c5fe4, (int)custom_Sys_LoadDll);
         hook_sys_loaddll->hook();
-        hook_com_initcvars = new cHook(0x080c6b90, (int)custom_Com_InitCvars);
-        hook_com_initcvars->hook();
+        hook_com_init = new cHook(0x0806c654, (int)custom_Com_Init);
+        hook_com_init->hook();
         hook_sv_spawnserver = new cHook(0x0808a220, (int)custom_SV_SpawnServer);
         hook_sv_spawnserver->hook();
         hook_sv_begindownload_f = new cHook(0x08087a64, (int)custom_SV_BeginDownload_f);
         hook_sv_begindownload_f->hook();
 #elif COD_VERSION == COD1_1_5
-        cracking_hook_call(0x080714ba, (int)common_init_complete_print);
         cracking_hook_call(0x080894c5, (int)hook_AuthorizeState);
         cracking_hook_call(0x0809d8f5, (int)Scr_GetCustomFunction);
         cracking_hook_call(0x0809db31, (int)Scr_GetCustomMethod);
@@ -1054,8 +1031,8 @@ public:
         hook_sys_loaddll->hook();
         hook_cvar_set2 = new cHook(0x08072da8, (int)custom_Cvar_Set2);
         hook_cvar_set2->hook();
-        hook_com_initcvars = new cHook(0x080d3c86, (int)custom_Com_InitCvars);
-        hook_com_initcvars->hook();
+        hook_com_init = new cHook(0x08070ef8, (int)custom_Com_Init);
+        hook_com_init->hook();
         hook_sv_spawnserver = new cHook(0x08090d0f, (int)custom_SV_SpawnServer);
         hook_sv_spawnserver->hook();
         hook_sv_begindownload_f = new cHook(0x0808b456, (int)custom_SV_BeginDownload_f);

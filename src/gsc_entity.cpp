@@ -1,7 +1,5 @@
 #include "gsc_entity.hpp"
 
-#if COMPILE_ENTITY == 1
-
 void gsc_entity_showtoplayer(scr_entref_t ref) //TODO: try like cod2rev instead
 {
     int id = ref.entnum;
@@ -29,5 +27,3 @@ void gsc_entity_showtoplayer(scr_entref_t ref) //TODO: try like cod2rev instead
 
     stackPushBool(qtrue);
 }
-
-#endif

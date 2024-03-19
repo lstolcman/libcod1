@@ -1,8 +1,6 @@
 #include "gsc_utils.hpp"
 #include "libcod.hpp"
 
-#if COMPILE_UTILS == 1
-
 void gsc_utils_sendcommandtoclient()
 {
     int clientNum;
@@ -82,23 +80,23 @@ void gsc_utils_getsubstr()
 
 void gsc_utils_toupper()
 {
-	char *str;
+    char *str;
 
-	if ( !stackGetParams("s", &str) )
-	{
-		stackError("gsc_utils_toupper() argument is undefined or has a wrong type");
-		stackPushUndefined();
-		return;
-	}
+    if ( !stackGetParams("s", &str) )
+    {
+        stackError("gsc_utils_toupper() argument is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
 
-	if ( !strlen(str) )
-	{
-		stackError("gsc_utils_toupper() string length is 0");
-		stackPushUndefined();
-		return;
-	}
+    if ( !strlen(str) )
+    {
+        stackError("gsc_utils_toupper() string length is 0");
+        stackPushUndefined();
+        return;
+    }
 
-	stackPushString(Q_strupr(str));
+    stackPushString(Q_strupr(str));
 }
 
 void gsc_utils_tolower()
@@ -400,5 +398,3 @@ void gsc_utils_makelocalizedstring()
     var = &scrVmPub.top[-param];
     var->type = STACK_LOCALIZED_STRING;
 }
-
-#endif

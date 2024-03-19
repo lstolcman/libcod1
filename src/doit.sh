@@ -61,11 +61,9 @@ echo "Patch:  $patch"
 if [ $patch == 1.1 ]; then
     set -- "cod1_1_1"
     constants+="-D COD_VERSION=COD1_1_1"
-    constants+=" -D COMPILE_JUMP=0"
 elif [ $patch == 1.5 ]; then
     set -- "cod1_1_5"
     constants+="-D COD_VERSION=COD1_1_5"
-    constants+=" -D COMPILE_JUMP=1"
 fi
 
 echo -n "Debug: "
@@ -117,25 +115,19 @@ $cc $debug $options $constants -c cracking.cpp -o objects_$1/cracking.opp
 echo "##### COMPILE $1 GSC.CPP #####"
 $cc $debug $options $constants -c gsc.cpp -o objects_$1/gsc.opp
 
-if  grep -q "COMPILE_ENTITY 1" config.hpp; then
-    echo "##### COMPILE $1 GSC_ENTITY.CPP #####"
-    $cc $debug $options $constants -c gsc_entity.cpp -o objects_$1/gsc_entity.opp
-fi
+echo "##### COMPILE $1 GSC_ENTITY.CPP #####"
+$cc $debug $options $constants -c gsc_entity.cpp -o objects_$1/gsc_entity.opp
 
 if [ $sqlite_found == 1 ]; then
     echo "##### COMPILE $1 GSC_SQLITE.CPP #####"
     $cc $debug $options $constants -c gsc_sqlite.cpp -o objects_"$1"/gsc_sqlite.opp
 fi
 
-if grep -q "COMPILE_PLAYER 1" config.hpp; then
-    echo "##### COMPILE $1 GSC_PLAYER.CPP #####"
-    $cc $debug $options $constants -c gsc_player.cpp -o objects_$1/gsc_player.opp
-fi
+echo "##### COMPILE $1 GSC_PLAYER.CPP #####"
+$cc $debug $options $constants -c gsc_player.cpp -o objects_$1/gsc_player.opp
 
-if grep -q "COMPILE_UTILS 1" config.hpp; then
-    echo "##### COMPILE $1 GSC_UTILS.CPP #####"
-    $cc $debug $options $constants -c gsc_utils.cpp -o objects_$1/gsc_utils.opp
-fi
+echo "##### COMPILE $1 GSC_UTILS.CPP #####"
+$cc $debug $options $constants -c gsc_utils.cpp -o objects_$1/gsc_utils.opp
 
 if [ $patch == 1.5 ]; then
     echo "##### COMPILE $1 JUMP.CPP #####"

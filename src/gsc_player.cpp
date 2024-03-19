@@ -1,7 +1,5 @@
 #include "gsc_player.hpp"
 
-#if COMPILE_PLAYER == 1
-
 void gsc_player_setvelocity(scr_entref_t ref)
 {
     int id = ref.entnum;
@@ -369,5 +367,3 @@ void gsc_player_dropclient(scr_entref_t ref)
 
     stackPushBool(qtrue);
 }
-
-#endif

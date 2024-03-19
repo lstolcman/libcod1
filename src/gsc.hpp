@@ -1,8 +1,8 @@
 #ifndef _GSC_HPP_
 #define _GSC_HPP_
 
-#define COD1_1_1 210
-#define COD1_1_5 213
+#define COD1_1_1 111
+#define COD1_1_5 115
 
 /* default stuff */
 #include <stdio.h>
@@ -27,11 +27,9 @@
 #include "cracking.hpp"
 #include "functions.hpp"
 
-#if COMPILE_ENTITY == 1
 #include "gsc_entity.hpp"
-#endif
 
-#if COMPILE_JUMP == 1
+#if COD_VERSION == COD1_1_5
 #include "jump.hpp"
 #endif
 
@@ -39,13 +37,8 @@
 #include "gsc_sqlite.hpp"
 #endif
 
-#if COMPILE_PLAYER == 1
 #include "gsc_player.hpp"
-#endif
-
-#if COMPILE_UTILS == 1
 #include "gsc_utils.hpp"
-#endif
 
 #define STACK_UNDEFINED 0
 #define STACK_STRING 1

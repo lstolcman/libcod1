@@ -1,7 +1,5 @@
 #include "jump.hpp"
 
-#if COMPILE_JUMP == 1
-
 extern cvar_t *jump_slowdownEnable;
 
 #define JUMP_LAND_SLOWDOWN_TIME 1800
@@ -121,5 +119,3 @@ double custom_PM_GetReducedFriction()
         return (double)ps->pm_time * 1.5 * 0.00058823527 + 1.0;
     return 2.5;
 }
-
-#endif
