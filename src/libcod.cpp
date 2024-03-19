@@ -405,7 +405,6 @@ void hook_ClientCommand(int clientNum)
 const char* hook_AuthorizeState(int arg)
 {
     const char* s = Cmd_Argv(arg);
-    //cvar_t* sv_cracked = Cvar_FindVar("sv_cracked");
     if (sv_cracked->integer && !strcmp(s, "deny"))
         return "accept";
     return s;
