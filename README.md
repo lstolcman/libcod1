@@ -1,12 +1,9 @@
-## Server extension for Call of Duty 1 (2003)
-Supported patches: **1.1**, **1.5**
+# Server extension for Call of Duty 1 (2003)
 ### Adding security, fixes, and features
-- Directory traversal protection
-- 1.1 player movements on 1.5
-- ...and more
+Supported patches: **1.1**, **1.5**
 ___
 ### Installation and usage
-See the [Wiki](https://github.com/codbridge/libcod1/wiki)
+See the [Wiki](https://github.com/cod1dev/libcod1/wiki)
 ___
 #### References
 - The [Killtube](https://www.killtube.org/) community
