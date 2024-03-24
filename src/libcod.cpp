@@ -54,8 +54,8 @@ callback_t callbacks[] =
 };
 
 // Game lib objects
-gentity_t *g_entities;
-pmove_t *pm;
+gentity_t* g_entities;
+pmove_t* pm;
 
 // Game lib functions
 Scr_GetFunctionHandle_t Scr_GetFunctionHandle;
@@ -67,6 +67,7 @@ Scr_GetMethod_t Scr_GetMethod;
 SV_GameSendServerCommand_t SV_GameSendServerCommand;
 Scr_ExecThread_t Scr_ExecThread;
 Scr_ExecEntThread_t Scr_ExecEntThread;
+Scr_ExecEntThreadNum_t Scr_ExecEntThreadNum;
 Scr_FreeThread_t Scr_FreeThread;
 Scr_Error_t Scr_Error;
 SV_GetConfigstringConst_t SV_GetConfigstringConst;
@@ -398,7 +399,7 @@ void hook_ClientCommand(int clientNum)
         }
     }
 
-    short ret = Scr_ExecEntThread(&g_entities[clientNum], codecallback_playercommand, 1);
+    short ret = Scr_ExecEntThreadNum(clientNum, 0, codecallback_playercommand, 1);
     Scr_FreeThread(ret);
 }
 
@@ -889,6 +890,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     SV_GameSendServerCommand = (SV_GameSendServerCommand_t)dlsym(ret, "trap_SendServerCommand");
     Scr_ExecThread = (Scr_ExecThread_t)dlsym(ret, "Scr_ExecThread");
     Scr_ExecEntThread = (Scr_ExecEntThread_t)dlsym(ret, "Scr_ExecEntThread");
+    Scr_ExecEntThreadNum = (Scr_ExecEntThreadNum_t)dlsym(ret, "Scr_ExecEntThreadNum");
     Scr_FreeThread = (Scr_FreeThread_t)dlsym(ret, "Scr_FreeThread");
     Scr_Error = (Scr_Error_t)dlsym(ret, "Scr_Error");
     SV_GetConfigstringConst = (SV_GetConfigstringConst_t)dlsym(ret, "trap_GetConfigstringConst");

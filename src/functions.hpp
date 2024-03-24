@@ -164,6 +164,9 @@ extern Scr_ExecThread_t Scr_ExecThread;
 typedef short (*Scr_ExecEntThread_t)(gentity_t* ent, int callbackHook, unsigned int numArgs);
 extern Scr_ExecEntThread_t Scr_ExecEntThread;
 
+typedef unsigned short (*Scr_ExecEntThreadNum_t)(int entnum, unsigned int classnum, int handle, unsigned int paramcount);
+extern Scr_ExecEntThreadNum_t Scr_ExecEntThreadNum;
+
 typedef short (*Scr_FreeThread_t)(short thread_id);
 extern Scr_FreeThread_t Scr_FreeThread;
 
