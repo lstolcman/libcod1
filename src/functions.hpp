@@ -215,6 +215,9 @@ static const NET_AdrToString_t NET_AdrToString = (NET_AdrToString_t)0x08083e10;
 typedef void (*Scr_Error_t)(const char *string);
 extern Scr_Error_t Scr_Error;
 
+typedef void (*G_Say_t)(gentity_s *ent, gentity_s *target, int mode, const char *chatText);
+extern G_Say_t G_Say;
+
 typedef const char * (*SV_GetConfigstringConst_t)(int index);
 extern SV_GetConfigstringConst_t SV_GetConfigstringConst;
 

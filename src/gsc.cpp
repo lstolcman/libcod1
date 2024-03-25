@@ -400,6 +400,7 @@ uint64_t Sys_Milliseconds64(void)
 }
 
 
+
 /*
 void gsc_testcommand(scr_entref_t ref)
 {
@@ -412,9 +413,8 @@ void gsc_testcommand(scr_entref_t ref)
         return;
     }
 
-    client_t *client = &svs.clients[id];
+    //client_t* client = &svs.clients[id];
+    gentity_t* gentity = &g_entities[id];
 
-    printf("####### client->name = %s \n", client->name);
-    printf("####### client->ping = %i \n", client->ping);
-    printf("####### client->rate = %i \n", client->rate);
+    printf("####### currentOrigin = %f, %f, %f \n", gentity->r.currentOrigin[0], gentity->r.currentOrigin[1], gentity->r.currentOrigin[2]);
 }*/

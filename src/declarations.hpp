@@ -402,10 +402,10 @@ typedef struct entityState_s
 
 typedef struct
 {
-    int linked;
+    byte pad[4];
     int svFlags;
     int singleClient;
-    int unk2;
+    byte pad2[4];
     vec3_t mins;
     vec3_t maxs;
     int contents;
@@ -490,104 +490,13 @@ typedef struct playerState_s
 #endif
 } playerState_t;
 
-typedef struct gitem_s
-{
-    char *classname;
-    //...
-} gitem_t;
 struct gentity_s
 {
-    entityState_t s;
-    float PM_GetViewHeightLerpTime_unknown;
-    float some_view_angle_when_prone;
-    float some_view_angle_when_prone2;
-    entityShared_t r;
-    int unk3;
-    gclient_t *client;
-    int *turret_info;
-    char inuse;
-    char physicsObject;
-    char sound1;
-    char sound2;
-    char sound2to1;
-    char sound4;
-    char soundLoop;
-    char sound6;
-    char sound3to2;
-    char sound8;
-    char sound9;
-    char sound10;
-    char soundSoftclose;
-    char sound12;
-    char noise_index;
-    char idk;
-    char idk2;
-    char takedamage;
-    char active;
-    char idk3;
-    char moverState;
-    unsigned char modelindex2;
-    unsigned short classname;
-    int spawnflags;
-    int flags;
-    int eventTime;
-    int freeAfterEvent;
-    int unlinkAfterEvent;
-    float physicsBounce;
-    int clipmask;
-    int framenum;
-    gentity_t *parent;
-    gentity_t *nextTrain;
-    char rest_fill_for_ida;
-    char gap_1A1[3];
-    vec3_t pos1;
-    vec3_t pos2;
-    char gap_1BC[28];
-    int team;
-    char gap_1DC[4];
-    float speed;
-    float closespeed;
-    vec3_t movedir;
-    int gDuration;
-    int gDurationBack;
-    int nextthink;
-    int think;
-    int reached;
-    int blocked;
-    int touch;
-    int use;
-    int pain;
-    int die;
-    int field_21C;
-    int controller;
-    char gap_224;
-    char gap_225[11];
-    int health;
-    int maxhealth;
-    int damage;
-    char gap_23C;
-    char gap_23D[19];
-    int accumulate;
-    char gap_254[12];
-    gentity_t *teamchain;
-    gentity_t *teammaster;
-    float wait;
-    float random;
-    char gap_270[4];
-    float delay;
-    char gap_278[32];
-    gitem_t *item;
-    int gap_29C;
-    char gap_2A0[8];
-    int threshold;
-    int harc;
-    char gap_2B0[4];
-    int missionlevel;
-    char gap_2B8[16];
-    int spawnitem;
-    char gap_2CC[24];
-    int generlink_field_idk;
-    char rest[44];
+  entityState_t s;
+  entityShared_t r;
+  byte pad[4];
+  struct gclient_s *client;
+  byte pad2[440];
 };
 
 typedef struct
@@ -780,6 +689,8 @@ static_assert((sizeof(entityState_t) == 240), "ERROR: entityState_t size is inva
 #if COD_VERSION == COD1_1_1
 static_assert((sizeof(client_t) == 370940), "ERROR: client_t size is invalid!");
 static_assert((sizeof(playerState_t) == 8400), "ERROR: playerState_t size is invalid!");
+static_assert((sizeof(entityShared_t) == 100), "ERROR: entityShared_t size is invalid!");
+static_assert((sizeof(gentity_t) == 788), "ERROR: gentity_t size is invalid!");
 #elif COD_VERSION == COD1_1_5
 static_assert((sizeof(client_t) == 371124), "ERROR: client_t size is invalid!");
 static_assert((sizeof(playerState_t) == 8396), "ERROR: playerState_t size is invalid!");

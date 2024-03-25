@@ -15,6 +15,7 @@ cvar_t *sv_serverid;
 
 // Custom cvars
 cvar_t *fs_callbacks;
+cvar_t *g_deadChat;
 cvar_t *g_debugCallbacks;
 cvar_t* g_legacyStyle;
 cvar_t *sv_cracked;
@@ -70,6 +71,7 @@ Scr_ExecEntThread_t Scr_ExecEntThread;
 Scr_ExecEntThreadNum_t Scr_ExecEntThreadNum;
 Scr_FreeThread_t Scr_FreeThread;
 Scr_Error_t Scr_Error;
+G_Say_t G_Say;
 SV_GetConfigstringConst_t SV_GetConfigstringConst;
 SV_GetConfigstring_t SV_GetConfigstring;
 #if COD_VERSION == COD1_1_5
@@ -230,6 +232,9 @@ void custom_Com_Init(char *commandLine)
     // Register custom cvars
     Cvar_Get("libcod", "1", CVAR_SERVERINFO);
     sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
+#if COD_VERSION == COD1_1_1
+    g_deadChat = Cvar_Get("g_deadChat", "0", CVAR_ARCHIVE);
+#endif
 #if COD_VERSION == COD1_1_5
     g_legacyStyle = Cvar_Get("g_legacyStyle", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
 #endif
@@ -239,6 +244,22 @@ void custom_Com_Init(char *commandLine)
     jump_slowdownEnable =  Cvar_Get("jump_slowdownEnable", "1", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
 #endif
 }
+
+#if COD_VERSION == COD1_1_1
+void hook_G_Say(gentity_s *ent, gentity_s *target, int mode, const char *chatText)
+{
+    // 1.1 deadchat support
+    /* See:
+    - https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/sv_client.c#L940
+    */
+
+    int unknown_var = *(int*)((int)ent->client + 8400);
+    if(unknown_var && !g_deadChat->integer)
+        return;
+
+    G_Say(ent, NULL, mode, chatText);
+}
+#endif
 
 #if COD_VERSION == COD1_1_1
 qboolean FS_svrPak(const char *base)
@@ -399,7 +420,7 @@ void hook_ClientCommand(int clientNum)
         }
     }
 
-    short ret = Scr_ExecEntThreadNum(clientNum, 0, codecallback_playercommand, 1);
+    short ret = Scr_ExecEntThread(&g_entities[clientNum], codecallback_playercommand, 1);
     Scr_FreeThread(ret);
 }
 
@@ -893,6 +914,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Scr_ExecEntThreadNum = (Scr_ExecEntThreadNum_t)dlsym(ret, "Scr_ExecEntThreadNum");
     Scr_FreeThread = (Scr_FreeThread_t)dlsym(ret, "Scr_FreeThread");
     Scr_Error = (Scr_Error_t)dlsym(ret, "Scr_Error");
+    G_Say = (G_Say_t)dlsym(ret, "G_Say");
     SV_GetConfigstringConst = (SV_GetConfigstringConst_t)dlsym(ret, "trap_GetConfigstringConst");
     SV_GetConfigstring = (SV_GetConfigstring_t)dlsym(ret, "trap_GetConfigstring");
 #if COD_VERSION == COD1_1_5
@@ -919,20 +941,20 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Q_strcat = (Q_strcat_t)dlsym(ret, "Q_strcat");
 
 #if COD_VERSION == COD1_1_1
-    cracking_hook_call((int)dlsym(ret, "vmMain") + 0xB0, (int)hook_ClientCommand);
+    hook_call((int)dlsym(ret, "vmMain") + 0xB0, (int)hook_ClientCommand);
 #elif COD_VERSION == COD1_1_5
-    cracking_hook_call((int)dlsym(ret, "vmMain") + 0xF0, (int)hook_ClientCommand);
+    hook_call((int)dlsym(ret, "vmMain") + 0xF0, (int)hook_ClientCommand);
 #endif
 
 #if COD_VERSION == COD1_1_5
-    cracking_hook_jmp((int)dlsym(ret, "PM_GetEffectiveStance") + 0x16C1, (int)hook_PM_WalkMove_Naked);
+    hook_jmp((int)dlsym(ret, "PM_GetEffectiveStance") + 0x16C1, (int)hook_PM_WalkMove_Naked);
     resume_addr_PM_WalkMove = (uintptr_t)dlsym(ret, "PM_GetEffectiveStance") + 0x18AA;
-    cracking_hook_jmp((int)dlsym(ret, "PM_SlideMove") + 0xB6A, (int)hook_PM_SlideMove_Naked);
+    hook_jmp((int)dlsym(ret, "PM_SlideMove") + 0xB6A, (int)hook_PM_SlideMove_Naked);
     resume_addr_PM_SlideMove = (uintptr_t)dlsym(ret, "PM_SlideMove") + 0xBA5;
-    cracking_hook_jmp((int)dlsym(ret, "PM_GetEffectiveStance") + 0xAD, (int)custom_Jump_GetLandFactor);
-    cracking_hook_jmp((int)dlsym(ret, "PM_GetEffectiveStance") + 0x4C, (int)custom_PM_GetReducedFriction);
+    hook_jmp((int)dlsym(ret, "PM_GetEffectiveStance") + 0xAD, (int)custom_Jump_GetLandFactor);
+    hook_jmp((int)dlsym(ret, "PM_GetEffectiveStance") + 0x4C, (int)custom_PM_GetReducedFriction);
 #endif
-    cracking_hook_jmp((int)dlsym(ret, "G_LocalizedStringIndex"), (int)custom_G_LocalizedStringIndex);
+    hook_jmp((int)dlsym(ret, "G_LocalizedStringIndex"), (int)custom_G_LocalizedStringIndex);
 
 #if COD_VERSION == COD1_1_1
     // Patch codmsgboom
@@ -940,8 +962,18 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     - https://aluigi.altervista.org/adv/codmsgboom-adv.txt
     - https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/librarymodule.c#L146
     */
-    cracking_write_hex((int)dlsym(ret, "G_Say") + 0x50e, (char *)"0x37f");
-    cracking_write_hex((int)dlsym(ret, "G_Say") + 0x5ca, (char *)"0x37f");
+    *(int*)((int)dlsym(ret, "G_Say") + 0x50e) = 0x37f;
+    *(int*)((int)dlsym(ret, "G_Say") + 0x5ca) = 0x37f;
+
+    // 1.1 deadchat support
+    /* See:
+    - https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/librarymodule.c#L161
+    */
+    *(byte*)((int)dlsym(ret, "G_Say") + 0x2B3) = 0xeb;
+    *(byte*)((int)dlsym(ret, "G_Say") + 0x3B6) = 0xeb;
+    hook_call((int)dlsym(ret, "G_Say") + 0x5EA, (int)hook_G_Say);
+    hook_call((int)dlsym(ret, "G_Say") + 0x77D, (int)hook_G_Say);
+    hook_call((int)dlsym(ret, "G_Say") + 0x791, (int)hook_G_Say);
 #endif
 
     hook_gametype_scripts = new cHook((int)dlsym(ret, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
@@ -977,34 +1009,33 @@ public:
         mprotect((void *)0x08048000, 0x135000, PROT_READ | PROT_WRITE | PROT_EXEC);
 
 #if COD_VERSION == COD1_1_1
-        cracking_hook_call(0x08085213, (int)hook_AuthorizeState);
-        cracking_hook_call(0x08094c54, (int)Scr_GetCustomFunction);
-        cracking_hook_call(0x080951c4, (int)Scr_GetCustomMethod);
-        cracking_hook_call(0x0808c780, (int)hook_SV_GetChallenge);
-        cracking_hook_call(0x0808c7b8, (int)hook_SV_DirectConnect);
-        cracking_hook_call(0x0808c7ea, (int)hook_SV_AuthorizeIpPacket);
-        cracking_hook_call(0x0808c74e, (int)hook_SVC_Info);
-        cracking_hook_call(0x0808c71c, (int)hook_SVC_Status);
-        cracking_hook_call(0x0808c81d, (int)hook_SVC_RemoteCommand);
+        hook_call(0x08085213, (int)hook_AuthorizeState);
+        hook_call(0x08094c54, (int)Scr_GetCustomFunction);
+        hook_call(0x080951c4, (int)Scr_GetCustomMethod);
+        hook_call(0x0808c780, (int)hook_SV_GetChallenge);
+        hook_call(0x0808c7b8, (int)hook_SV_DirectConnect);
+        hook_call(0x0808c7ea, (int)hook_SV_AuthorizeIpPacket);
+        hook_call(0x0808c74e, (int)hook_SVC_Info);
+        hook_call(0x0808c71c, (int)hook_SVC_Status);
+        hook_call(0x0808c81d, (int)hook_SVC_RemoteCommand);
 
-        cracking_hook_jmp(0x080717a4, (int)custom_FS_ReferencedPakChecksums);
-        cracking_hook_jmp(0x080716cc, (int)custom_FS_ReferencedPakNames);
+        hook_jmp(0x080717a4, (int)custom_FS_ReferencedPakChecksums);
+        hook_jmp(0x080716cc, (int)custom_FS_ReferencedPakNames);
 
         // Patch q3infoboom
         /* See:
         - https://aluigi.altervista.org/adv/q3infoboom-adv.txt
         - https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/codextended.c#L295
         */
-        cracking_write_hex(0x807f459, (char *)"1");
+        *(byte*)0x807f459 = 1;
 
-        // Patch RCON half-second limit //TODO: Do like zk_libcod
+        // Patch RCON half-second limit //TODO: Do like zk_libcod instead
         /* See:
         - https://aluigi.altervista.org/patches/q3rconz.lpatch
         - https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/codextended.c#L291
         - https://github.com/ibuddieat/zk_libcod/blob/0f07cacf303d104a0375bf6235b8013e30b668ca/code/libcod.cpp#L3486
         */
-        //cracking_write_hex(0x0808c41f, (char *)"0xeb"); // Not working
-        *(unsigned char*)0x808C41F = 0xeb; // Works
+        *(unsigned char*)0x808C41F = 0xeb;
 
         hook_sys_loaddll = new cHook(0x080c5fe4, (int)custom_Sys_LoadDll);
         hook_sys_loaddll->hook();
@@ -1015,15 +1046,15 @@ public:
         hook_sv_begindownload_f = new cHook(0x08087a64, (int)custom_SV_BeginDownload_f);
         hook_sv_begindownload_f->hook();
 #elif COD_VERSION == COD1_1_5
-        cracking_hook_call(0x080894c5, (int)hook_AuthorizeState);
-        cracking_hook_call(0x0809d8f5, (int)Scr_GetCustomFunction);
-        cracking_hook_call(0x0809db31, (int)Scr_GetCustomMethod);
-        cracking_hook_call(0x08093651, (int)hook_SV_GetChallenge);
-        cracking_hook_call(0x0809370b, (int)hook_SV_DirectConnect);
-        cracking_hook_call(0x0809374e, (int)hook_SV_AuthorizeIpPacket);
-        cracking_hook_call(0x0809360e, (int)hook_SVC_Info);
-        cracking_hook_call(0x080935cb, (int)hook_SVC_Status);
-        cracking_hook_call(0x08093798, (int)hook_SVC_RemoteCommand);
+        hook_call(0x080894c5, (int)hook_AuthorizeState);
+        hook_call(0x0809d8f5, (int)Scr_GetCustomFunction);
+        hook_call(0x0809db31, (int)Scr_GetCustomMethod);
+        hook_call(0x08093651, (int)hook_SV_GetChallenge);
+        hook_call(0x0809370b, (int)hook_SV_DirectConnect);
+        hook_call(0x0809374e, (int)hook_SV_AuthorizeIpPacket);
+        hook_call(0x0809360e, (int)hook_SVC_Info);
+        hook_call(0x080935cb, (int)hook_SVC_Status);
+        hook_call(0x08093798, (int)hook_SVC_RemoteCommand);
 
         // Patch RCON half-second limit
         *(unsigned char*)0x080930e9 = 0xeb;

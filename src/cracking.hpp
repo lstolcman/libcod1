@@ -3,12 +3,9 @@
 
 #include "gsc.hpp"
 
-void cracking_hook_jmp(int from, int to);
-void cracking_hook_call(int from, int to);
-
-int cracking_write_hex(int address, char *hex);
-int singleHexToNumber(char hexchar);
-int hexToBuffer(char *hex, char *buffer, int bufferLen);
+void hook_jmp(int from, int to);
+void hook_call(int from, int to);
+void hook_nop(int from, int to);
 
 class cHook
 {
