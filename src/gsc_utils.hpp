@@ -9,6 +9,7 @@ void gsc_utils_sendcommandtoclient();
 void gsc_utils_logprintconsole();
 
 void gsc_utils_getsubstr();
+void gsc_utils_getascii();
 void gsc_utils_toupper();
 void gsc_utils_tolower();
 void gsc_utils_strtok();

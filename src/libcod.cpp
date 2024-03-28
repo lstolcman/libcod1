@@ -419,7 +419,7 @@ void hook_ClientCommand(int clientNum)
             stackPushArrayLast();
         }
     }
-
+    
     short ret = Scr_ExecEntThread(&g_entities[clientNum], codecallback_playercommand, 1);
     Scr_FreeThread(ret);
 }

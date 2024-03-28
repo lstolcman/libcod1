@@ -78,6 +78,27 @@ void gsc_utils_getsubstr()
     stackPushString(tempString);
 }
 
+void gsc_utils_getascii()
+{
+    char *str;
+
+    if ( !stackGetParams("s", &str) )
+    {
+        stackError("gsc_utils_getascii() argument is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    if ( !strlen(str) )
+    {
+        stackError("gsc_utils_getascii() string length is 0");
+        stackPushUndefined();
+        return;
+    }
+
+    stackPushInt(str[0]);
+}
+
 void gsc_utils_toupper()
 {
     char *str;
@@ -99,25 +120,35 @@ void gsc_utils_toupper()
     stackPushString(Q_strupr(str));
 }
 
-void gsc_utils_tolower()
+void gsc_utils_tolower() // From cod2rev
 {
-    char *str;
+    char c;
+    int i;
+    const char *string;
+    char tempString[MAX_STRINGLENGTH];
 
-    if ( !stackGetParams("s", &str) )
+    if ( !stackGetParams("s", &string) )
     {
         stackError("gsc_utils_tolower() argument is undefined or has a wrong type");
         stackPushUndefined();
         return;
     }
 
-    if ( !strlen(str) )
+    for ( i = 0; i < MAX_STRINGLENGTH; ++i )
     {
-        stackError("gsc_utils_tolower() string length is 0");
-        stackPushUndefined();
-        return;
+        c = tolower(*string);
+        tempString[i] = c;
+
+        if ( !c )
+        {
+            stackPushString(tempString);
+            return;
+        }
+
+        ++string;
     }
 
-    stackPushString(Q_strlwr(str));
+    stackError("gsc_utils_tolower() string too long");
 }
 
 void gsc_utils_strtok() // From cod2rev
@@ -177,7 +208,7 @@ skip:
     }
 }
 
-void gsc_utils_replace() //TODO: check if is optimized
+void gsc_utils_replace() //TODO: check if needs improvements
 {
     char* orig;
     char* rep;
