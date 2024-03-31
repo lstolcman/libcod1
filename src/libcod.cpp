@@ -4,32 +4,33 @@
 #include <signal.h>
 
 // Stock cvars
-cvar_t *cl_paused;
-cvar_t *com_dedicated;
-cvar_t *com_logfile;
-cvar_t *com_sv_running;
-cvar_t *sv_allowDownload;
-cvar_t *sv_pure;
-cvar_t *sv_rconPassword;
-cvar_t *sv_serverid;
+cvar_t* cl_paused;
+cvar_t* com_dedicated;
+cvar_t* com_logfile;
+cvar_t* com_sv_running;
+cvar_t* sv_allowDownload;
+cvar_t* sv_pure;
+cvar_t* sv_rconPassword;
+cvar_t* sv_serverid;
 
 // Custom cvars
-cvar_t *fs_callbacks;
-cvar_t *g_deadChat;
-cvar_t *g_debugCallbacks;
+cvar_t* fs_callbacks;
+cvar_t* g_deadChat;
+cvar_t* g_debugCallbacks;
 cvar_t* g_legacyStyle;
-cvar_t *sv_cracked;
-cvar_t *jump_slowdownEnable;
+cvar_t* g_playerEject;
+cvar_t* jump_slowdownEnable;
+cvar_t* sv_cracked;
 
-cHook *hook_sys_loaddll;
-cHook *hook_cvar_set2;
-cHook *hook_com_init;
-cHook *hook_gametype_scripts;
-cHook *hook_g_localizedstringindex;
-cHook *hook_sv_spawnserver;
-cHook *hook_sv_begindownload_f;
-cHook *hook_sv_maprestart_f;
-cHook *hook_pm_walkmove;
+cHook* hook_com_init;
+cHook* hook_cvar_set2;
+cHook* hook_g_localizedstringindex;
+cHook* hook_gametype_scripts;
+cHook* hook_pm_walkmove;
+cHook* hook_sv_spawnserver;
+cHook* hook_sv_begindownload_f;
+cHook* hook_sv_maprestart_f;
+cHook* hook_sys_loaddll;
 
 // Stock callbacks
 int codecallback_startgametype = 0;
@@ -93,6 +94,7 @@ Scr_MakeArray_t Scr_MakeArray;
 Scr_AddArray_t Scr_AddArray;
 Scr_AddObject_t Scr_AddObject;
 Scr_LoadScript_t Scr_LoadScript;
+StuckInClient_t StuckInClient;
 Q_strlwr_t Q_strlwr;
 Q_strupr_t Q_strupr;
 Q_strcat_t Q_strcat;
@@ -231,18 +233,20 @@ void custom_Com_Init(char *commandLine)
 
     // Register custom cvars
     Cvar_Get("libcod", "1", CVAR_SERVERINFO);
-    sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
+
+    fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
 #if COD_VERSION == COD1_1_1
     g_deadChat = Cvar_Get("g_deadChat", "0", CVAR_ARCHIVE);
 #endif
+    g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
 #if COD_VERSION == COD1_1_5
     g_legacyStyle = Cvar_Get("g_legacyStyle", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
 #endif
-    fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
-    g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
+    g_playerEject = Cvar_Get("g_playerEject", "1", CVAR_ARCHIVE);
 #if COD_VERSION == COD1_1_5
     jump_slowdownEnable =  Cvar_Get("jump_slowdownEnable", "1", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
 #endif
+    sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
 }
 
 #if COD_VERSION == COD1_1_1
@@ -464,6 +468,13 @@ void custom_SV_SpawnServer(char *server)
 #if COMPILE_SQLITE == 1
     free_sqlite_db_stores_and_tasks();
 #endif
+}
+
+qboolean hook_StuckInClient(gentity_s *self)
+{
+    if (!g_playerEject->integer)
+		return qfalse;
+    return StuckInClient(self);
 }
 
 qboolean ShouldServeFile(const char *requestedFilePath)
@@ -936,12 +947,14 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Scr_AddArray = (Scr_AddArray_t)dlsym(ret, "Scr_AddArray");
     Scr_AddObject = (Scr_AddObject_t)dlsym(ret, "Scr_AddObject");
     Scr_LoadScript = (Scr_LoadScript_t)dlsym(ret, "Scr_LoadScript");
+    StuckInClient = (StuckInClient_t)dlsym(ret, "StuckInClient");
     Q_strlwr = (Q_strlwr_t)dlsym(ret, "Q_strlwr");
     Q_strupr = (Q_strupr_t)dlsym(ret, "Q_strupr");
     Q_strcat = (Q_strcat_t)dlsym(ret, "Q_strcat");
 
 #if COD_VERSION == COD1_1_1
     hook_call((int)dlsym(ret, "vmMain") + 0xB0, (int)hook_ClientCommand);
+    hook_call((int)dlsym(ret, "ClientEndFrame") + 0x311, (int)hook_StuckInClient);
 #elif COD_VERSION == COD1_1_5
     hook_call((int)dlsym(ret, "vmMain") + 0xF0, (int)hook_ClientCommand);
 #endif

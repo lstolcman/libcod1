@@ -388,4 +388,7 @@ static const SV_AuthorizeIpPacket_t SV_AuthorizeIpPacket = (SV_AuthorizeIpPacket
 static const SV_AuthorizeIpPacket_t SV_AuthorizeIpPacket = (SV_AuthorizeIpPacket_t)0x080893c1;
 #endif
 
+typedef qboolean (*StuckInClient_t)(gentity_s *self);
+extern StuckInClient_t StuckInClient;
+
 #endif
