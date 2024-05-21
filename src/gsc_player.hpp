@@ -23,5 +23,6 @@ void gsc_player_getip(scr_entref_t ref);
 void gsc_player_getping(scr_entref_t ref);
 void gsc_player_processclientcommand(scr_entref_t ref);
 void gsc_player_dropclient(scr_entref_t ref);
+void gsc_player_getfps(scr_entref_t ref);
 
 #endif

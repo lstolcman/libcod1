@@ -26,10 +26,12 @@ cHook* hook_com_init;
 cHook* hook_cvar_set2;
 cHook* hook_g_localizedstringindex;
 cHook* hook_gametype_scripts;
+cHook* hook_play_movement;
 cHook* hook_pm_walkmove;
 cHook* hook_sv_spawnserver;
 cHook* hook_sv_begindownload_f;
 cHook* hook_sv_maprestart_f;
+cHook* hook_sv_sendclientgamestate;
 cHook* hook_sys_loaddll;
 
 // Stock callbacks
@@ -54,6 +56,8 @@ callback_t callbacks[] =
     { &codecallback_client_spam, "CodeCallback_CLSpam"},
     { &codecallback_playercommand, "CodeCallback_PlayerCommand"},
 };
+
+customPlayerState_t customPlayerState[MAX_CLIENTS];
 
 // Game lib objects
 gentity_t* g_entities;
@@ -470,6 +474,19 @@ void custom_SV_SpawnServer(char *server)
 #endif
 }
 
+void custom_SV_SendClientGameState(client_t *client)
+{
+    hook_sv_sendclientgamestate->unhook();
+    void (*SV_SendClientGameState)(client_t *client);
+    *(int *)&SV_SendClientGameState = hook_sv_sendclientgamestate->from;
+    SV_SendClientGameState(client);
+	hook_sv_sendclientgamestate->hook();
+
+    // Reset custom player state to default values
+    int id = client - svs.clients;
+	memset(&customPlayerState[id], 0, sizeof(customPlayerState_t));
+}
+
 qboolean hook_StuckInClient(gentity_s *self)
 {
     if (!g_playerEject->integer)
@@ -562,6 +579,27 @@ char *custom_va(const char *format, ...)
     index += len + 1;
 
     return buf;
+}
+
+void custom_SV_ClientThink(int clientNum)
+{
+    hook_play_movement->unhook();
+    void (*ClientThink)(int clientNum);
+    *(int *)&ClientThink = hook_play_movement->from;
+    ClientThink(clientNum);
+	hook_play_movement->hook();
+
+	customPlayerState[clientNum].frames++;
+
+    if ( Sys_Milliseconds64() - customPlayerState[clientNum].frameTime >= 1000 )
+	{
+		if ( customPlayerState[clientNum].frames > 1000 )
+			customPlayerState[clientNum].frames = 1000;
+
+		customPlayerState[clientNum].fps = customPlayerState[clientNum].frames;
+		customPlayerState[clientNum].frameTime = Sys_Milliseconds64();
+		customPlayerState[clientNum].frames = 0;
+	}
 }
 
 // ioquake3 rate limit connectionless requests
@@ -967,6 +1005,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_jmp((int)dlsym(ret, "PM_GetEffectiveStance") + 0xAD, (int)custom_Jump_GetLandFactor);
     hook_jmp((int)dlsym(ret, "PM_GetEffectiveStance") + 0x4C, (int)custom_PM_GetReducedFriction);
 #endif
+
     hook_jmp((int)dlsym(ret, "G_LocalizedStringIndex"), (int)custom_G_LocalizedStringIndex);
 
 #if COD_VERSION == COD1_1_1
@@ -991,7 +1030,12 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 
     hook_gametype_scripts = new cHook((int)dlsym(ret, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
     hook_gametype_scripts->hook();
-    
+
+#if COD_VERSION == COD1_1_1
+    hook_play_movement = new cHook((int)dlsym(ret, "ClientThink"), (int)custom_SV_ClientThink);
+    hook_play_movement->hook();
+#endif
+
     return ret;
 }
 
@@ -1058,6 +1102,8 @@ public:
         hook_sv_spawnserver->hook();
         hook_sv_begindownload_f = new cHook(0x08087a64, (int)custom_SV_BeginDownload_f);
         hook_sv_begindownload_f->hook();
+        hook_sv_sendclientgamestate = new cHook(0x08085eec, (int)custom_SV_SendClientGameState);
+        hook_sv_sendclientgamestate->hook();
 #elif COD_VERSION == COD1_1_5
         hook_call(0x080894c5, (int)hook_AuthorizeState);
         hook_call(0x0809d8f5, (int)Scr_GetCustomFunction);

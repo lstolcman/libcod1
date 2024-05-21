@@ -1,5 +1,7 @@
 #include "gsc_player.hpp"
 
+extern customPlayerState_t customPlayerState[MAX_CLIENTS];
+
 void gsc_player_setvelocity(scr_entref_t ref)
 {
     int id = ref.entnum;
@@ -366,4 +368,18 @@ void gsc_player_dropclient(scr_entref_t ref)
         SV_DropClient(client, NULL);
 
     stackPushBool(qtrue);
+}
+
+void gsc_player_getfps(scr_entref_t ref)
+{
+	int id = ref.entnum;
+
+	if ( id >= MAX_CLIENTS )
+	{
+		stackError("gsc_player_getfps() entity %i is not a player", id);
+		stackPushUndefined();
+		return;
+	}
+
+	stackPushInt(customPlayerState[id].fps);
 }

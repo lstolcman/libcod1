@@ -710,6 +710,13 @@ typedef struct src_error_s
     char message[1024];
 } scr_error_t;
 
+typedef struct customPlayerState_s
+{
+    int fps;
+    int frames;
+    uint64_t frameTime;
+} customPlayerState_t;
+
 typedef struct callback_s
 {
     int *pos;

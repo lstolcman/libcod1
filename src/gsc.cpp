@@ -94,6 +94,7 @@ scr_method_t scriptMethods[] =
     {"setUserinfo", gsc_player_setuserinfo, 0},
     {"processClientCommand", gsc_player_processclientcommand, 0},
     {"dropClient", gsc_player_dropclient, 0},
+    {"getFPS", gsc_player_getfps, 0},
 
 
     //{"testCommand", gsc_testcommand, 0},
