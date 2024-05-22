@@ -370,6 +370,37 @@ void gsc_player_dropclient(scr_entref_t ref)
     stackPushBool(qtrue);
 }
 
+void gsc_player_setspeed(scr_entref_t ref)
+{
+	int id = ref.entnum;
+	int speed;
+
+	if ( !stackGetParams("i", &speed) )
+	{
+		stackError("gsc_player_setspeed() argument is undefined or has a wrong type");
+		stackPushUndefined();
+		return;
+	}
+
+	if ( id >= MAX_CLIENTS )
+	{
+		stackError("gsc_player_setspeed() entity %i is not a player", id);
+		stackPushUndefined();
+		return;
+	}
+
+	if ( speed < 0 )
+	{
+		stackError("gsc_player_setspeed() param must be equal or above zero");
+		stackPushUndefined();
+		return;
+	}
+
+	customPlayerState[id].speed = speed;
+
+	stackPushBool(qtrue);
+}
+
 void gsc_player_getfps(scr_entref_t ref)
 {
 	int id = ref.entnum;

@@ -121,6 +121,14 @@ typedef enum
 
 typedef enum
 {
+	STATE_PLAYING,
+	STATE_DEAD,
+	STATE_SPECTATOR,
+	STATE_INTERMISSION
+} sessionState_t;
+
+typedef enum
+{
     NA_BOT = 0,
     NA_BAD = 0,
     NA_LOOPBACK = 2,
@@ -490,6 +498,21 @@ typedef struct playerState_s
 #endif
 } playerState_t;
 
+#if COD_VERSION == COD1_1_1
+typedef struct
+{
+	sessionState_t sessionState;
+    //...
+} clientSession_t;
+
+struct gclient_s
+{
+	playerState_t ps;
+	clientSession_t sess;
+    //...
+};
+#endif
+
 struct gentity_s
 {
   entityState_t s;
@@ -712,6 +735,7 @@ typedef struct src_error_s
 
 typedef struct customPlayerState_s
 {
+    int speed;
     int fps;
     int frames;
     uint64_t frameTime;

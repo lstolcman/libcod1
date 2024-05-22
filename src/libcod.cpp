@@ -22,6 +22,7 @@ cvar_t* g_playerEject;
 cvar_t* jump_slowdownEnable;
 cvar_t* sv_cracked;
 
+cHook* hook_clientendframe;
 cHook* hook_com_init;
 cHook* hook_cvar_set2;
 cHook* hook_g_localizedstringindex;
@@ -602,6 +603,25 @@ void custom_SV_ClientThink(int clientNum)
 	}
 }
 
+int custom_ClientEndFrame(gentity_t *ent)
+{
+    hook_clientendframe->unhook();
+	int (*ClientEndFrame)(gentity_t *ent);
+	*(int *)&ClientEndFrame = hook_clientendframe->from;
+	int ret = ClientEndFrame(ent);
+	hook_clientendframe->hook();
+
+    if ( ent->client->sess.sessionState == STATE_PLAYING )
+	{
+		int num = ent - g_entities;
+
+		if ( customPlayerState[num].speed > 0 )
+			ent->client->ps.speed = customPlayerState[num].speed;
+    }
+
+    return ret;
+}
+
 // ioquake3 rate limit connectionless requests
 // https://github.com/ioquake/ioq3/blob/master/code/server/sv_main.c
 
@@ -1034,6 +1054,8 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 #if COD_VERSION == COD1_1_1
     hook_play_movement = new cHook((int)dlsym(ret, "ClientThink"), (int)custom_SV_ClientThink);
     hook_play_movement->hook();
+    hook_clientendframe = new cHook((int)dlsym(ret, "ClientEndFrame"), (int)custom_ClientEndFrame);
+    hook_clientendframe->hook();
 #endif
 
     return ret;
