@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# E.g.: ./doit.sh -1 -d --sqlite
+# E.g.: ./build.sh -1 -d --sqlite
 
 cc="g++"
 options="-I. -m32 -fPIC -Wall -fvisibility=hidden"
@@ -128,6 +128,9 @@ $cc $debug $options $constants -c gsc_player.cpp -o objects_$1/gsc_player.opp
 
 echo "##### COMPILE $1 GSC_UTILS.CPP #####"
 $cc $debug $options $constants -c gsc_utils.cpp -o objects_$1/gsc_utils.opp
+
+echo "##### COMPILE $1 GSC_WEAPONS.CPP #####"
+$cc $debug $options $constants -c gsc_weapons.cpp -o objects_$1/gsc_weapons.opp
 
 if [ $patch == 1.5 ]; then
     echo "##### COMPILE $1 JUMP.CPP #####"
