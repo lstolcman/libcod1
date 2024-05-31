@@ -239,22 +239,18 @@ void custom_Com_Init(char *commandLine)
 
     // Register custom cvars
     Cvar_Get("libcod", "1", CVAR_SERVERINFO);
-
     fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
-#if COD_VERSION == COD1_1_1
-    g_deadChat = Cvar_Get("g_deadChat", "0", CVAR_ARCHIVE);
-#endif
-
     g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
-
-#if COD_VERSION == COD1_1_5
+    sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
+#if COD_VERSION == COD1_1_1
+    Cvar_Get("sv_wwwDownload", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
+    Cvar_Get("sv_wwwBaseURL", "", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
+    g_deadChat = Cvar_Get("g_deadChat", "0", CVAR_ARCHIVE);
+    g_playerEject = Cvar_Get("g_playerEject", "1", CVAR_ARCHIVE);
+#elif COD_VERSION == COD1_1_5
     g_legacyStyle = Cvar_Get("g_legacyStyle", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
     jump_slowdownEnable =  Cvar_Get("jump_slowdownEnable", "1", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
 #endif
-
-    g_playerEject = Cvar_Get("g_playerEject", "1", CVAR_ARCHIVE);
-
-    sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
 }
 
 #if COD_VERSION == COD1_1_1
