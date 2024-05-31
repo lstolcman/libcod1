@@ -245,6 +245,13 @@ void custom_Com_Init(char *commandLine)
 #if COD_VERSION == COD1_1_1
     Cvar_Get("sv_wwwDownload", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
     Cvar_Get("sv_wwwBaseURL", "", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
+    
+    /*
+    Force cl_allowDownload on client, otherwise 1.1x can't download to join the server
+    I don't want to force download, I would prefer this to be temporary and stop forcing later when a solution is found
+    */
+    Cvar_Get("cl_allowDownload", "1", CVAR_SYSTEMINFO);
+
     g_deadChat = Cvar_Get("g_deadChat", "0", CVAR_ARCHIVE);
     g_playerEject = Cvar_Get("g_playerEject", "1", CVAR_ARCHIVE);
 #elif COD_VERSION == COD1_1_5
