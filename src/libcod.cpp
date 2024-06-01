@@ -590,9 +590,18 @@ void custom_SV_ExecuteClientMessage(client_t *cl, msg_t *msg)
 
         } while (cl->state != CS_ZOMBIE);
     }
-    else if((cl->serverId & 0xF0) != (sv_serverId_value & 0xF0))
+
+
+    else if ( (cl->serverId & 0xF0) == (sv_serverId_value & 0xF0) )
     {
-        if(cl->gamestateMessageNum < cl->messageAcknowledge)
+        if ( cl->state == CS_PRIMED )
+        {
+            SV_ClientEnterWorld(cl, &cl->lastUsercmd);
+        }
+    }
+    else
+    {
+        if ( cl->gamestateMessageNum < cl->messageAcknowledge )
         {
             Com_DPrintf("%s : dropped gamestate, resending\n", cl->name);
             SV_SendClientGameState(cl);
