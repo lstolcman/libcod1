@@ -148,5 +148,5 @@ $cc $debug $options $constants -c lib/strcmp_constant_time.c -o objects_"$1"/str
 
 echo "##### LINK    lib$1.so #####"
 objects="$(ls objects_$1/*.opp)"
-$cc -m32 -shared -L/lib32 -o ../bin/lib$1.so -ldl $objects -lpthread $sqlite_link
+$cc -m32 -shared -L/lib32 -o ../bin/lib$1.so -ldl $objects -lpthread $sqlite_link -lcurl
 rm objects_$1 -r

@@ -26,4 +26,6 @@ void gsc_utils_getsystemtime();
 void gsc_utils_getconfigstring();
 void gsc_utils_makelocalizedstring();
 
+void gsc_utils_webhookmessage();
+
 #endif

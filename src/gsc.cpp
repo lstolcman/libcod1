@@ -44,6 +44,9 @@ scr_function_t scriptFunctions[] =
     {"setWeaponFuseTime", gsc_weapons_setweaponfusetime, 0},
     //
 
+    //kazam :)
+    {"webhookmessage", gsc_utils_webhookmessage, 0},
+
     {"testFunction", gsc_testfunction, 0},
     {NULL, NULL, 0} // Terminator
 };
