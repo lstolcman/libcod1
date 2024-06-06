@@ -1,9 +1,10 @@
 #include "gsc_utils.hpp"
 #include "libcod.hpp"
 
+#if COMPILE_LIBCURL == 1
 #include <curl/curl.h>
 #include <string>
-#include <iostream>
+#endif
 
 void gsc_utils_sendcommandtoclient()
 {
@@ -434,45 +435,42 @@ void gsc_utils_makelocalizedstring()
     var->type = STACK_LOCALIZED_STRING;
 }
 
-void sendWebhookMessage(const std::string& webhookUrl, const std::string& message) {
-    CURL *curl;
-    CURLcode res;
-    struct curl_slist *headers = NULL;
-    std::string payload = "{\"content\":\"" + message + "\"}";
-
-    curl_global_init(CURL_GLOBAL_ALL);
-    curl = curl_easy_init();
-
-    if(curl) {
-        headers = curl_slist_append(headers, "Content-Type: application/json");
-
-        curl_easy_setopt(curl, CURLOPT_URL, webhookUrl.c_str());
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload.c_str());
-
-        res = curl_easy_perform(curl);
-
-        if(res != CURLE_OK) {
-            fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
-        }
-
-        curl_easy_cleanup(curl);
-        curl_slist_free_all(headers);
-    }
-
-    curl_global_cleanup();
-}
-
+#if COMPILE_LIBCURL == 1
 void gsc_utils_webhookmessage()
 {
     char *url;
     char *message;
-
-    if (!stackGetParams("ss", &url, &message)) {
+    if(!stackGetParams("ss", &url, &message))
+    {
         stackError("gsc_utils_webhookmessage() one or more arguments are undefined or have a wrong type");
         stackPushUndefined();
         return;
     }
 
-    sendWebhookMessage(url, message);
+    CURL *curl;
+    CURLcode responseCode;
+    struct curl_slist *headers = NULL;
+    std::string payload = "{\"content\":\"" + std::string(message) + "\"}";
+
+    curl_global_init(CURL_GLOBAL_ALL);
+    curl = curl_easy_init();
+    if(curl)
+    {
+        headers = curl_slist_append(headers, "Content-Type: application/json");
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload.c_str());
+
+        responseCode = curl_easy_perform(curl);
+        if(responseCode != CURLE_OK)
+            Com_Printf("curl_easy_perform() failed: %s\n", curl_easy_strerror(responseCode));
+
+        curl_easy_cleanup(curl);
+        curl_slist_free_all(headers);
+    }
+    else
+        Com_Printf("curl_easy_init() failed\n");
+    
+    curl_global_cleanup();
 }
+#endif

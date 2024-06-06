@@ -31,6 +31,9 @@ while [[ $# -gt 0 ]]; do
         -s | --sqlite)
             sqlite=true
             ;;
+        -l | --libcurl)
+            libcurl=true
+            ;;
         -u | --unsafe)
             unsafe=true
             ;;
@@ -104,6 +107,25 @@ else
     constants+=" -D COMPILE_SQLITE=0"
 fi
 
+libcurl_found=0
+libcurl_link=""
+libcurl_libpath="/usr/lib/i386-linux-gnu/libcurl.so.4"
+echo -n "libcurl: "
+if [ -v libcurl ]; then
+    if [ -e "$libcurl_libpath" ]; then
+        libcurl_found=1
+        libcurl_link="-lcurl"
+        constants+=" -D COMPILE_LIBCURL=1"
+        echo "ON"
+    else
+        echo "requested but lib not found, aborting."
+        exit 1
+    fi
+else
+    echo "OFF"
+    constants+=" -D COMPILE_LIBCURL=0"
+fi
+
 echo $separator
 
 mkdir -p ../bin
@@ -148,5 +170,5 @@ $cc $debug $options $constants -c lib/strcmp_constant_time.c -o objects_"$1"/str
 
 echo "##### LINK    lib$1.so #####"
 objects="$(ls objects_$1/*.opp)"
-$cc -m32 -shared -L/lib32 -o ../bin/lib$1.so -ldl $objects -lpthread $sqlite_link -lcurl
+$cc -m32 -shared -L/lib32 -o ../bin/lib$1.so -ldl $objects -lpthread $sqlite_link $libcurl_link
 rm objects_$1 -r

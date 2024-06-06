@@ -14,7 +14,7 @@ scr_function_t scriptFunctions[] =
     {"fclose", gsc_utils_fclose, 0},
     #endif
 
-    #if COMPILE_SQLITE == 1
+#if COMPILE_SQLITE == 1
     {"sqlite_open", gsc_sqlite_open, 0},
     {"sqlite_query", gsc_sqlite_query, 0},
     {"sqlite_close", gsc_sqlite_close, 0},
@@ -25,7 +25,7 @@ scr_function_t scriptFunctions[] =
     {"async_sqlite_create_query", gsc_async_sqlite_create_query, 0},
     {"async_sqlite_create_query_nosave", gsc_async_sqlite_create_query_nosave, 0},
     {"async_sqlite_checkdone", gsc_async_sqlite_checkdone, 0},
-    #endif
+#endif
 
     {"sendCommandToClient", gsc_utils_sendcommandtoclient, 0},
     {"logPrintConsole", gsc_utils_logprintconsole, 0},
@@ -38,14 +38,14 @@ scr_function_t scriptFunctions[] =
     {"getSystemTime", gsc_utils_getsystemtime, 0},
     {"getConfigString", gsc_utils_getconfigstring, 0},
     {"makeLocalizedString", gsc_utils_makelocalizedstring, 0},
+#if COMPILE_LIBCURL == 1
+    {"webhookMessage", gsc_utils_webhookmessage, 0}, // From Kazam pull request #8
+#endif
 
     // Weapons
     {"setWeaponCookable", gsc_weapons_setweaponcookable, 0},
     {"setWeaponFuseTime", gsc_weapons_setweaponfusetime, 0},
     //
-
-    //kazam :)
-    {"webhookmessage", gsc_utils_webhookmessage, 0},
 
     {"testFunction", gsc_testfunction, 0},
     {NULL, NULL, 0} // Terminator
