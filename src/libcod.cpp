@@ -19,6 +19,7 @@ cvar_t* g_deadChat;
 cvar_t* g_debugCallbacks;
 cvar_t* g_legacyStyle;
 cvar_t* g_playerEject;
+cvar_t *g_resetSlide;
 cvar_t* jump_slowdownEnable;
 cvar_t* sv_cracked;
 
@@ -254,6 +255,7 @@ void custom_Com_Init(char *commandLine)
 
     g_deadChat = Cvar_Get("g_deadChat", "0", CVAR_ARCHIVE);
     g_playerEject = Cvar_Get("g_playerEject", "1", CVAR_ARCHIVE);
+    g_resetSlide = Cvar_Get("g_resetSlide", "0", CVAR_ARCHIVE);
 #elif COD_VERSION == COD1_1_5
     g_legacyStyle = Cvar_Get("g_legacyStyle", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
     jump_slowdownEnable =  Cvar_Get("jump_slowdownEnable", "1", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
@@ -688,6 +690,17 @@ int custom_ClientEndFrame(gentity_t *ent)
 
         if ( customPlayerState[num].speed > 0 )
             ent->client->ps.speed = customPlayerState[num].speed;
+
+        // Experimental slide bug fix
+        if ( g_resetSlide->integer )
+        {
+            if ( ( (ent->client->ps).pm_flags & PMF_SLIDING ) != 0 /*&& (ent->client->ps).pm_time == 0*/ )
+            {
+                //printf("##### SLIDING \n");
+                //printf("##### pm_time = %i \n", (ent->client->ps).pm_time);
+                (ent->client->ps).pm_flags = (ent->client->ps).pm_flags & ~PMF_SLIDING;
+            }
+        }
     }
 
     return ret;

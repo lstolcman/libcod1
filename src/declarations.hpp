@@ -56,6 +56,7 @@
 #define EF_CROUCHING    0x20
 #define EF_PRONE        0x40
 
+#define PMF_SLIDING         0x100
 #if COD_VERSION == COD1_1_5
 #define PMF_JUMPING         0x2000
 #endif
