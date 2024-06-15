@@ -344,7 +344,7 @@ typedef struct
     qboolean connected;
     int guid;
 #if COD_VERSION == COD1_1_5
-    char pbguid[64];
+    char PBguid[33];
     int ipAuthorize;
 #endif
 } challenge_t;
@@ -538,8 +538,8 @@ typedef struct
 typedef struct client_s
 {
     clientConnectState_t state;
-    qboolean delayed;
-    const char *delayDropMsg;
+    qboolean sendAsActive;
+    const char *dropReason;
     char userinfo[MAX_INFO_STRING];
     reliableCommands_t	reliableCommands[MAX_RELIABLE_COMMANDS];
     int reliableSequence;
@@ -565,11 +565,11 @@ typedef struct client_s
     qboolean downloadEOF;
     int downloadSendTime;
 #if COD_VERSION == COD1_1_5
-    char wwwDownloadURL[MAX_OSPATH];
-    qboolean wwwDownload;
-    qboolean wwwDownloadStarted;
-    qboolean wwwDlAck;
-    qboolean wwwDl_failed;
+    char downloadURL[MAX_OSPATH];
+    qboolean wwwOk;
+    qboolean downloadingWWW;
+    qboolean clientDownloadingWWW;
+    qboolean wwwFallback;
 #endif
     int deltaMessage;
     int nextReliableTime;
@@ -588,7 +588,7 @@ typedef struct client_s
     int guid;
 #endif
     unsigned short clscriptid;
-    int bot;
+    int bIsTestClient;
     int serverId;
 #if COD_VERSION == COD1_1_5
     char PBguid[33];
