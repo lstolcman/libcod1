@@ -16,11 +16,12 @@ cvar_t* sv_serverid;
 // Custom cvars
 cvar_t* fs_callbacks;
 cvar_t* fs_callbacks_additional;
+cvar_t* fs_svrPaks;
 cvar_t* g_deadChat;
 cvar_t* g_debugCallbacks;
 cvar_t* g_legacyStyle;
 cvar_t* g_playerEject;
-cvar_t *g_resetSlide;
+cvar_t* g_resetSlide;
 cvar_t* jump_slowdownEnable;
 cvar_t* sv_cracked;
 
@@ -244,6 +245,7 @@ void custom_Com_Init(char *commandLine)
     Cvar_Get("libcod", "1", CVAR_SERVERINFO);
     fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
     fs_callbacks_additional = Cvar_Get("fs_callbacks_additional", "", CVAR_ARCHIVE);
+    fs_svrPaks = Cvar_Get("fs_svrPaks", "", CVAR_ARCHIVE);
     g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
     sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
 #if COD_VERSION == COD1_1_1
@@ -284,8 +286,34 @@ void hook_G_Say(gentity_s *ent, gentity_s *target, int mode, const char *chatTex
 #if COD_VERSION == COD1_1_1
 qboolean FS_svrPak(const char *base)
 {
-    if(strstr(base, "_svr_"))
+    if (strstr(base, "_svr_"))
         return qtrue;
+
+    if (*fs_svrPaks->string)
+    {
+        bool isSvrPak = false;
+        size_t lenString = strlen(fs_svrPaks->string) +1;
+        char* stringCopy = (char*)malloc(lenString);
+        strcpy(stringCopy, fs_svrPaks->string);
+
+        const char* separator = ";";
+        char* strToken = strtok(stringCopy, separator);
+
+        while (strToken != NULL)
+        {
+            if (strcmp(base, strToken) != 0)
+            {
+                isSvrPak = true;
+                break;
+            }
+            strToken = strtok(NULL, separator);
+        }
+
+        free(stringCopy);
+        if (isSvrPak)
+            return qtrue;
+    }
+
     return qfalse;
 }
 #endif
