@@ -40,11 +40,11 @@
 #define SVF_SINGLECLIENT        0x800
 
 #define KEY_MASK_FORWARD    127
-#define KEY_MASK_BACK       129
+#define KEY_MASK_BACK       -127
 #define KEY_MASK_MOVERIGHT  127
-#define KEY_MASK_MOVELEFT   129
+#define KEY_MASK_MOVELEFT   -127
 #define KEY_MASK_MOVEUP     127
-#define KEY_MASK_MOVEDOWN   129
+#define KEY_MASK_MOVEDOWN   -127
 
 #define KEY_MASK_RELOAD         0x8
 #define KEY_MASK_LEANLEFT       0x10
