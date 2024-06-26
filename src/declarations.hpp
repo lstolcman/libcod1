@@ -56,6 +56,7 @@
 #define EF_CROUCHING    0x20
 #define EF_PRONE        0x40
 
+#define PMF_LADDER          0x10
 #define PMF_SLIDING         0x100
 #if COD_VERSION == COD1_1_5
 #define PMF_JUMPING         0x2000
@@ -510,6 +511,9 @@ struct gclient_s
 {
     playerState_t ps;
     clientSession_t sess;
+    int spectatorClient;
+    qboolean noclip;
+    qboolean ufo;
     //...
 };
 #endif
@@ -684,6 +688,7 @@ struct pmove_t
 };
 
 extern gentity_t *g_entities;
+extern gclient_t *g_clients;
 
 #if COD_VERSION == COD1_1_1
 static const int varpub_offset = 0x082f17d8;
@@ -756,6 +761,7 @@ typedef struct customPlayerState_s
     int fps;
     int frames;
     uint64_t frameTime;
+    int ufo;
 } customPlayerState_t;
 
 typedef struct callback_s

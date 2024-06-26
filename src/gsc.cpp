@@ -94,14 +94,16 @@ scr_method_t scriptMethods[] =
     {"reloadButtonPressed", gsc_player_button_reload, 0},
     {"getPlayerAngles", gsc_player_gettagangles, 0},
     {"getStance", gsc_player_getstance, 0},
-    {"getIP", gsc_player_getip, 0},
+    {"getIp", gsc_player_getip, 0},
     {"getPing", gsc_player_getping, 0},
     {"getUserinfo", gsc_player_getuserinfo, 0},
     {"setUserinfo", gsc_player_setuserinfo, 0},
     {"processClientCommand", gsc_player_processclientcommand, 0},
     {"dropClient", gsc_player_dropclient, 0},
     {"setSpeed", gsc_player_setspeed, 0},
-    {"getFPS", gsc_player_getfps, 0},
+    {"getFps", gsc_player_getfps, 0},
+    {"isOnLadder", gsc_player_isonladder, 0},
+    {"setUfo", gsc_player_setufo, 0},
 
     {"testMethod", gsc_testmethod, 0},
     {NULL, NULL, 0} // Terminator
@@ -427,5 +429,8 @@ void gsc_testmethod(scr_entref_t ref)
 
     //client_t* client = &svs.clients[id];
     //gentity_t* gentity = &g_entities[id];
-    //printf("####### currentOrigin = %f, %f, %f \n", gentity->r.currentOrigin[0], gentity->r.currentOrigin[1], gentity->r.currentOrigin[2]);
+    //playerState_t *ps = SV_GameClientNum(id);
+    //gclient_t *gclient = gentity->client;
+
+    
 }

@@ -15,6 +15,7 @@ cvar_t* sv_serverid;
 
 // Custom cvars
 cvar_t* fs_callbacks;
+cvar_t* fs_callbacks_additional;
 cvar_t* g_deadChat;
 cvar_t* g_debugCallbacks;
 cvar_t* g_legacyStyle;
@@ -63,6 +64,7 @@ customPlayerState_t customPlayerState[MAX_CLIENTS];
 
 // Game lib objects
 gentity_t* g_entities;
+gclient_t* g_clients;
 pmove_t* pm;
 
 // Game lib functions
@@ -241,6 +243,7 @@ void custom_Com_Init(char *commandLine)
     // Register custom cvars
     Cvar_Get("libcod", "1", CVAR_SERVERINFO);
     fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
+    fs_callbacks_additional = Cvar_Get("fs_callbacks_additional", "", CVAR_ARCHIVE);
     g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
     sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
 #if COD_VERSION == COD1_1_1
@@ -337,7 +340,6 @@ int custom_GScr_LoadGameTypeScript()
 {
     unsigned int i;
     char path_for_cb[512] = "maps/mp/gametypes/_callbacksetup";
-    char path_for_cb_custom[512] = "callback"; //TODO: maybe don't use another hardcoded path for custom callbacks
 
     hook_gametype_scripts->unhook();
     int (*GScr_LoadGameTypeScript)();
@@ -345,16 +347,24 @@ int custom_GScr_LoadGameTypeScript()
     int ret = GScr_LoadGameTypeScript();
     hook_gametype_scripts->hook();
 
-    if(!Scr_LoadScript(path_for_cb_custom))
-        printf("####### custom_GScr_LoadGameTypeScript: Didn't detect a custom callback file. \n");
 
-    if ( strlen(fs_callbacks->string) )
+    if(*fs_callbacks_additional->string)
+    {
+        if(!Scr_LoadScript(fs_callbacks_additional->string))
+            Com_DPrintf("custom_GScr_LoadGameTypeScript: Scr_LoadScript for fs_callbacks_additional cvar failed. \n");
+    }
+    else
+    {
+        Com_DPrintf("custom_GScr_LoadGameTypeScript: No custom callback file specified in fs_callbacks_additional cvar. \n");
+    }
+
+    if(*fs_callbacks->string)
         strncpy(path_for_cb, fs_callbacks->string, sizeof(path_for_cb));
         
     for ( i = 0; i < sizeof(callbacks)/sizeof(callbacks[0]); i++ )
     {
-        if(!strcmp(callbacks[i].name, "CodeCallback_PlayerCommand")) // Custom callback
-            *callbacks[i].pos = Scr_GetFunctionHandle(path_for_cb_custom, callbacks[i].name);
+        if(!strcmp(callbacks[i].name, "CodeCallback_PlayerCommand")) // Custom callback: PlayerCommand
+            *callbacks[i].pos = Scr_GetFunctionHandle(fs_callbacks_additional->string, callbacks[i].name);
         else
             *callbacks[i].pos = Scr_GetFunctionHandle(path_for_cb, callbacks[i].name);
         
@@ -684,21 +694,24 @@ int custom_ClientEndFrame(gentity_t *ent)
     int ret = ClientEndFrame(ent);
     hook_clientendframe->hook();
 
-    if ( ent->client->sess.sessionState == STATE_PLAYING )
+    if (ent->client->sess.sessionState == STATE_PLAYING)
     {
         int num = ent - g_entities;
 
-        if ( customPlayerState[num].speed > 0 )
+        if (customPlayerState[num].speed > 0)
             ent->client->ps.speed = customPlayerState[num].speed;
 
+        if (customPlayerState[num].ufo == 1)
+            ent->client->ps.pm_type = PM_UFO;
+
         // Experimental slide bug fix
-        if ( g_resetSlide->integer )
+        if (g_resetSlide->integer)
         {
-            if ( ( (ent->client->ps).pm_flags & PMF_SLIDING ) != 0 /*&& (ent->client->ps).pm_time == 0*/ )
+            if ((ent->client->ps.pm_flags & PMF_SLIDING) != 0 /*&& (ent->client->ps).pm_time == 0*/)
             {
                 //printf("##### SLIDING \n");
                 //printf("##### pm_time = %i \n", (ent->client->ps).pm_time);
-                (ent->client->ps).pm_flags = (ent->client->ps).pm_flags & ~PMF_SLIDING;
+                ent->client->ps.pm_flags = ent->client->ps.pm_flags & ~PMF_SLIDING;
             }
         }
     }
@@ -1054,6 +1067,7 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     fclose(fp);
     
     g_entities = (gentity_t*)dlsym(ret, "g_entities");
+    g_clients = (gclient_t*)dlsym(ret, "g_clients");
     pm = (pmove_t*)dlsym(ret, "pm");
 
     Scr_GetFunctionHandle = (Scr_GetFunctionHandle_t)dlsym(ret, "Scr_GetFunctionHandle");
@@ -1122,6 +1136,7 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     */
     *(int*)((int)dlsym(ret, "G_Say") + 0x50e) = 0x37f;
     *(int*)((int)dlsym(ret, "G_Say") + 0x5ca) = 0x37f;
+    // end
 
     // 1.1 deadchat support
     /* See:
@@ -1132,6 +1147,7 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_call((int)dlsym(ret, "G_Say") + 0x5EA, (int)hook_G_Say);
     hook_call((int)dlsym(ret, "G_Say") + 0x77D, (int)hook_G_Say);
     hook_call((int)dlsym(ret, "G_Say") + 0x791, (int)hook_G_Say);
+    // end
 #endif
 
     hook_gametype_scripts = new cHook((int)dlsym(ret, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
