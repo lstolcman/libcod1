@@ -9,6 +9,7 @@ cvar_t* com_dedicated;
 cvar_t* com_logfile;
 cvar_t* com_sv_running;
 cvar_t* sv_allowDownload;
+cvar_t* sv_maxclients;
 cvar_t* sv_pure;
 cvar_t* sv_rconPassword;
 cvar_t* sv_serverid;
@@ -237,6 +238,7 @@ void custom_Com_Init(char *commandLine)
     com_logfile = Cvar_FindVar("logfile");
     com_sv_running = Cvar_FindVar("sv_running");
     sv_allowDownload = Cvar_FindVar("sv_allowDownload");
+    sv_maxclients = Cvar_FindVar("sv_maxclients");
     sv_pure = Cvar_FindVar("sv_pure");
     sv_rconPassword = Cvar_FindVar("rconpassword");
     sv_serverid = Cvar_FindVar("sv_serverid");

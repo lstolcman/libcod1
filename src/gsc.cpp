@@ -432,5 +432,8 @@ void gsc_testmethod(scr_entref_t ref)
     //playerState_t *ps = SV_GameClientNum(id);
     //gclient_t *gclient = gentity->client;
 
+
+    //printf("##### ps->gravity = %i \n", ps->gravity);
+    //printf("##### ps->viewangles[0] = %f, ps->viewangles[1] = %f, ps->viewangles[2] = %f \n", ps->viewangles[0], ps->viewangles[1], ps->viewangles[2]);
     
 }

@@ -490,13 +490,14 @@ typedef struct playerState_s
     unsigned int weapon;
     weaponstate_t weaponstate;
     float fWeaponPosFrac;
-    int adsDelayTime;
-    //TODO: check if one of two the above is "int viewmodelIndex" instead
+    int viewmodelIndex;
     vec3_t viewangles;
+    int viewHeightTarget;
+    float viewHeightCurrent;
 #if COD_VERSION == COD1_1_1
-    byte pad[8196];
+    byte pad[8188];
 #elif COD_VERSION == COD1_1_5
-    byte pad[8192];
+    byte pad[8184];
 #endif
 } playerState_t;
 
