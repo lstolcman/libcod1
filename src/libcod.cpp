@@ -303,7 +303,7 @@ qboolean FS_svrPak(const char *base)
 
         while (strToken != NULL)
         {
-            if (strcmp(base, strToken) != 0)
+            if (!strcmp(base, strToken))
             {
                 isSvrPak = true;
                 break;
