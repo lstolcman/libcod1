@@ -1,6 +1,6 @@
 # Server extension for [CoD1](https://en.wikipedia.org/wiki/Call_of_Duty_(video_game))
 ### Adding security, fixes, and features
-Supported versions: **1.1**, **1.5**
+Supported game versions: **1.1**, **1.5**
 ___
 ### Installation and usage
 See the [Wiki](https://github.com/cod1dev/libcod1/wiki)
