@@ -58,9 +58,6 @@
 
 #define PMF_LADDER          0x10
 #define PMF_SLIDING         0x100
-#if COD_VERSION == COD1_1_5
-#define PMF_JUMPING         0x2000
-#endif
 
 typedef unsigned char byte;
 typedef signed char sbyte;
@@ -344,10 +341,6 @@ typedef struct
     int firstPing;
     qboolean connected;
     int guid;
-#if COD_VERSION == COD1_1_5
-    char PBguid[33];
-    int ipAuthorize;
-#endif
 } challenge_t;
 
 typedef enum
@@ -494,14 +487,9 @@ typedef struct playerState_s
     vec3_t viewangles;
     int viewHeightTarget;
     float viewHeightCurrent;
-#if COD_VERSION == COD1_1_1
     byte pad[8188];
-#elif COD_VERSION == COD1_1_5
-    byte pad[8184];
-#endif
 } playerState_t;
 
-#if COD_VERSION == COD1_1_1
 typedef struct
 {
     sessionState_t sessionState;
@@ -517,7 +505,6 @@ struct gclient_s
     qboolean ufo;
     //...
 };
-#endif
 
 struct gentity_s
 {
@@ -569,13 +556,6 @@ typedef struct client_s
     int downloadBlockSize[MAX_DOWNLOAD_WINDOW];
     qboolean downloadEOF;
     int downloadSendTime;
-#if COD_VERSION == COD1_1_5
-    char downloadURL[MAX_OSPATH];
-    qboolean wwwOk;
-    qboolean downloadingWWW;
-    qboolean clientDownloadingWWW;
-    qboolean wwwFallback;
-#endif
     int deltaMessage;
     int nextReliableTime;
     int lastPacketTime;
@@ -589,15 +569,9 @@ typedef struct client_s
     int snapshotMsec;
     int pureAuthentic;
     netchan_t netchan;
-#if COD_VERSION == COD1_1_5
-    int guid;
-#endif
     unsigned short clscriptid;
     int bIsTestClient;
     int serverId;
-#if COD_VERSION == COD1_1_5
-    char PBguid[33];
-#endif
 } client_t;
 
 typedef struct
@@ -605,9 +579,6 @@ typedef struct
     qboolean initialized;
     int time;
     int snapFlagServerBit;
-#if COD_VERSION == COD1_1_5
-    byte pad[2];
-#endif
     client_t *clients;
     //...
 } serverStatic_t;
@@ -653,33 +624,10 @@ typedef struct WeaponDef_t
     float idleCrouchFactor;
     float idleProneFactor;
     byte pad5[0x50];
-#if COD_VERSION == COD1_1_5
-    int rechamberWhileAds;
-    float adsViewErrorMin;
-    float adsViewErrorMax;
-#endif
     int cookOffHold;
     int clipOnly;
-#if COD_VERSION == COD1_1_5
-    byte pad6[0x144];
-    float OOPosAnimLength[2];
-#endif
     //...
 } WeaponDef_t;
-
-#if COD_VERSION == COD1_1_5
-struct WeaponProperties // Custom struct for g_legacyStyle
-{
-    int reloadAddTime;
-    int adsTransInTime;
-    float adsZoomInFrac;
-    float idleCrouchFactor;
-    float idleProneFactor;
-    int rechamberWhileAds;
-    float adsViewErrorMin;
-    float adsViewErrorMax;
-};
-#endif
 
 struct pmove_t
 {
@@ -691,56 +639,27 @@ struct pmove_t
 extern gentity_t *g_entities;
 extern gclient_t *g_clients;
 
-#if COD_VERSION == COD1_1_1
 static const int varpub_offset = 0x082f17d8;
-#elif COD_VERSION == COD1_1_5
-static const int varpub_offset = 0x08306cb8;
-#endif
-
-#if COD_VERSION == COD1_1_1
 static const int vmpub_offset = 0x082f57e0;
-#elif COD_VERSION == COD1_1_5
-static const int vmpub_offset = 0x0830acc0;
-#endif
-
-#if COD_VERSION == COD1_1_1
 static const int svs_offset = 0x083b67a0;
-#elif COD_VERSION == COD1_1_5
-static const int svs_offset = 0x083ccd80;
-#endif
-
-#if COD_VERSION == COD1_1_1
 static const int fs_searchpaths_offset = 0x080dd590;
-#elif COD_VERSION == COD1_1_5
-static const int fs_searchpaths_offset = 0x080e8c30;
-#endif
-
-#if COD_VERSION == COD1_1_1
 static const int sv_serverId_value_offset = 0x080e30c0;
-#endif
 
 #define scrVarPub (*((scrVarPub_t*)( varpub_offset )))
 #define scrVmPub (*((scrVmPub_t*)( vmpub_offset )))
 #define svs (*((serverStatic_t*)( svs_offset )))
 #define fs_searchpaths (*((searchpath_t**)( fs_searchpaths_offset )))
-#if COD_VERSION == COD1_1_1
 #define sv_serverId_value (*((int*)( sv_serverId_value_offset )))
-#endif
 
 // Check for critical structure sizes and fail if not match
 #if __GNUC__ >= 6
 
 static_assert((sizeof(netchan_t) == 32832), "ERROR: netchan_t size is invalid!");
 static_assert((sizeof(entityState_t) == 240), "ERROR: entityState_t size is invalid!");
-#if COD_VERSION == COD1_1_1
 static_assert((sizeof(client_t) == 370940), "ERROR: client_t size is invalid!");
 static_assert((sizeof(playerState_t) == 8400), "ERROR: playerState_t size is invalid!");
 static_assert((sizeof(entityShared_t) == 100), "ERROR: entityShared_t size is invalid!");
 static_assert((sizeof(gentity_t) == 788), "ERROR: gentity_t size is invalid!");
-#elif COD_VERSION == COD1_1_5
-static_assert((sizeof(client_t) == 371124), "ERROR: client_t size is invalid!");
-static_assert((sizeof(playerState_t) == 8396), "ERROR: playerState_t size is invalid!");
-#endif
 
 #endif
 

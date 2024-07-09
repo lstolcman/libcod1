@@ -1,5 +1,4 @@
 #include "gsc_utils.hpp"
-#include "libcod.hpp"
 
 #if COMPILE_LIBCURL == 1
 #include <curl/curl.h>

@@ -2,7 +2,6 @@
 #define _GSC_HPP_
 
 #define COD1_1_1 111
-#define COD1_1_5 115
 
 /* default stuff */
 #include <stdio.h>
@@ -27,10 +26,6 @@
 #include "functions.hpp"
 
 #include "gsc_entity.hpp"
-
-#if COD_VERSION == COD1_1_5
-#include "jump.hpp"
-#endif
 
 #if COMPILE_SQLITE == 1
 #include "gsc_sqlite.hpp"

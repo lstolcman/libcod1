@@ -1,5 +1,4 @@
 #include "gsc.hpp"
-#include "libcod.hpp"
 
 #include <signal.h>
 
@@ -20,10 +19,8 @@ cvar_t* fs_callbacks_additional;
 cvar_t* fs_svrPaks;
 cvar_t* g_deadChat;
 cvar_t* g_debugCallbacks;
-cvar_t* g_legacyStyle;
 cvar_t* g_playerEject;
 cvar_t* g_resetSlide;
-cvar_t* jump_slowdownEnable;
 cvar_t* sv_cracked;
 
 cHook* hook_clientendframe;
@@ -32,7 +29,6 @@ cHook* hook_cvar_set2;
 cHook* hook_g_localizedstringindex;
 cHook* hook_gametype_scripts;
 cHook* hook_play_movement;
-cHook* hook_pm_walkmove;
 cHook* hook_sv_spawnserver;
 cHook* hook_sv_begindownload_f;
 cHook* hook_sv_maprestart_f;
@@ -110,120 +106,6 @@ Q_strlwr_t Q_strlwr;
 Q_strupr_t Q_strupr;
 Q_strcat_t Q_strcat;
 
-// Resume addresses
-uintptr_t resume_addr_PM_WalkMove;
-uintptr_t resume_addr_PM_SlideMove;
-
-#if COD_VERSION == COD1_1_5
-#include <map>
-#include <string>
-std::map<std::string, std::map<std::string, WeaponProperties>> weapons_properties;
-
-void toggleLegacyStyle(bool enable)
-{
-    if(enable)
-        Cvar_Set2("jump_slowdownEnable", "0", qfalse);
-    else
-        Cvar_Set2("jump_slowdownEnable", "1", qfalse);
-
-    int id_kar98k_sniper = BG_GetWeaponIndexForName("kar98k_sniper_mp");
-    WeaponDef_t* weapon_kar98k_sniper = BG_GetInfoForWeapon(id_kar98k_sniper);
-    int id_springfield = BG_GetWeaponIndexForName("springfield_mp");
-    WeaponDef_t* weapon_springfield = BG_GetInfoForWeapon(id_springfield);
-    int id_mosin_nagant_sniper = BG_GetWeaponIndexForName("mosin_nagant_sniper_mp");
-    WeaponDef_t* weapon_mosin_nagant_sniper = BG_GetInfoForWeapon(id_mosin_nagant_sniper);
-
-    if (weapon_kar98k_sniper)
-    {
-        const WeaponProperties* properties_kar98k_sniper = nullptr;
-        if(enable)
-            properties_kar98k_sniper = &weapons_properties[weapon_kar98k_sniper->name]["legacy"];
-        else
-            properties_kar98k_sniper = &weapons_properties[weapon_kar98k_sniper->name]["default"];
-        weapon_kar98k_sniper->adsTransInTime = properties_kar98k_sniper->adsTransInTime;
-        weapon_kar98k_sniper->OOPosAnimLength[0] = 1.0 / (float)weapon_kar98k_sniper->adsTransInTime;
-        weapon_kar98k_sniper->adsZoomInFrac = properties_kar98k_sniper->adsZoomInFrac;
-        weapon_kar98k_sniper->idleCrouchFactor = properties_kar98k_sniper->idleCrouchFactor;
-        weapon_kar98k_sniper->idleProneFactor = properties_kar98k_sniper->idleProneFactor;
-        weapon_kar98k_sniper->rechamberWhileAds = properties_kar98k_sniper->rechamberWhileAds;
-        weapon_kar98k_sniper->adsViewErrorMin = properties_kar98k_sniper->adsViewErrorMin;
-        weapon_kar98k_sniper->adsViewErrorMax = properties_kar98k_sniper->adsViewErrorMax;
-    }
-
-    if (weapon_mosin_nagant_sniper)
-    {
-        const WeaponProperties* properties_mosin_nagant_sniper = nullptr;
-        if(enable)
-            properties_mosin_nagant_sniper = &weapons_properties[weapon_mosin_nagant_sniper->name]["legacy"];
-        else
-            properties_mosin_nagant_sniper = &weapons_properties[weapon_mosin_nagant_sniper->name]["default"];
-        weapon_mosin_nagant_sniper->reloadAddTime = properties_mosin_nagant_sniper->reloadAddTime;
-        weapon_mosin_nagant_sniper->adsTransInTime = properties_mosin_nagant_sniper->adsTransInTime;
-        weapon_mosin_nagant_sniper->OOPosAnimLength[0] = 1.0 / (float)weapon_mosin_nagant_sniper->adsTransInTime;
-        weapon_mosin_nagant_sniper->adsZoomInFrac = properties_mosin_nagant_sniper->adsZoomInFrac;
-        weapon_mosin_nagant_sniper->idleCrouchFactor = properties_mosin_nagant_sniper->idleCrouchFactor;
-        weapon_mosin_nagant_sniper->idleProneFactor = properties_mosin_nagant_sniper->idleProneFactor;
-        weapon_mosin_nagant_sniper->rechamberWhileAds = properties_mosin_nagant_sniper->rechamberWhileAds;
-        weapon_mosin_nagant_sniper->adsViewErrorMin = properties_mosin_nagant_sniper->adsViewErrorMin;
-        weapon_mosin_nagant_sniper->adsViewErrorMax = properties_mosin_nagant_sniper->adsViewErrorMax;
-    }
-
-    if (weapon_springfield)
-    {
-        const WeaponProperties* properties_springfield = nullptr;
-        if(enable)
-            properties_springfield = &weapons_properties[weapon_springfield->name]["legacy"];
-        else
-            properties_springfield = &weapons_properties[weapon_springfield->name]["default"];
-        weapon_springfield->adsTransInTime = properties_springfield->adsTransInTime;
-        weapon_springfield->OOPosAnimLength[0] = 1.0 / (float)weapon_springfield->adsTransInTime;
-        weapon_springfield->adsZoomInFrac = properties_springfield->adsZoomInFrac;
-        weapon_springfield->idleCrouchFactor = properties_springfield->idleCrouchFactor;
-        weapon_springfield->idleProneFactor = properties_springfield->idleProneFactor;
-        weapon_springfield->rechamberWhileAds = properties_springfield->rechamberWhileAds;
-        weapon_springfield->adsViewErrorMin = properties_springfield->adsViewErrorMin;
-        weapon_springfield->adsViewErrorMax = properties_springfield->adsViewErrorMax;
-    }
-}
-#endif
-
-#if COD_VERSION == COD1_1_5
-void custom_Cvar_Set2(const char *var_name, const char *value, qboolean force)
-{
-    bool check_g_legacyStyle = false;
-    bool g_legacyStyle_before;
-    bool g_legacyStyle_after;
-
-    if(com_sv_running != NULL && com_sv_running->integer)
-    {
-        if(!strcasecmp(var_name, g_legacyStyle->name))
-        {
-            check_g_legacyStyle = true;
-            g_legacyStyle_before = g_legacyStyle->integer ? true : false;
-        }
-    }
-    
-    hook_cvar_set2->unhook();
-    cvar_t* (*Cvar_Set2)(const char *var_name, const char *value, qboolean force);
-    *(int *)&Cvar_Set2 = hook_cvar_set2->from;
-
-    if(check_g_legacyStyle)
-    {
-        cvar_t* var = Cvar_Set2(var_name, value, force);
-        if(var)
-        {
-            g_legacyStyle_after = var->integer ? true : false;
-            if(g_legacyStyle_before != g_legacyStyle_after)
-                toggleLegacyStyle(var->integer);
-        }
-    }
-    else
-        Cvar_Set2(var_name, value, force);
-
-    hook_cvar_set2->hook();
-}
-#endif
-
 void custom_Com_Init(char *commandLine)
 {
     hook_com_init->unhook();
@@ -245,31 +127,25 @@ void custom_Com_Init(char *commandLine)
 
     // Register custom cvars
     Cvar_Get("libcod", "1", CVAR_SERVERINFO);
-    fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
-    fs_callbacks_additional = Cvar_Get("fs_callbacks_additional", "", CVAR_ARCHIVE);
-    fs_svrPaks = Cvar_Get("fs_svrPaks", "", CVAR_ARCHIVE);
-    g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
-    sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
-#if COD_VERSION == COD1_1_1
     Cvar_Get("sv_wwwDownload", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
     Cvar_Get("sv_wwwBaseURL", "", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
     
-    /*
-    Force cl_allowDownload on client, otherwise 1.1x can't download to join the server
-    I don't want to force download, I would prefer this to be temporary and stop forcing later when a solution is found
-    */
-    Cvar_Get("cl_allowDownload", "1", CVAR_SYSTEMINFO);
-
+    fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
+    fs_callbacks_additional = Cvar_Get("fs_callbacks_additional", "", CVAR_ARCHIVE);
+    fs_svrPaks = Cvar_Get("fs_svrPaks", "", CVAR_ARCHIVE);
     g_deadChat = Cvar_Get("g_deadChat", "0", CVAR_ARCHIVE);
+    g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
     g_playerEject = Cvar_Get("g_playerEject", "1", CVAR_ARCHIVE);
     g_resetSlide = Cvar_Get("g_resetSlide", "0", CVAR_ARCHIVE);
-#elif COD_VERSION == COD1_1_5
-    g_legacyStyle = Cvar_Get("g_legacyStyle", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
-    jump_slowdownEnable =  Cvar_Get("jump_slowdownEnable", "1", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
-#endif
+    sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
+
+    /*
+    Force cl_allowDownload on client, otherwise 1.1x can't download to join the server
+    TODO: Force only for 1.1x clients
+    */
+    Cvar_Get("cl_allowDownload", "1", CVAR_SYSTEMINFO);
 }
 
-#if COD_VERSION == COD1_1_1
 void hook_G_Say(gentity_s *ent, gentity_s *target, int mode, const char *chatText)
 {
     // 1.1 deadchat support
@@ -283,9 +159,7 @@ void hook_G_Say(gentity_s *ent, gentity_s *target, int mode, const char *chatTex
 
     G_Say(ent, NULL, mode, chatText);
 }
-#endif
 
-#if COD_VERSION == COD1_1_1
 qboolean FS_svrPak(const char *base)
 {
     if (strstr(base, "_svr_"))
@@ -318,7 +192,6 @@ qboolean FS_svrPak(const char *base)
 
     return qfalse;
 }
-#endif
 
 const char* custom_FS_ReferencedPakNames(void)
 {
@@ -443,11 +316,9 @@ void hook_ClientCommand(int clientNum)
     if(!Scr_IsSystemActive())
         return;
 
-#if COD_VERSION == COD1_1_1
     char* cmd = Cmd_Argv(0);
     if(!strcmp(cmd, "gc"))
         return; // Prevent server crash
-#endif
       
     if(!codecallback_playercommand)
     {
@@ -497,27 +368,6 @@ void custom_SV_SpawnServer(char *server)
     *(int *)&SV_SpawnServer = hook_sv_spawnserver->from;
     SV_SpawnServer(server);
     hook_sv_spawnserver->hook();
-
-#if COD_VERSION == COD1_1_5
-    if(weapons_properties.empty())
-    {
-        weapons_properties["kar98k_sniper_mp"]["default"] = { 199, 449, 0.1, 0.6, 0.2, 0, 1.2, 1.4 };
-        weapons_properties["kar98k_sniper_mp"]["legacy"] = { 199, 299, 0.42, 0.2, 0.085, 1, 0, 0 };
-
-        weapons_properties["mosin_nagant_sniper_mp"]["default"] = { 1339, 449, 0.1, 0.6, 0.2, 0, 1.2, 1.4 };
-        weapons_properties["mosin_nagant_sniper_mp"]["legacy"] = { 339, 299, 0.42, 0.2, 0.085, 1, 0, 0 };
-
-        weapons_properties["springfield_mp"]["default"] = { 199, 449, 0.1, 0.6, 0.2, 0, 1.2, 1.4 };
-        weapons_properties["springfield_mp"]["legacy"] = { 199, 299, 0.5, 0.2, 0.085, 1, 0, 0 };
-        /*
-        springfield_mp adsZoomInFrac in 1.1 patch weapon file = 0.05.
-        There must be an error somewhere. Now replacing by 0.5 to fix slowness.
-        */
-    }
-
-    if(g_legacyStyle->integer)
-        toggleLegacyStyle(true);
-#endif
 
 #if COMPILE_SQLITE == 1
     free_sqlite_db_stores_and_tasks();
@@ -587,7 +437,6 @@ void custom_SV_BeginDownload_f(client_t *cl)
     hook_sv_begindownload_f->hook();
 }
 
-#if COD_VERSION == COD1_1_1
 void custom_SV_ExecuteClientMessage(client_t *cl, msg_t *msg)
 {
     byte msgBuf[MAX_MSGLEN];
@@ -648,21 +497,6 @@ void custom_SV_ExecuteClientMessage(client_t *cl, msg_t *msg)
         }
     }
 }
-#endif
-
-#if COD_VERSION == COD1_1_5
-void custom_SV_MapRestart_f(void)
-{
-    hook_sv_maprestart_f->unhook();
-    void (*SV_MapRestart_f)();
-    *(int *)&SV_MapRestart_f = hook_sv_maprestart_f->from;
-    SV_MapRestart_f();
-    hook_sv_maprestart_f->hook();
-    
-    if(g_legacyStyle != NULL && g_legacyStyle->integer)
-        toggleLegacyStyle(true);
-}
-#endif
 
 char *custom_va(const char *format, ...)
 {
@@ -715,7 +549,6 @@ void custom_SV_ClientThink(int clientNum)
     }
 }
 
-#if COD_VERSION == COD1_1_1
 int custom_ClientEndFrame(gentity_t *ent)
 {
     hook_clientendframe->unhook();
@@ -748,7 +581,6 @@ int custom_ClientEndFrame(gentity_t *ent)
 
     return ret;
 }
-#endif
 
 // ioquake3 rate limit connectionless requests
 // https://github.com/ioquake/ioq3/blob/master/code/server/sv_main.c
@@ -1140,25 +972,11 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Q_strupr = (Q_strupr_t)dlsym(ret, "Q_strupr");
     Q_strcat = (Q_strcat_t)dlsym(ret, "Q_strcat");
 
-#if COD_VERSION == COD1_1_1
     hook_call((int)dlsym(ret, "vmMain") + 0xB0, (int)hook_ClientCommand);
     hook_call((int)dlsym(ret, "ClientEndFrame") + 0x311, (int)hook_StuckInClient);
-#elif COD_VERSION == COD1_1_5
-    hook_call((int)dlsym(ret, "vmMain") + 0xF0, (int)hook_ClientCommand);
-#endif
-
-#if COD_VERSION == COD1_1_5
-    hook_jmp((int)dlsym(ret, "PM_GetEffectiveStance") + 0x16C1, (int)hook_PM_WalkMove_Naked);
-    resume_addr_PM_WalkMove = (uintptr_t)dlsym(ret, "PM_GetEffectiveStance") + 0x18AA;
-    hook_jmp((int)dlsym(ret, "PM_SlideMove") + 0xB6A, (int)hook_PM_SlideMove_Naked);
-    resume_addr_PM_SlideMove = (uintptr_t)dlsym(ret, "PM_SlideMove") + 0xBA5;
-    hook_jmp((int)dlsym(ret, "PM_GetEffectiveStance") + 0xAD, (int)custom_Jump_GetLandFactor);
-    hook_jmp((int)dlsym(ret, "PM_GetEffectiveStance") + 0x4C, (int)custom_PM_GetReducedFriction);
-#endif
 
     hook_jmp((int)dlsym(ret, "G_LocalizedStringIndex"), (int)custom_G_LocalizedStringIndex);
 
-#if COD_VERSION == COD1_1_1
     // Patch codmsgboom
     /* See:
     - https://aluigi.altervista.org/adv/codmsgboom-adv.txt
@@ -1178,17 +996,13 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_call((int)dlsym(ret, "G_Say") + 0x77D, (int)hook_G_Say);
     hook_call((int)dlsym(ret, "G_Say") + 0x791, (int)hook_G_Say);
     // end
-#endif
 
     hook_gametype_scripts = new cHook((int)dlsym(ret, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
     hook_gametype_scripts->hook();
-
-#if COD_VERSION == COD1_1_1
     hook_play_movement = new cHook((int)dlsym(ret, "ClientThink"), (int)custom_SV_ClientThink);
     hook_play_movement->hook();
     hook_clientendframe = new cHook((int)dlsym(ret, "ClientEndFrame"), (int)custom_ClientEndFrame);
     hook_clientendframe->hook();
-#endif
 
     return ret;
 }
@@ -1208,18 +1022,13 @@ public:
         // Otherwise the printf()'s are printed at crash/end on older os/compiler versions
         setbuf(stdout, NULL);
 
-#if COD_VERSION == COD1_1_1
         printf("> [LIBCOD] Compiled for: CoD1 1.1\n");
-#elif COD_VERSION == COD1_1_5
-        printf("> [LIBCOD] Compiled for: CoD1 1.5\n");
-#endif
 
         printf("> [LIBCOD] Compiled %s %s using GCC %s\n", __DATE__, __TIME__, __VERSION__);
 
         // Allow to write in executable memory
         mprotect((void *)0x08048000, 0x135000, PROT_READ | PROT_WRITE | PROT_EXEC);
 
-#if COD_VERSION == COD1_1_1
         hook_call(0x08085213, (int)hook_AuthorizeState);
         hook_call(0x08094c54, (int)Scr_GetCustomFunction);
         hook_call(0x080951c4, (int)Scr_GetCustomMethod);
@@ -1259,33 +1068,6 @@ public:
         hook_sv_begindownload_f->hook();
         hook_sv_sendclientgamestate = new cHook(0x08085eec, (int)custom_SV_SendClientGameState);
         hook_sv_sendclientgamestate->hook();
-#elif COD_VERSION == COD1_1_5
-        hook_call(0x080894c5, (int)hook_AuthorizeState);
-        hook_call(0x0809d8f5, (int)Scr_GetCustomFunction);
-        hook_call(0x0809db31, (int)Scr_GetCustomMethod);
-        hook_call(0x08093651, (int)hook_SV_GetChallenge);
-        hook_call(0x0809370b, (int)hook_SV_DirectConnect);
-        hook_call(0x0809374e, (int)hook_SV_AuthorizeIpPacket);
-        hook_call(0x0809360e, (int)hook_SVC_Info);
-        hook_call(0x080935cb, (int)hook_SVC_Status);
-        hook_call(0x08093798, (int)hook_SVC_RemoteCommand);
-
-        // Patch RCON half-second limit
-        *(unsigned char*)0x080930e9 = 0xeb;
-
-        hook_sys_loaddll = new cHook(0x080d3cdd, (int)custom_Sys_LoadDll);
-        hook_sys_loaddll->hook();
-        hook_cvar_set2 = new cHook(0x08072da8, (int)custom_Cvar_Set2);
-        hook_cvar_set2->hook();
-        hook_com_init = new cHook(0x08070ef8, (int)custom_Com_Init);
-        hook_com_init->hook();
-        hook_sv_spawnserver = new cHook(0x08090d0f, (int)custom_SV_SpawnServer);
-        hook_sv_spawnserver->hook();
-        hook_sv_begindownload_f = new cHook(0x0808b456, (int)custom_SV_BeginDownload_f);
-        hook_sv_begindownload_f->hook();
-        hook_sv_maprestart_f = new cHook(0x0808773a, (int)custom_SV_MapRestart_f);
-        hook_sv_maprestart_f->hook();
-#endif
 
         printf("> [PLUGIN LOADED]\n");
     }

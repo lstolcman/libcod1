@@ -1,5 +1,4 @@
 #include "gsc.hpp"
-#include "libcod.hpp"
 
 #include <stdint.h>
 #include <sys/time.h>
