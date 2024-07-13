@@ -265,7 +265,7 @@ int stackGetParamInt(int param, int *value)
 
 int stackGetParamFunction(int param, int *value)
 {
-    printf("####### stackGetParamFunction \n");
+    printf("####### stackGetParamFunction\n");
     
 
     if ( param >= Scr_GetNumParam() )
@@ -411,11 +411,11 @@ uint64_t Sys_Milliseconds64(void)
 // For tests
 void gsc_testfunction()
 {
-    printf("##### gsc_testfunction \n");
+    printf("##### gsc_testfunction\n");
 }
 void gsc_testmethod(scr_entref_t ref)
 {
-    printf("##### gsc_testmethod \n");
+    printf("##### gsc_testmethod\n");
 
     int id = ref.entnum;
 
@@ -432,7 +432,7 @@ void gsc_testmethod(scr_entref_t ref)
     //gclient_t *gclient = gentity->client;
 
 
-    //printf("##### ps->gravity = %i \n", ps->gravity);
-    //printf("##### ps->viewangles[0] = %f, ps->viewangles[1] = %f, ps->viewangles[2] = %f \n", ps->viewangles[0], ps->viewangles[1], ps->viewangles[2]);
+    //printf("##### ps->gravity = %i\n", ps->gravity);
+    //printf("##### ps->viewangles[0] = %f, ps->viewangles[1] = %f, ps->viewangles[2] = %f\n", ps->viewangles[0], ps->viewangles[1], ps->viewangles[2]);
     
 }

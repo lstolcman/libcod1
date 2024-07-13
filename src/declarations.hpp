@@ -59,6 +59,8 @@
 #define PMF_LADDER          0x10
 #define PMF_SLIDING         0x100
 
+typedef void (*xcommand_t)(void);
+
 typedef unsigned char byte;
 typedef signed char sbyte;
 typedef struct gclient_s gclient_t;
@@ -111,6 +113,17 @@ typedef enum
 
 typedef enum
 {
+    TEAM_FREE = 0x0,
+    TEAM_NONE = 0x0,
+    TEAM_BAD = 0x0,
+    TEAM_AXIS = 0x1,
+    TEAM_ALLIES = 0x2,
+    TEAM_SPECTATOR = 0x3,
+    TEAM_NUM_TEAMS = 0x4,
+} team_t;
+
+typedef enum
+{
     CS_FREE,
     CS_ZOMBIE,
     CS_CONNECTED,
@@ -125,6 +138,13 @@ typedef enum
     STATE_SPECTATOR,
     STATE_INTERMISSION
 } sessionState_t;
+
+typedef enum
+{
+    CON_DISCONNECTED,
+    CON_CONNECTING,
+    CON_CONNECTED
+} clientConnected_t;
 
 typedef enum
 {
@@ -257,6 +277,14 @@ struct directory_t
 {
     char path[MAX_OSPATH];
     char gamedir[MAX_OSPATH];
+};
+
+enum fsMode_t
+{
+    FS_READ,
+    FS_WRITE,
+    FS_APPEND,
+    FS_APPEND_SYNC
 };
 
 struct pack_t
@@ -493,6 +521,13 @@ typedef struct playerState_s
 typedef struct
 {
     sessionState_t sessionState;
+    int forceSpectatorClient;
+    int statusIcon;
+    int archiveTime;
+    int score;
+    int deaths;
+    byte pad[4];
+    clientConnected_t connected;
     //...
 } clientSession_t;
 
@@ -582,6 +617,25 @@ typedef struct
     client_t *clients;
     //...
 } serverStatic_t;
+
+typedef struct
+{
+    struct gclient_s *clients;
+    byte pad[0x1DC];
+    int maxclients;
+    int framenum;
+    int time;
+    int previousTime;
+    int frameTime;
+    int startTime;
+    int teamScores[TEAM_NUM_TEAMS];
+    int lastTeammateHealthTime;
+    qboolean bUpdateScoresForIntermission;
+    int manualNameChange;
+    int numConnectedClients;
+    int sortedClients[MAX_CLIENTS];
+    // ...
+} level_locals_t;
 
 typedef enum
 {

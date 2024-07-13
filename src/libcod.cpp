@@ -3,37 +3,38 @@
 #include <signal.h>
 
 // Stock cvars
-cvar_t* cl_paused;
-cvar_t* com_dedicated;
-cvar_t* com_logfile;
-cvar_t* com_sv_running;
-cvar_t* sv_allowDownload;
-cvar_t* sv_maxclients;
-cvar_t* sv_pure;
-cvar_t* sv_rconPassword;
-cvar_t* sv_serverid;
+cvar_t *cl_paused;
+cvar_t *com_dedicated;
+cvar_t *com_logfile;
+cvar_t *com_sv_running;
+cvar_t *sv_allowDownload;
+cvar_t *sv_maxclients;
+cvar_t *sv_pure;
+cvar_t *sv_rconPassword;
+cvar_t *sv_serverid;
 
 // Custom cvars
-cvar_t* fs_callbacks;
-cvar_t* fs_callbacks_additional;
-cvar_t* fs_svrPaks;
-cvar_t* g_deadChat;
-cvar_t* g_debugCallbacks;
-cvar_t* g_playerEject;
-cvar_t* g_resetSlide;
-cvar_t* sv_cracked;
+cvar_t *fs_callbacks;
+cvar_t *fs_callbacks_additional;
+cvar_t *fs_svrPaks;
+cvar_t *g_deadChat;
+cvar_t *g_debugCallbacks;
+cvar_t *g_playerEject;
+cvar_t *g_resetSlide;
+cvar_t *sv_cracked;
 
-cHook* hook_clientendframe;
-cHook* hook_com_init;
-cHook* hook_cvar_set2;
-cHook* hook_g_localizedstringindex;
-cHook* hook_gametype_scripts;
-cHook* hook_play_movement;
-cHook* hook_sv_spawnserver;
-cHook* hook_sv_begindownload_f;
-cHook* hook_sv_maprestart_f;
-cHook* hook_sv_sendclientgamestate;
-cHook* hook_sys_loaddll;
+cHook *hook_clientendframe;
+cHook *hook_com_init;
+cHook *hook_cvar_set2;
+cHook *hook_g_localizedstringindex;
+cHook *hook_gametype_scripts;
+cHook *hook_play_movement;
+cHook *hook_sv_addoperatorcommands;
+cHook *hook_sv_spawnserver;
+cHook *hook_sv_begindownload_f;
+cHook *hook_sv_maprestart_f;
+cHook *hook_sv_sendclientgamestate;
+cHook *hook_sys_loaddll;
 
 // Stock callbacks
 int codecallback_startgametype = 0;
@@ -63,29 +64,21 @@ customPlayerState_t customPlayerState[MAX_CLIENTS];
 // Game lib objects
 gentity_t* g_entities;
 gclient_t* g_clients;
+level_locals_t* level;
 pmove_t* pm;
 
 // Game lib functions
-Scr_GetFunctionHandle_t Scr_GetFunctionHandle;
-Scr_GetNumParam_t Scr_GetNumParam;
-SV_Cmd_ArgvBuffer_t SV_Cmd_ArgvBuffer;
-ClientCommand_t ClientCommand;
-Scr_GetFunction_t Scr_GetFunction;
-Scr_GetMethod_t Scr_GetMethod;
-SV_GameSendServerCommand_t SV_GameSendServerCommand;
-Scr_ExecThread_t Scr_ExecThread;
-Scr_ExecEntThread_t Scr_ExecEntThread;
-Scr_ExecEntThreadNum_t Scr_ExecEntThreadNum;
-Scr_FreeThread_t Scr_FreeThread;
-Scr_Error_t Scr_Error;
 G_Say_t G_Say;
 G_RegisterCvars_t G_RegisterCvars;
+SV_GameSendServerCommand_t SV_GameSendServerCommand;
 SV_GetConfigstringConst_t SV_GetConfigstringConst;
 SV_GetConfigstring_t SV_GetConfigstring;
 BG_GetNumWeapons_t BG_GetNumWeapons;
 BG_GetInfoForWeapon_t BG_GetInfoForWeapon;
 BG_GetWeaponIndexForName_t BG_GetWeaponIndexForName;
 BG_AnimationIndexForString_t BG_AnimationIndexForString;
+Scr_GetFunctionHandle_t Scr_GetFunctionHandle;
+Scr_GetNumParam_t Scr_GetNumParam;
 Scr_IsSystemActive_t Scr_IsSystemActive;
 Scr_GetInt_t Scr_GetInt;
 Scr_GetString_t Scr_GetString;
@@ -101,10 +94,22 @@ Scr_MakeArray_t Scr_MakeArray;
 Scr_AddArray_t Scr_AddArray;
 Scr_AddObject_t Scr_AddObject;
 Scr_LoadScript_t Scr_LoadScript;
-StuckInClient_t StuckInClient;
+Scr_ExecThread_t Scr_ExecThread;
+Scr_ExecEntThread_t Scr_ExecEntThread;
+Scr_ExecEntThreadNum_t Scr_ExecEntThreadNum;
+Scr_FreeThread_t Scr_FreeThread;
+Scr_GetFunction_t Scr_GetFunction;
+Scr_GetMethod_t Scr_GetMethod;
+Scr_Error_t Scr_Error;
 Q_strlwr_t Q_strlwr;
 Q_strupr_t Q_strupr;
 Q_strcat_t Q_strcat;
+Q_strncpyz_t Q_strncpyz;
+Q_CleanStr_t Q_CleanStr;
+StuckInClient_t StuckInClient;
+Cmd_ArgvBuffer_t Cmd_ArgvBuffer;
+ClientCommand_t ClientCommand;
+Com_SkipRestOfLine_t Com_SkipRestOfLine;
 
 void custom_Com_Init(char *commandLine)
 {
@@ -200,7 +205,7 @@ const char* custom_FS_ReferencedPakNames(void)
 
     info[0] = 0;
     
-    for ( search = fs_searchpaths ; search ; search = search->next )
+    for (search = fs_searchpaths ; search ; search = search->next)
     {
         if (!search->pak)
             continue;
@@ -225,7 +230,7 @@ const char* custom_FS_ReferencedPakChecksums(void)
     
     info[0] = 0;
 
-    for ( search = fs_searchpaths ; search ; search = search->next )
+    for (search = fs_searchpaths ; search ; search = search->next)
     {
         if (!search->pak)
             continue;
@@ -233,7 +238,7 @@ const char* custom_FS_ReferencedPakChecksums(void)
         if(FS_svrPak(search->pak->pakBasename))
             continue;
         
-        Q_strcat( info, sizeof( info ), custom_va( "%i ", search->pak->checksum ) );
+        Q_strcat(info, sizeof( info ), custom_va("%i ", search->pak->checksum));
     }
 
     return info;
@@ -254,17 +259,17 @@ int custom_GScr_LoadGameTypeScript()
     if(*fs_callbacks_additional->string)
     {
         if(!Scr_LoadScript(fs_callbacks_additional->string))
-            Com_DPrintf("custom_GScr_LoadGameTypeScript: Scr_LoadScript for fs_callbacks_additional cvar failed. \n");
+            Com_DPrintf("custom_GScr_LoadGameTypeScript: Scr_LoadScript for fs_callbacks_additional cvar failed.\n");
     }
     else
     {
-        Com_DPrintf("custom_GScr_LoadGameTypeScript: No custom callback file specified in fs_callbacks_additional cvar. \n");
+        Com_DPrintf("custom_GScr_LoadGameTypeScript: No custom callback file specified in fs_callbacks_additional cvar.\n");
     }
 
     if(*fs_callbacks->string)
         strncpy(path_for_cb, fs_callbacks->string, sizeof(path_for_cb));
         
-    for ( i = 0; i < sizeof(callbacks)/sizeof(callbacks[0]); i++ )
+    for (i = 0; i < sizeof(callbacks)/sizeof(callbacks[0]); i++)
     {
         if(!strcmp(callbacks[i].name, "CodeCallback_PlayerCommand")) // Custom callback: PlayerCommand
             *callbacks[i].pos = Scr_GetFunctionHandle(fs_callbacks_additional->string, callbacks[i].name);
@@ -311,6 +316,73 @@ int custom_G_LocalizedStringIndex(const char *string)
     return i;
 }
 
+#if 0
+// Failed attempt to fix spectator ping
+void custom_DeathmatchScoreboardMessage(gentity_s *ent)
+{
+    /* See:
+    - https://github.com/id-Software/Quake-III-Arena/blob/dbe4ddb10315479fc00086f08e25d968b4b43c49/code/game/g_cmds.c#L33
+    - https://github.com/voron00/CoD2rev_Server/blob/41ee6e64b006ed9f4f2e6a2e35d80a4703ca13ea/src/game/g_cmds_mp.cpp#L90
+    */
+
+    char entry[1024];
+    char string[1400];
+    int stringlength;
+    int i, j;
+    gclient_t *client;
+    int numSorted;
+    
+    string[0] = 0;
+    stringlength = 0;
+
+
+    printf("#### level->maxclients = %i\n", level->maxclients);
+    printf("#### level->teamScores[1] = %i\n", level->teamScores[1]);
+    printf("#### level->teamScores[2] = %i\n", level->teamScores[2]);
+    printf("#### level->numConnectedClients = %i\n", level->numConnectedClients);
+
+
+    numSorted = level->numConnectedClients;
+
+    if (level->numConnectedClients > MAX_CLIENTS)
+        numSorted = MAX_CLIENTS;
+
+    for (i = 0; i < numSorted; ++i)
+    {
+        int ping;
+        int clientNum = level->sortedClients[i];
+        client = &level->clients[clientNum];
+
+        printf("#### %s: sess.connected = %i\n", svs.clients[clientNum].name, client->sess.connected);
+        if (client->sess.connected == CON_CONNECTING) {
+            ping = -1;
+        } else {
+            ping = svs.clients[clientNum].ping < 999 ? svs.clients[clientNum].ping : 999;
+        }
+
+        Com_sprintf(
+            entry,
+            sizeof(entry),
+            " %i %i %i %i %i",
+            clientNum,
+            client->sess.score,
+            ping,
+            client->sess.deaths,
+            client->sess.statusIcon);
+
+        j = strlen(entry);
+
+        if (stringlength + j > 1024)
+            break;
+
+        strcpy(string + stringlength, entry);
+        stringlength += j;
+    }
+    
+    SV_GameSendServerCommand(ent - g_entities, SV_CMD_RELIABLE, custom_va("b %i %i %i%s", i, level->teamScores[1], level->teamScores[2], string));
+}
+#endif
+
 void hook_ClientCommand(int clientNum)
 {
     if(!Scr_IsSystemActive())
@@ -331,7 +403,7 @@ void hook_ClientCommand(int clientNum)
     for(int i = 0; i < args; i++)
     {
         char tmp[MAX_STRINGLENGTH];
-        SV_Cmd_ArgvBuffer(i, tmp, sizeof(tmp));
+        Cmd_ArgvBuffer(i, tmp, sizeof(tmp));
         if(i == 1 && tmp[0] >= 20 && tmp[0] <= 22)
         {
             char *part = strtok(tmp + 1, " ");
@@ -374,6 +446,143 @@ void custom_SV_SpawnServer(char *server)
 #endif
 }
 
+qboolean isBannedIp(char* ip)
+{
+    char *file;
+    int banned;
+    const char *token;
+    const char *text;
+
+    if (FS_ReadFile("ban.txt", (void **)&file) < 0)
+        return 0;
+
+    text = file;
+    banned = 0;
+
+    while (1)
+    {
+        token = Com_Parse(&text);
+        if (!token[0])
+            break;
+
+        if (!strcmp(token, ip))
+        {
+            banned = 1;
+            break;
+        }
+        Com_SkipRestOfLine(&text);
+    }
+    FS_FreeFile(file);
+    return banned;
+}
+
+static void ban()
+{
+    client_t *cl;
+    int file;
+    char cleanName[64];
+    char ip[16];
+
+    if (!com_sv_running->integer)
+    {
+        Com_Printf("Server is not running.\n");
+        return;
+    }
+
+    if (Cmd_Argc() != 2)
+    {
+        Com_Printf("Usage: ban <client number>\n");
+        return;
+    }
+
+    cl = SV_GetPlayerByNum();
+    if (cl)
+    {
+        snprintf(ip, sizeof(ip), "%d.%d.%d.%d", cl->netchan.remoteAddress.ip[0], cl->netchan.remoteAddress.ip[1], cl->netchan.remoteAddress.ip[2], cl->netchan.remoteAddress.ip[3]);
+        if (isBannedIp(ip))
+        {
+            Com_Printf("This IP (%s) is already banned\n", NET_AdrToString(cl->netchan.remoteAddress));
+            return;
+        }
+
+        if (FS_FOpenFileByMode("ban.txt", &file, FS_APPEND) < 0)
+            return;
+
+        Q_strncpyz(cleanName, cl->name, sizeof(cleanName));
+        FS_Write(file, "%s %s\r\n", ip, cleanName);
+        FS_FCloseFile(file);
+        SV_DropClient(cl, "EXE_PLAYERKICKED");
+        cl->lastPacketTime = svs.time;
+    }
+}
+
+static void unban()
+{
+    if (Cmd_Argc() != 2)
+    {
+        Com_Printf("Usage: unban <client number>\n");
+        return;
+    }
+
+    char *file;
+    int fileSize;
+    char *line;
+    const char *token;
+    char *ip;
+    bool found;
+    char *text;
+
+    fileSize = FS_ReadFile("ban.txt", (void **)&file);
+    if (fileSize < 0)
+        return;
+    
+    ip = Cmd_Argv(1);
+    found = false;
+    text = file;
+
+    while (1)
+    {
+        line = text;
+        token = Com_Parse((const char **)&text);
+        if (!token[0])
+            break;
+
+        if (!strcmp(token, ip))
+            found = true;
+
+        Com_SkipRestOfLine((const char **)&text);
+
+        if (found)
+        {
+            memmove((unsigned char *)line, (unsigned char *)text, fileSize - (text - file) + 1);
+            fileSize -= text - line;
+            text = line;
+            break;
+        }
+    }
+
+    FS_WriteFile("ban.txt", file, fileSize);
+    FS_FreeFile(file);
+
+    if (found)
+        Com_Printf("unbanned IP %s\n", ip);
+    else
+        Com_Printf("IP %s not found\n", ip);
+}
+
+void custom_SV_AddOperatorCommands()
+{
+    hook_sv_addoperatorcommands->unhook();
+    void (*SV_AddOperatorCommands)();
+    *(int *)&SV_AddOperatorCommands = hook_sv_addoperatorcommands->from;
+    SV_AddOperatorCommands();
+
+    Cmd_AddCommand("ban", ban);
+    Cmd_AddCommand("unban", unban);
+
+    hook_sv_addoperatorcommands->hook();
+}
+
 void custom_SV_SendClientGameState(client_t *client)
 {
     hook_sv_sendclientgamestate->unhook();
@@ -394,7 +603,7 @@ qboolean hook_StuckInClient(gentity_s *self)
     return StuckInClient(self);
 }
 
-qboolean ShouldServeFile(const char *requestedFilePath)
+qboolean shouldServeFile(const char *requestedFilePath)
 {
     static char localFilePath[MAX_OSPATH*2+5];
     searchpath_t* search;
@@ -421,11 +630,11 @@ void custom_SV_BeginDownload_f(client_t *cl)
     if(args > 1)
     {
         const char* arg1 = Cmd_Argv(1);
-        if(!ShouldServeFile(arg1))
+        if(!shouldServeFile(arg1))
         {
             char ip[16];
             snprintf(ip, sizeof(ip), "%d.%d.%d.%d", cl->netchan.remoteAddress.ip[0], cl->netchan.remoteAddress.ip[1], cl->netchan.remoteAddress.ip[2], cl->netchan.remoteAddress.ip[3]);
-            printf("####### WARNING: %s (%s) tried to download %s. \n", cl->name, ip, arg1);
+            printf("####### WARNING: %s (%s) tried to download %s.\n", cl->name, ip, arg1);
             return;
         }
     }
@@ -515,7 +724,7 @@ char *custom_va(const char *format, ...)
     va_end( argptr );
 
     if ( ( len = strlen( temp_buffer ) ) >= MAX_VA_STRING )
-        Com_Error( ERR_DROP, "Attempted to overrun string in call to va() \n" );
+        Com_Error( ERR_DROP, "Attempted to overrun string in call to va()\n" );
 
     if ( len + index >= MAX_VA_STRING - 1 )
         index = 0;
@@ -572,8 +781,8 @@ int custom_ClientEndFrame(gentity_t *ent)
         {
             if ((ent->client->ps.pm_flags & PMF_SLIDING) != 0 /*&& (ent->client->ps).pm_time == 0*/)
             {
-                //printf("##### SLIDING \n");
-                //printf("##### pm_time = %i \n", (ent->client->ps).pm_time);
+                //printf("##### SLIDING\n");
+                //printf("##### pm_time = %i\n", (ent->client->ps).pm_time);
                 ent->client->ps.pm_flags = ent->client->ps.pm_flags & ~PMF_SLIDING;
             }
         }
@@ -809,6 +1018,15 @@ void hook_SV_DirectConnect(netadr_t from)
         return;
     }
 
+    char ip[16];
+    snprintf(ip, sizeof(ip), "%d.%d.%d.%d", from.ip[0], from.ip[1], from.ip[2], from.ip[3]);
+    if (isBannedIp(ip))
+    {
+        Com_Printf("rejected connection from banned IP %s\n", NET_AdrToString(from));
+        NET_OutOfBandPrint(NS_SERVER, from, "error\nYou are banned from this server");
+        return;
+    }
+
     SV_DirectConnect(from);
 }
 
@@ -930,12 +1148,14 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     
     g_entities = (gentity_t*)dlsym(ret, "g_entities");
     g_clients = (gclient_t*)dlsym(ret, "g_clients");
+    level = (level_locals_t*)dlsym(ret, "level");
     pm = (pmove_t*)dlsym(ret, "pm");
 
     Scr_GetFunctionHandle = (Scr_GetFunctionHandle_t)dlsym(ret, "Scr_GetFunctionHandle");
     Scr_GetNumParam = (Scr_GetNumParam_t)dlsym(ret, "Scr_GetNumParam");
-    SV_Cmd_ArgvBuffer = (SV_Cmd_ArgvBuffer_t)dlsym(ret, "trap_Argv");
+    Cmd_ArgvBuffer = (Cmd_ArgvBuffer_t)dlsym(ret, "trap_Argv");
     ClientCommand = (ClientCommand_t)dlsym(ret, "ClientCommand");
+    Com_SkipRestOfLine = (Com_SkipRestOfLine_t)dlsym(ret, "Com_SkipRestOfLine");
     Scr_GetFunction = (Scr_GetFunction_t)dlsym(ret, "Scr_GetFunction");
     Scr_GetMethod = (Scr_GetMethod_t)dlsym(ret, "Scr_GetMethod");
     SV_GameSendServerCommand = (SV_GameSendServerCommand_t)dlsym(ret, "trap_SendServerCommand");
@@ -971,11 +1191,14 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Q_strlwr = (Q_strlwr_t)dlsym(ret, "Q_strlwr");
     Q_strupr = (Q_strupr_t)dlsym(ret, "Q_strupr");
     Q_strcat = (Q_strcat_t)dlsym(ret, "Q_strcat");
+    Q_strncpyz = (Q_strncpyz_t)dlsym(ret, "Q_strncpyz");
+    Q_CleanStr = (Q_CleanStr_t)dlsym(ret, "Q_CleanStr");
 
     hook_call((int)dlsym(ret, "vmMain") + 0xB0, (int)hook_ClientCommand);
     hook_call((int)dlsym(ret, "ClientEndFrame") + 0x311, (int)hook_StuckInClient);
 
     hook_jmp((int)dlsym(ret, "G_LocalizedStringIndex"), (int)custom_G_LocalizedStringIndex);
+    //hook_jmp((int)dlsym(ret, "DeathmatchScoreboardMessage"), (int)custom_DeathmatchScoreboardMessage);
 
     // Patch codmsgboom
     /* See:
@@ -1068,6 +1291,8 @@ public:
         hook_sv_begindownload_f->hook();
         hook_sv_sendclientgamestate = new cHook(0x08085eec, (int)custom_SV_SendClientGameState);
         hook_sv_sendclientgamestate->hook();
+        hook_sv_addoperatorcommands = new cHook(0x08084a3c, (int)custom_SV_AddOperatorCommands);
+        hook_sv_addoperatorcommands->hook();
 
         printf("> [PLUGIN LOADED]\n");
     }
