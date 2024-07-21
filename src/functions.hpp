@@ -80,8 +80,8 @@ static const Cvar_Get_t Cvar_Get = (Cvar_Get_t)0x0806ea34;
 typedef cvar_t * (*Cvar_FindVar_t)(const char *var_name);
 static const Cvar_FindVar_t Cvar_FindVar = (Cvar_FindVar_t)0x0806e9b4;
 
-typedef char * (*Cvar_GetString_t)(const char *cvarName);
-static const Cvar_GetString_t Cvar_GetString = (Cvar_GetString_t)0x0806f8ec;
+typedef char * (*Cvar_VariableString_t)(const char *cvarName);
+static const Cvar_VariableString_t Cvar_VariableString = (Cvar_VariableString_t)0x0806f8ec;
 //
 
 // SV
@@ -153,6 +153,12 @@ static const SV_AuthorizeIpPacket_t SV_AuthorizeIpPacket = (SV_AuthorizeIpPacket
 
 typedef client_t * (*SV_GetPlayerByNum_t)(void);
 static const SV_GetPlayerByNum_t SV_GetPlayerByNum = (SV_GetPlayerByNum_t)0x08083b9c;
+
+typedef void (*SV_MapRestart_f_t)(void);
+static const SV_MapRestart_f_t SV_MapRestart_f = (SV_MapRestart_f_t)0x08083de4;
+
+typedef void (*SV_ExecuteClientCommand_t)(client_t *cl, char *s, qboolean clientOK);
+static const SV_ExecuteClientCommand_t SV_ExecuteClientCommand = (SV_ExecuteClientCommand_t)0x08086d58;
 //
 
 // Info
@@ -211,6 +217,9 @@ static const MSG_WriteString_t MSG_WriteString = (MSG_WriteString_t)0x0807a620;
 
 typedef void (*MSG_WriteData_t)(msg_t *msg, const void *data, int length);
 static const MSG_WriteData_t MSG_WriteData = (MSG_WriteData_t)0x0807eef0;
+
+typedef char * (*MSG_ReadString_t)(msg_t *msg);
+static const MSG_ReadString_t MSG_ReadString = (MSG_ReadString_t)0x0807f320;
 //
 
 // Weapon
@@ -298,6 +307,15 @@ typedef void (*Scr_AddObject_t)(unsigned int object);
 extern Scr_AddObject_t Scr_AddObject;
 
 typedef unsigned int (*Scr_LoadScript_t)(const char *filename);
+
+typedef void (*Scr_ObjectError_t)(const char *error);
+extern Scr_ObjectError_t Scr_ObjectError;
+
+typedef unsigned short (*Scr_GetConstString_t)(unsigned int param);
+extern Scr_GetConstString_t Scr_GetConstString;
+
+typedef void (*Scr_ParamError_t)(int paramNum, const char *error);
+extern Scr_ParamError_t Scr_ParamError;
 //
 
 // Q
@@ -312,6 +330,15 @@ typedef void (*Q_strcat_t)(char *dest, int size, const char *src);
 typedef void (*Q_strncpyz_t)(char *dest, const char *src, int destsize);
 
 typedef void (*Q_CleanStr_t)(char *string);
+
+
+
+typedef int (*Q_strncmp_t)(const char *s1, const char *s2, int n);
+static const Q_strncmp_t Q_strncmp = (Q_strncmp_t)0x0808315c;
+
+
+
+
 //
 
 typedef qboolean (*StuckInClient_t)(gentity_s *self);
@@ -337,5 +364,11 @@ static const VM_Call_t VM_Call = (VM_Call_t)0x08092158;
 
 typedef void (*ClientCommand_t)(int clientNum);
 extern ClientCommand_t ClientCommand;
+
+typedef char* (*UI_GetMapRotationToken_t)(void);
+static const UI_GetMapRotationToken_t UI_GetMapRotationToken = (UI_GetMapRotationToken_t)0x08084014;
+
+typedef void (*Cbuf_ExecuteText_t)(cbufExec_t exec_when, const char* text);
+static const Cbuf_ExecuteText_t Cbuf_ExecuteText = (Cbuf_ExecuteText_t)0x0805a8a0;
 
 #endif

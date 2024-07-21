@@ -4,7 +4,6 @@
 
 cc="g++"
 options="-I. -m32 -fPIC -Wall -fvisibility=hidden"
-# -Wno-write-strings // not full warnings
 
 separator="---------------------"
 
@@ -127,10 +126,7 @@ echo "##### COMPILE LIBCOD.CPP #####"
 $cc $debug $options $constants -c libcod.cpp -o objects/libcod.opp
 
 echo "##### COMPILE QVSNPRINTF.C #####"
-$cc $debug $options $constants -c lib/qvsnprintf.c -o objects/qvsnprintf.opp
-
-echo "##### COMPILE STRCMP_CONSTANT_TIME.C #####"
-$cc $debug $options $constants -c lib/strcmp_constant_time.c -o objects/strcmp_constant_time.opp
+$cc $debug $options $constants -c vendor/qvsnprintf.c -o objects/qvsnprintf.opp
 
 echo "##### LINK    libcod1.so #####"
 objects="$(ls objects/*.opp)"

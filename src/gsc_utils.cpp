@@ -1,9 +1,9 @@
-#include "gsc_utils.hpp"
-
 #if COMPILE_LIBCURL == 1
 #include <curl/curl.h>
 #include <string>
 #endif
+
+#include "gsc_utils.hpp"
 
 void gsc_utils_sendcommandtoclient()
 {

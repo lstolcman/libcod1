@@ -1,17 +1,32 @@
-#include "gsc.hpp"
+#if COMPILE_LIBCURL == 1
+#include <curl/curl.h>
+#include "vendor/json.hpp"
+#include <string>
+#include <thread>
+#include <map>
+
+using json = nlohmann::json;
+#endif
 
 #include <signal.h>
 
+#include "gsc.hpp"
+
 // Stock cvars
-cvar_t *cl_paused;
+cvar_t *com_cl_running;
 cvar_t *com_dedicated;
 cvar_t *com_logfile;
 cvar_t *com_sv_running;
 cvar_t *sv_allowDownload;
+cvar_t *sv_floodProtect;
+cvar_t *sv_gametype;
 cvar_t *sv_maxclients;
+cvar_t *sv_mapRotation;
+cvar_t *sv_mapRotationCurrent;
 cvar_t *sv_pure;
 cvar_t *sv_rconPassword;
 cvar_t *sv_serverid;
+cvar_t *sv_showCommands;
 
 // Custom cvars
 cvar_t *fs_callbacks;
@@ -22,6 +37,8 @@ cvar_t *g_debugCallbacks;
 cvar_t *g_playerEject;
 cvar_t *g_resetSlide;
 cvar_t *sv_cracked;
+cvar_t *sv_antiVpn;
+cvar_t *sv_antiVpn_apiKey;
 
 cHook *hook_clientendframe;
 cHook *hook_com_init;
@@ -32,7 +49,6 @@ cHook *hook_play_movement;
 cHook *hook_sv_addoperatorcommands;
 cHook *hook_sv_spawnserver;
 cHook *hook_sv_begindownload_f;
-cHook *hook_sv_maprestart_f;
 cHook *hook_sv_sendclientgamestate;
 cHook *hook_sys_loaddll;
 
@@ -66,6 +82,7 @@ gentity_t* g_entities;
 gclient_t* g_clients;
 level_locals_t* level;
 pmove_t* pm;
+stringIndex_t* scr_const;
 
 // Game lib functions
 G_Say_t G_Say;
@@ -101,6 +118,9 @@ Scr_FreeThread_t Scr_FreeThread;
 Scr_GetFunction_t Scr_GetFunction;
 Scr_GetMethod_t Scr_GetMethod;
 Scr_Error_t Scr_Error;
+Scr_ObjectError_t Scr_ObjectError;
+Scr_GetConstString_t Scr_GetConstString;
+Scr_ParamError_t Scr_ParamError;
 Q_strlwr_t Q_strlwr;
 Q_strupr_t Q_strupr;
 Q_strcat_t Q_strcat;
@@ -120,15 +140,20 @@ void custom_Com_Init(char *commandLine)
     hook_com_init->hook();
     
     // Get references to stock cvars
-    cl_paused = Cvar_FindVar("cl_paused");
+    com_cl_running = Cvar_FindVar("cl_running");
     com_dedicated = Cvar_FindVar("dedicated");
     com_logfile = Cvar_FindVar("logfile");
     com_sv_running = Cvar_FindVar("sv_running");
     sv_allowDownload = Cvar_FindVar("sv_allowDownload");
+    sv_floodProtect = Cvar_FindVar("sv_floodProtect");
+    sv_gametype = Cvar_FindVar("g_gametype");
     sv_maxclients = Cvar_FindVar("sv_maxclients");
+    sv_mapRotation = Cvar_FindVar("sv_mapRotation");
+    sv_mapRotationCurrent = Cvar_FindVar("sv_mapRotationCurrent");
     sv_pure = Cvar_FindVar("sv_pure");
     sv_rconPassword = Cvar_FindVar("rconpassword");
     sv_serverid = Cvar_FindVar("sv_serverid");
+    sv_showCommands = Cvar_FindVar("sv_showCommands");
 
     // Register custom cvars
     Cvar_Get("libcod", "1", CVAR_SERVERINFO);
@@ -142,6 +167,8 @@ void custom_Com_Init(char *commandLine)
     g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
     g_playerEject = Cvar_Get("g_playerEject", "1", CVAR_ARCHIVE);
     g_resetSlide = Cvar_Get("g_resetSlide", "0", CVAR_ARCHIVE);
+    sv_antiVpn = Cvar_Get("sv_antiVpn", "0", CVAR_ARCHIVE);
+    sv_antiVpn_apiKey = Cvar_Get("sv_antiVpn_apiKey", "", CVAR_ARCHIVE);
     sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
 
     /*
@@ -315,73 +342,6 @@ int custom_G_LocalizedStringIndex(const char *string)
     
     return i;
 }
-
-#if 0
-// Failed attempt to fix spectator ping
-void custom_DeathmatchScoreboardMessage(gentity_s *ent)
-{
-    /* See:
-    - https://github.com/id-Software/Quake-III-Arena/blob/dbe4ddb10315479fc00086f08e25d968b4b43c49/code/game/g_cmds.c#L33
-    - https://github.com/voron00/CoD2rev_Server/blob/41ee6e64b006ed9f4f2e6a2e35d80a4703ca13ea/src/game/g_cmds_mp.cpp#L90
-    */
-
-    char entry[1024];
-    char string[1400];
-    int stringlength;
-    int i, j;
-    gclient_t *client;
-    int numSorted;
-    
-    string[0] = 0;
-    stringlength = 0;
-
-
-    printf("#### level->maxclients = %i\n", level->maxclients);
-    printf("#### level->teamScores[1] = %i\n", level->teamScores[1]);
-    printf("#### level->teamScores[2] = %i\n", level->teamScores[2]);
-    printf("#### level->numConnectedClients = %i\n", level->numConnectedClients);
-
-
-    numSorted = level->numConnectedClients;
-
-    if (level->numConnectedClients > MAX_CLIENTS)
-        numSorted = MAX_CLIENTS;
-
-    for (i = 0; i < numSorted; ++i)
-    {
-        int ping;
-        int clientNum = level->sortedClients[i];
-        client = &level->clients[clientNum];
-
-        printf("#### %s: sess.connected = %i\n", svs.clients[clientNum].name, client->sess.connected);
-        if (client->sess.connected == CON_CONNECTING) {
-            ping = -1;
-        } else {
-            ping = svs.clients[clientNum].ping < 999 ? svs.clients[clientNum].ping : 999;
-        }
-
-        Com_sprintf(
-            entry,
-            sizeof(entry),
-            " %i %i %i %i %i",
-            clientNum,
-            client->sess.score,
-            ping,
-            client->sess.deaths,
-            client->sess.statusIcon);
-
-        j = strlen(entry);
-
-        if (stringlength + j > 1024)
-            break;
-
-        strcpy(string + stringlength, entry);
-        stringlength += j;
-    }
-    
-    SV_GameSendServerCommand(ent - g_entities, SV_CMD_RELIABLE, custom_va("b %i %i %i%s", i, level->teamScores[1], level->teamScores[2], string));
-}
-#endif
 
 void hook_ClientCommand(int clientNum)
 {
@@ -881,7 +841,7 @@ static leakyBucket_t * SVC_BucketForAddress(netadr_t address, int burst, int per
 
 bool SVC_RateLimit(leakyBucket_t *bucket, int burst, int period)
 {
-    if ( bucket != NULL )
+    if (bucket != NULL)
     {
         uint64_t now = Sys_Milliseconds64();
         int interval = now - bucket->lastTime;
@@ -905,20 +865,18 @@ bool SVC_RateLimit(leakyBucket_t *bucket, int burst, int period)
             return false;
         }
     }
-
     return true;
 }
 
 bool SVC_RateLimitAddress(netadr_t from, int burst, int period)
 {
     leakyBucket_t *bucket = SVC_BucketForAddress(from, burst, period);
-
     return SVC_RateLimit(bucket, burst, period);
 }
 
 bool SVC_callback(const char *str, const char *ip)
 {	
-    if ( codecallback_client_spam && Scr_IsSystemActive() )
+    if (codecallback_client_spam && Scr_IsSystemActive())
     {
         stackPushString(ip);
         stackPushString(str);
@@ -927,28 +885,27 @@ bool SVC_callback(const char *str, const char *ip)
 
         return true;
     }
-    
     return false;
 }
 
 bool SVC_ApplyRconLimit(netadr_t from, qboolean badRconPassword)
 {
     // Prevent using rcon as an amplifier and make dictionary attacks impractical
-    if ( SVC_RateLimitAddress(from, 10, 1000) )
+    if (SVC_RateLimitAddress(from, 10, 1000))
     {
-        if ( !SVC_callback("RCON:ADDRESS", NET_AdrToString(from)) )
+        if (!SVC_callback("RCON:ADDRESS", NET_AdrToString(from)))
             Com_DPrintf("SVC_RemoteCommand: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
         return true;
     }
     
-    if ( badRconPassword )
+    if (badRconPassword)
     {
         static leakyBucket_t bucket;
 
         // Make DoS via rcon impractical
-        if ( SVC_RateLimit(&bucket, 10, 1000) )
+        if (SVC_RateLimit(&bucket, 10, 1000))
         {
-            if ( !SVC_callback("RCON:GLOBAL", NET_AdrToString(from)) )
+            if (!SVC_callback("RCON:GLOBAL", NET_AdrToString(from)))
                 Com_DPrintf("SVC_RemoteCommand: rate limit exceeded, dropping request\n");
             return true;
         }
@@ -960,16 +917,16 @@ bool SVC_ApplyRconLimit(netadr_t from, qboolean badRconPassword)
 bool SVC_ApplyStatusLimit(netadr_t from)
 {
     // Prevent using getstatus as an amplifier
-    if ( SVC_RateLimitAddress(from, 10, 1000) )
+    if (SVC_RateLimitAddress(from, 10, 1000))
     {
-        if ( !SVC_callback("STATUS:ADDRESS", NET_AdrToString(from)) )
+        if (!SVC_callback("STATUS:ADDRESS", NET_AdrToString(from)))
             Com_DPrintf("SVC_Status: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
         return true;
     }
 
     // Allow getstatus to be DoSed relatively easily, but prevent
     // excess outbound bandwidth usage when being flooded inbound
-    if ( SVC_RateLimit(&outboundLeakyBucket, 10, 100) )
+    if (SVC_RateLimit(&outboundLeakyBucket, 10, 100))
     {
         if ( !SVC_callback("STATUS:GLOBAL", NET_AdrToString(from)) )
             Com_DPrintf("SVC_Status: rate limit exceeded, dropping request\n");
@@ -982,9 +939,9 @@ bool SVC_ApplyStatusLimit(netadr_t from)
 void hook_SV_GetChallenge(netadr_t from)
 {
     // Prevent using getchallenge as an amplifier
-    if ( SVC_RateLimitAddress(from, 10, 1000) )
+    if (SVC_RateLimitAddress(from, 10, 1000))
     {
-        if ( !SVC_callback("CHALLENGE:ADDRESS", NET_AdrToString(from)) )
+        if (!SVC_callback("CHALLENGE:ADDRESS", NET_AdrToString(from)))
             Com_DPrintf("SV_GetChallenge: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
         return;
     }
@@ -993,7 +950,7 @@ void hook_SV_GetChallenge(netadr_t from)
     // excess outbound bandwidth usage when being flooded inbound
     if ( SVC_RateLimit(&outboundLeakyBucket, 10, 100) )
     {
-        if ( !SVC_callback("CHALLENGE:GLOBAL", NET_AdrToString(from)) )
+        if (!SVC_callback("CHALLENGE:GLOBAL", NET_AdrToString(from)))
             Com_DPrintf("SV_GetChallenge: rate limit exceeded, dropping request\n");
         return;
     }
@@ -1001,10 +958,61 @@ void hook_SV_GetChallenge(netadr_t from)
     SV_GetChallenge(from);
 }
 
+std::map<std::string, bool> vpnIpsMap;
+size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
+{
+    ((std::string*)userp)->append((char*)contents, size * nmemb);
+    return size * nmemb;
+}
+void SV_DirectConnect_checkVpn(std::string ip, netadr_t from)
+{
+    CURL *curl = curl_easy_init();
+    CURLcode res;
+    if (curl)
+    {
+        std::string provider = "https://vpnapi.io/api/";
+        std::string provider_parameter = "?key=";
+        std::string apiKey = sv_antiVpn_apiKey->string;
+        std::string url = provider + ip + provider_parameter + apiKey;
+
+        std::string response_string;
+
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_string);
+        res = curl_easy_perform(curl);
+        curl_easy_cleanup(curl);
+        if (res == CURLE_OK)
+        {
+            json j = json::parse(response_string);
+            if (j.contains("security"))
+            {
+                json security = j["security"];
+                if (security.contains("vpn") && security["vpn"].is_boolean())
+                {
+                    bool isVpn = security["vpn"].get<bool>();
+                    if(isVpn)
+                    {
+                        Com_Printf("rejected connection from VPN %s\n", NET_AdrToString(from));
+                        NET_OutOfBandPrint(NS_SERVER, from, "error\nVPN connection rejected");
+                        vpnIpsMap[ip] = true;
+                        return;
+                    }
+                    else
+                    {
+                        vpnIpsMap[ip] = false;
+                    }
+                }
+            }
+        }
+    }
+    SV_DirectConnect(from);
+}
+
 void hook_SV_DirectConnect(netadr_t from)
 {
     // Prevent using connect as an amplifier
-    if ( SVC_RateLimitAddress(from, 10, 1000) )
+    if (SVC_RateLimitAddress(from, 10, 1000))
     {
         Com_DPrintf("SV_DirectConnect: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
         return;
@@ -1012,7 +1020,7 @@ void hook_SV_DirectConnect(netadr_t from)
 
     // Allow connect to be DoSed relatively easily, but prevent
     // excess outbound bandwidth usage when being flooded inbound
-    if ( SVC_RateLimit(&outboundLeakyBucket, 10, 100) )
+    if (SVC_RateLimit(&outboundLeakyBucket, 10, 100))
     {
         Com_DPrintf("SV_DirectConnect: rate limit exceeded, dropping request\n");
         return;
@@ -1020,11 +1028,41 @@ void hook_SV_DirectConnect(netadr_t from)
 
     char ip[16];
     snprintf(ip, sizeof(ip), "%d.%d.%d.%d", from.ip[0], from.ip[1], from.ip[2], from.ip[3]);
+
     if (isBannedIp(ip))
     {
         Com_Printf("rejected connection from banned IP %s\n", NET_AdrToString(from));
         NET_OutOfBandPrint(NS_SERVER, from, "error\nYou are banned from this server");
         return;
+    }
+
+    if(sv_antiVpn->integer)
+    {
+        if(*sv_antiVpn_apiKey->string)
+        {
+            std::string ipString(ip);
+            auto it = vpnIpsMap.find(ipString);
+            if (it != vpnIpsMap.end())
+            {
+                bool isVpn = it->second;
+                if (isVpn)
+                {
+                    Com_Printf("rejected connection from VPN %s\n", NET_AdrToString(from));
+                    NET_OutOfBandPrint(NS_SERVER, from, "error\nVPN connection rejected");
+                    return;
+                }
+            }
+            else
+            {
+                std::thread myThread(SV_DirectConnect_checkVpn, ipString, from);
+                myThread.detach();
+                return;
+            }
+        }
+        else
+        {
+            Com_Printf("sv_antiVpn is enabled but sv_antiVpn_apiKey is empty\n");
+        }
     }
 
     SV_DirectConnect(from);
@@ -1033,7 +1071,7 @@ void hook_SV_DirectConnect(netadr_t from)
 void hook_SV_AuthorizeIpPacket(netadr_t from)
 {
     // Prevent ipAuthorize log spam DoS
-    if ( SVC_RateLimitAddress(from, 20, 1000) )
+    if (SVC_RateLimitAddress(from, 20, 1000))
     {
         Com_DPrintf("SV_AuthorizeIpPacket: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
         return;
@@ -1041,7 +1079,7 @@ void hook_SV_AuthorizeIpPacket(netadr_t from)
 
     // Allow ipAuthorize to be DoSed relatively easily, but prevent
     // excess outbound bandwidth usage when being flooded inbound
-    if ( SVC_RateLimit(&outboundLeakyBucket, 10, 100) )
+    if (SVC_RateLimit(&outboundLeakyBucket, 10, 100))
     {
         Com_DPrintf("SV_AuthorizeIpPacket: rate limit exceeded, dropping request\n");
         return;
@@ -1053,18 +1091,18 @@ void hook_SV_AuthorizeIpPacket(netadr_t from)
 void hook_SVC_Info(netadr_t from)
 {
     // Prevent using getinfo as an amplifier
-    if ( SVC_RateLimitAddress(from, 10, 1000) )
+    if (SVC_RateLimitAddress(from, 10, 1000))
     {
-        if ( !SVC_callback("INFO:ADDRESS", NET_AdrToString(from)) )
+        if (!SVC_callback("INFO:ADDRESS", NET_AdrToString(from)))
             Com_DPrintf("SVC_Info: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
         return;
     }
 
     // Allow getinfo to be DoSed relatively easily, but prevent
     // excess outbound bandwidth usage when being flooded inbound
-    if ( SVC_RateLimit(&outboundLeakyBucket, 10, 100) )
+    if (SVC_RateLimit(&outboundLeakyBucket, 10, 100))
     {
-        if ( !SVC_callback("INFO:GLOBAL", NET_AdrToString(from)) )
+        if (!SVC_callback("INFO:GLOBAL", NET_AdrToString(from)))
             Com_DPrintf("SVC_Info: rate limit exceeded, dropping request\n");
         return;
     }
@@ -1074,18 +1112,43 @@ void hook_SVC_Info(netadr_t from)
 
 void hook_SVC_Status(netadr_t from)
 {
-    if ( SVC_ApplyStatusLimit(from) )
+    if (SVC_ApplyStatusLimit(from))
         return;
-    
     SVC_Status(from);
 }
 
+// See https://nachtimwald.com/2017/04/02/constant-time-string-comparison-in-c/
+bool str_iseq(const char *s1, const char *s2)
+{
+    int             m = 0;
+    volatile size_t i = 0;
+    volatile size_t j = 0;
+    volatile size_t k = 0;
+
+    if (s1 == NULL || s2 == NULL)
+        return false;
+
+    while (1) {
+        m |= s1[i]^s2[j];
+
+        if (s1[i] == '\0')
+            break;
+        i++;
+
+        if (s2[j] != '\0')
+            j++;
+        if (s2[j] == '\0')
+            k++;
+    }
+
+    return m == 0;
+}
 void hook_SVC_RemoteCommand(netadr_t from, msg_t *msg)
 {
     char* password = Cmd_Argv(1);
-    qboolean badRconPassword = !strlen(sv_rconPassword->string) || !strcmp_constant_time(password, sv_rconPassword->string);
+    qboolean badRconPassword = !strlen(sv_rconPassword->string) || !str_iseq(password, sv_rconPassword->string);
     
-    if ( SVC_ApplyRconLimit(from, badRconPassword) )
+    if (SVC_ApplyRconLimit(from, badRconPassword))
         return;
     
     SVC_RemoteCommand(from, msg);
@@ -1098,9 +1161,9 @@ void ServerCrash(int sig)
     void *array[20];
     size_t size = backtrace(array, 20);
 
-    // Write to crash log ...
+    // Write to crash log
     fp = fopen("./crash.log", "a");
-    if ( fp )
+    if (fp)
     {
         fd = fileno(fp);
         fseek(fp, 0, SEEK_END);
@@ -1108,7 +1171,7 @@ void ServerCrash(int sig)
         fflush(fp);
         backtrace_symbols_fd(array, size, fd);
     }
-    // ... and stderr
+    // Write to stderr
     fprintf(stderr, "Error: Server crashed with signal 0x%x {%d}\n", sig, sig);
     backtrace_symbols_fd(array, size, STDERR_FILENO);
     exit(1);
@@ -1150,6 +1213,7 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     g_clients = (gclient_t*)dlsym(ret, "g_clients");
     level = (level_locals_t*)dlsym(ret, "level");
     pm = (pmove_t*)dlsym(ret, "pm");
+    scr_const = (stringIndex_t*)dlsym(ret, "scr_const");
 
     Scr_GetFunctionHandle = (Scr_GetFunctionHandle_t)dlsym(ret, "Scr_GetFunctionHandle");
     Scr_GetNumParam = (Scr_GetNumParam_t)dlsym(ret, "Scr_GetNumParam");
@@ -1164,6 +1228,9 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Scr_ExecEntThreadNum = (Scr_ExecEntThreadNum_t)dlsym(ret, "Scr_ExecEntThreadNum");
     Scr_FreeThread = (Scr_FreeThread_t)dlsym(ret, "Scr_FreeThread");
     Scr_Error = (Scr_Error_t)dlsym(ret, "Scr_Error");
+    Scr_ObjectError = (Scr_ObjectError_t)dlsym(ret, "Scr_ObjectError");
+    Scr_GetConstString = (Scr_GetConstString_t)dlsym(ret, "Scr_GetConstString");
+    Scr_ParamError = (Scr_ParamError_t)dlsym(ret, "Scr_ParamError");
     G_Say = (G_Say_t)dlsym(ret, "G_Say");
     G_RegisterCvars = (G_RegisterCvars_t)dlsym(ret, "G_RegisterCvars");
     SV_GetConfigstringConst = (SV_GetConfigstringConst_t)dlsym(ret, "trap_GetConfigstringConst");
@@ -1198,7 +1265,6 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_call((int)dlsym(ret, "ClientEndFrame") + 0x311, (int)hook_StuckInClient);
 
     hook_jmp((int)dlsym(ret, "G_LocalizedStringIndex"), (int)custom_G_LocalizedStringIndex);
-    //hook_jmp((int)dlsym(ret, "DeathmatchScoreboardMessage"), (int)custom_DeathmatchScoreboardMessage);
 
     // Patch codmsgboom
     /* See:

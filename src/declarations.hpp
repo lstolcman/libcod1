@@ -17,6 +17,11 @@
 #define GENTITYNUM_BITS             10
 #define PACKET_BACKUP               32
 
+#define SNAPFLAG_SERVERCOUNT        4
+
+#define GAME_INIT_FRAMES            3
+#define FRAMETIME                   100
+
 #define MAX_CHALLENGES              1024
 #define MAX_CLIENTS                 64
 #define MAX_CONFIGSTRINGS           2048
@@ -644,6 +649,14 @@ typedef enum
     SS_GAME
 } serverState_t;
 
+typedef struct
+{
+    serverState_t state;
+    qboolean restarting;
+    int start_frameTime;
+    // ...
+} server_t;
+
 enum clc_ops_e
 {
     clc_move,
@@ -657,6 +670,13 @@ enum svscmd_type
     SV_CMD_CAN_IGNORE = 0x0,
     SV_CMD_RELIABLE = 0x1,
 };
+
+typedef enum
+{
+    EXEC_NOW,
+    EXEC_INSERT,
+    EXEC_APPEND
+} cbufExec_t;
 
 typedef struct WeaponDef_t
 {
@@ -690,20 +710,38 @@ struct pmove_t
     //...
 };
 
+typedef struct
+{
+    byte pad[4];
+    unsigned short allies;
+    byte pad2[2];
+    unsigned short axis;
+    byte pad3[114];
+    unsigned short spectator;
+    byte pad4[122];
+    unsigned short none;
+    // ...
+} stringIndex_t;
+
 extern gentity_t *g_entities;
 extern gclient_t *g_clients;
+extern stringIndex_t *scr_const;
 
-static const int varpub_offset = 0x082f17d8;
-static const int vmpub_offset = 0x082f57e0;
-static const int svs_offset = 0x083b67a0;
+static const int com_frameTime_offset = 0x0833df1c;
 static const int fs_searchpaths_offset = 0x080dd590;
 static const int sv_serverId_value_offset = 0x080e30c0;
+static const int sv_offset = 0x08355260;
+static const int svs_offset = 0x083b67a0;
+static const int varpub_offset = 0x082f17d8;
+static const int vmpub_offset = 0x082f57e0;
 
+#define com_frameTime (*((int*)( com_frameTime_offset )))
+#define fs_searchpaths (*((searchpath_t**)( fs_searchpaths_offset )))
 #define scrVarPub (*((scrVarPub_t*)( varpub_offset )))
 #define scrVmPub (*((scrVmPub_t*)( vmpub_offset )))
-#define svs (*((serverStatic_t*)( svs_offset )))
-#define fs_searchpaths (*((searchpath_t**)( fs_searchpaths_offset )))
+#define sv (*((server_t*)( sv_offset )))
 #define sv_serverId_value (*((int*)( sv_serverId_value_offset )))
+#define svs (*((serverStatic_t*)( svs_offset )))
 
 // Check for critical structure sizes and fail if not match
 #if __GNUC__ >= 6

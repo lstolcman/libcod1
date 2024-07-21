@@ -5,13 +5,13 @@
 
 scr_function_t scriptFunctions[] =
 {
-    #if ENABLE_UNSAFE == 1
+#if ENABLE_UNSAFE == 1
     {"file_exists", gsc_utils_file_exists, 0},
     {"fopen", gsc_utils_fopen, 0},
     {"fwrite", gsc_utils_fwrite, 0},
     {"fread", gsc_utils_fread, 0},
     {"fclose", gsc_utils_fclose, 0},
-    #endif
+#endif
 
 #if COMPILE_SQLITE == 1
     {"sqlite_open", gsc_sqlite_open, 0},
@@ -72,10 +72,10 @@ xfunction_t Scr_GetCustomFunction(const char **fname, int *fdev)
 
 scr_method_t scriptMethods[] =
 {
-    #if COMPILE_SQLITE == 1
+#if COMPILE_SQLITE == 1
     {"async_sqlite_create_entity_query", gsc_async_sqlite_create_entity_query, 0},
     {"async_sqlite_create_entity_query_nosave", gsc_async_sqlite_create_entity_query_nosave, 0},
-    #endif
+#endif
 
     {"setBounds", gsc_entity_setbounds, 0},
     {"showToPlayer", gsc_entity_showtoplayer, 0},
