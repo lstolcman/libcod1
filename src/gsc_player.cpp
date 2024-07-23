@@ -461,3 +461,28 @@ void gsc_player_setufo(scr_entref_t ref)
 
     stackPushBool(qtrue);
 }
+
+void gsc_player_connectionlesspackettoclient(scr_entref_t ref)
+{
+    int id = ref.entnum;
+    char *cmd;
+
+    if ( !stackGetParams("s", &cmd) )
+    {
+        stackError("gsc_player_connectionlesspackettoclient() argument is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_connectionlesspackettoclient() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    client_t *client = &svs.clients[id];
+    NET_OutOfBandPrint(NS_SERVER, client->netchan.remoteAddress, cmd);
+
+    stackPushBool(qtrue);
+}

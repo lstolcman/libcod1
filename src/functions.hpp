@@ -331,14 +331,8 @@ typedef void (*Q_strncpyz_t)(char *dest, const char *src, int destsize);
 
 typedef void (*Q_CleanStr_t)(char *string);
 
-
-
 typedef int (*Q_strncmp_t)(const char *s1, const char *s2, int n);
 static const Q_strncmp_t Q_strncmp = (Q_strncmp_t)0x0808315c;
-
-
-
-
 //
 
 typedef qboolean (*StuckInClient_t)(gentity_s *self);

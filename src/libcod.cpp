@@ -958,14 +958,23 @@ void hook_SV_GetChallenge(netadr_t from)
     SV_GetChallenge(from);
 }
 
+#if COMPILE_LIBCURL == 1   
 std::map<std::string, bool> vpnIpsMap;
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
 {
     ((std::string*)userp)->append((char*)contents, size * nmemb);
     return size * nmemb;
 }
-void SV_DirectConnect_checkVpn(std::string ip, netadr_t from)
+void SV_DirectConnect_checkVpn(std::string ip, char* userinfo, netadr_t from)
 {
+    
+    /*printf("#### START WAIT\n");
+    sleep(2);
+    printf("#### STOP WAIT\n");*/
+    
+
+
+
     CURL *curl = curl_easy_init();
     CURLcode res;
     if (curl)
@@ -1006,8 +1015,19 @@ void SV_DirectConnect_checkVpn(std::string ip, netadr_t from)
             }
         }
     }
+
+    
+    //char *c = Cmd_Argv(0);
+    //Cmd_ArgvBuffer(0, c, sizeof(c));
+    //printf("##### PASS 1\n");
+
+    //Cmd_ArgvBuffer(1, userinfo, sizeof(userinfo));
+    //printf("##### PASS 2\n");
+
+
     SV_DirectConnect(from);
 }
+#endif
 
 void hook_SV_DirectConnect(netadr_t from)
 {
@@ -1036,6 +1056,7 @@ void hook_SV_DirectConnect(netadr_t from)
         return;
     }
 
+#if COMPILE_LIBCURL == 1    
     if(sv_antiVpn->integer)
     {
         if(*sv_antiVpn_apiKey->string)
@@ -1054,7 +1075,9 @@ void hook_SV_DirectConnect(netadr_t from)
             }
             else
             {
-                std::thread myThread(SV_DirectConnect_checkVpn, ipString, from);
+                char userinfo[MAX_INFO_STRING];
+                Q_strncpyz(userinfo, Cmd_Argv(1), sizeof(userinfo));
+                std::thread myThread(SV_DirectConnect_checkVpn, ipString, userinfo, from);
                 myThread.detach();
                 return;
             }
@@ -1064,6 +1087,7 @@ void hook_SV_DirectConnect(netadr_t from)
             Com_Printf("sv_antiVpn is enabled but sv_antiVpn_apiKey is empty\n");
         }
     }
+#endif
 
     SV_DirectConnect(from);
 }

@@ -27,5 +27,6 @@ void gsc_player_setspeed(scr_entref_t ref);
 void gsc_player_getfps(scr_entref_t ref);
 void gsc_player_isonladder(scr_entref_t ref);
 void gsc_player_setufo(scr_entref_t ref);
+void gsc_player_connectionlesspackettoclient(scr_entref_t ref);
 
 #endif

@@ -103,6 +103,7 @@ scr_method_t scriptMethods[] =
     {"getFps", gsc_player_getfps, 0},
     {"isOnLadder", gsc_player_isonladder, 0},
     {"setUfo", gsc_player_setufo, 0},
+    {"connectionlessPacketToClient", gsc_player_connectionlesspackettoclient, 0},
 
     {"testMethod", gsc_testmethod, 0},
     {NULL, NULL, 0} // Terminator
