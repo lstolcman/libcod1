@@ -87,9 +87,9 @@ stringIndex_t* scr_const;
 // Game lib functions
 G_Say_t G_Say;
 G_RegisterCvars_t G_RegisterCvars;
-SV_GameSendServerCommand_t SV_GameSendServerCommand;
-SV_GetConfigstringConst_t SV_GetConfigstringConst;
-SV_GetConfigstring_t SV_GetConfigstring;
+trap_SendServerCommand_t trap_SendServerCommand;
+trap_GetConfigstringConst_t trap_GetConfigstringConst;
+trap_GetConfigstring_t trap_GetConfigstring;
 BG_GetNumWeapons_t BG_GetNumWeapons;
 BG_GetInfoForWeapon_t BG_GetInfoForWeapon;
 BG_GetWeaponIndexForName_t BG_GetWeaponIndexForName;
@@ -127,7 +127,7 @@ Q_strcat_t Q_strcat;
 Q_strncpyz_t Q_strncpyz;
 Q_CleanStr_t Q_CleanStr;
 StuckInClient_t StuckInClient;
-Cmd_ArgvBuffer_t Cmd_ArgvBuffer;
+trap_Argv_t trap_Argv;
 ClientCommand_t ClientCommand;
 Com_SkipRestOfLine_t Com_SkipRestOfLine;
 
@@ -328,7 +328,7 @@ int custom_G_LocalizedStringIndex(const char *string)
 
     for(i = 1; i < 256; i++)
     {
-        SV_GetConfigstring(start + i, s, sizeof(s));
+        trap_GetConfigstring(start + i, s, sizeof(s));
         if(!*s)
             break;
         if (!strcmp(s, string))
@@ -363,7 +363,7 @@ void hook_ClientCommand(int clientNum)
     for(int i = 0; i < args; i++)
     {
         char tmp[MAX_STRINGLENGTH];
-        Cmd_ArgvBuffer(i, tmp, sizeof(tmp));
+        trap_Argv(i, tmp, sizeof(tmp));
         if(i == 1 && tmp[0] >= 20 && tmp[0] <= 22)
         {
             char *part = strtok(tmp + 1, " ");
@@ -443,18 +443,56 @@ static void ban()
     char cleanName[64];
     char ip[16];
 
+    int i;
+    time_t current_time;
+    const char *reason;
+    const char *reason_log;
+    const char *days_argv;
+    int days;
+    
     if (!com_sv_running->integer)
     {
         Com_Printf("Server is not running.\n");
         return;
     }
 
-    if (Cmd_Argc() != 2)
+    if (Cmd_Argc() < 2)
     {
-        Com_Printf("Usage: ban <client number>\n");
+        Com_Printf("Usage: ban <client number> <reason> <days>\n");
         return;
     }
-
+    
+    reason = Cmd_Argv(2);
+    if(!*reason)
+    {
+        reason = "EXE_PLAYERKICKED";
+        reason_log = "none";
+    }
+    else
+    {
+        reason_log = reason;
+    }
+    
+    days_argv = Cmd_Argv(3);
+    if(*days_argv)
+    {
+        for (i = 0; days_argv[i]; i++)
+        {
+            if (days_argv[i] < '0' || days_argv[i] > '9')
+            {
+                Com_Printf("Incorrect days parameter\n");
+                return;
+            }
+        }
+        days = atoi(days_argv);
+    }
+    else
+    {
+        days = -1;
+    }
+    
+    current_time = time(NULL);
+    
     cl = SV_GetPlayerByNum();
     if (cl)
     {
@@ -465,13 +503,13 @@ static void ban()
             return;
         }
 
-        if (FS_FOpenFileByMode("ban.txt", &file, FS_APPEND) < 0)
+        if(FS_FOpenFileByMode("ban.txt", &file, FS_APPEND) < 0)
             return;
 
         Q_strncpyz(cleanName, cl->name, sizeof(cleanName));
-        FS_Write(file, "%s %s\r\n", ip, cleanName);
+        FS_Write(file, "%s %s %s %i %i\r\n", ip, cleanName, reason_log, days, current_time);
         FS_FCloseFile(file);
-        SV_DropClient(cl, "EXE_PLAYERKICKED");
+        SV_DropClient(cl, reason);
         cl->lastPacketTime = svs.time;
     }
 }
@@ -958,23 +996,25 @@ void hook_SV_GetChallenge(netadr_t from)
     SV_GetChallenge(from);
 }
 
-#if COMPILE_LIBCURL == 1   
+
+#if COMPILE_LIBCURL == 1
 std::map<std::string, bool> vpnIpsMap;
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
 {
     ((std::string*)userp)->append((char*)contents, size * nmemb);
     return size * nmemb;
 }
-void SV_DirectConnect_checkVpn(std::string ip, char* userinfo, netadr_t from)
+void SV_DirectConnect_checkVpn(std::string ip, netadr_t from)
 {
+    char *userinfo = Cmd_Argv(1);
+    const char userinfo_backup_prefix[] = "connect \"";
+    const char userinfo_backup_suffix[] = "\"";
+    size_t userinfo_backup_length = strlen(userinfo_backup_prefix) + strlen(userinfo) + strlen(userinfo_backup_suffix) + 1;
+    char *userinfo_backup = new char[userinfo_backup_length];
+    strcpy(userinfo_backup, userinfo_backup_prefix);
+    strcat(userinfo_backup, userinfo);
+    strcat(userinfo_backup, userinfo_backup_suffix);
     
-    /*printf("#### START WAIT\n");
-    sleep(2);
-    printf("#### STOP WAIT\n");*/
-    
-
-
-
     CURL *curl = curl_easy_init();
     CURLcode res;
     if (curl)
@@ -1015,16 +1055,10 @@ void SV_DirectConnect_checkVpn(std::string ip, char* userinfo, netadr_t from)
             }
         }
     }
-
     
-    //char *c = Cmd_Argv(0);
-    //Cmd_ArgvBuffer(0, c, sizeof(c));
-    //printf("##### PASS 1\n");
-
-    //Cmd_ArgvBuffer(1, userinfo, sizeof(userinfo));
-    //printf("##### PASS 2\n");
-
-
+    Cmd_TokenizeString(userinfo_backup);
+    delete[] userinfo_backup;
+    
     SV_DirectConnect(from);
 }
 #endif
@@ -1056,7 +1090,7 @@ void hook_SV_DirectConnect(netadr_t from)
         return;
     }
 
-#if COMPILE_LIBCURL == 1    
+#if COMPILE_LIBCURL == 1
     if(sv_antiVpn->integer)
     {
         if(*sv_antiVpn_apiKey->string)
@@ -1075,10 +1109,8 @@ void hook_SV_DirectConnect(netadr_t from)
             }
             else
             {
-                char userinfo[MAX_INFO_STRING];
-                Q_strncpyz(userinfo, Cmd_Argv(1), sizeof(userinfo));
-                std::thread myThread(SV_DirectConnect_checkVpn, ipString, userinfo, from);
-                myThread.detach();
+                std::thread thread_SV_DirectConnect_checkVpn(SV_DirectConnect_checkVpn, ipString, from);
+                thread_SV_DirectConnect_checkVpn.detach();
                 return;
             }
         }
@@ -1241,12 +1273,12 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 
     Scr_GetFunctionHandle = (Scr_GetFunctionHandle_t)dlsym(ret, "Scr_GetFunctionHandle");
     Scr_GetNumParam = (Scr_GetNumParam_t)dlsym(ret, "Scr_GetNumParam");
-    Cmd_ArgvBuffer = (Cmd_ArgvBuffer_t)dlsym(ret, "trap_Argv");
+    trap_Argv = (trap_Argv_t)dlsym(ret, "trap_Argv");
     ClientCommand = (ClientCommand_t)dlsym(ret, "ClientCommand");
     Com_SkipRestOfLine = (Com_SkipRestOfLine_t)dlsym(ret, "Com_SkipRestOfLine");
     Scr_GetFunction = (Scr_GetFunction_t)dlsym(ret, "Scr_GetFunction");
     Scr_GetMethod = (Scr_GetMethod_t)dlsym(ret, "Scr_GetMethod");
-    SV_GameSendServerCommand = (SV_GameSendServerCommand_t)dlsym(ret, "trap_SendServerCommand");
+    trap_SendServerCommand = (trap_SendServerCommand_t)dlsym(ret, "trap_SendServerCommand");
     Scr_ExecThread = (Scr_ExecThread_t)dlsym(ret, "Scr_ExecThread");
     Scr_ExecEntThread = (Scr_ExecEntThread_t)dlsym(ret, "Scr_ExecEntThread");
     Scr_ExecEntThreadNum = (Scr_ExecEntThreadNum_t)dlsym(ret, "Scr_ExecEntThreadNum");
@@ -1257,8 +1289,8 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Scr_ParamError = (Scr_ParamError_t)dlsym(ret, "Scr_ParamError");
     G_Say = (G_Say_t)dlsym(ret, "G_Say");
     G_RegisterCvars = (G_RegisterCvars_t)dlsym(ret, "G_RegisterCvars");
-    SV_GetConfigstringConst = (SV_GetConfigstringConst_t)dlsym(ret, "trap_GetConfigstringConst");
-    SV_GetConfigstring = (SV_GetConfigstring_t)dlsym(ret, "trap_GetConfigstring");
+    trap_GetConfigstringConst = (trap_GetConfigstringConst_t)dlsym(ret, "trap_GetConfigstringConst");
+    trap_GetConfigstring = (trap_GetConfigstring_t)dlsym(ret, "trap_GetConfigstring");
     BG_GetNumWeapons = (BG_GetNumWeapons_t)dlsym(ret, "BG_GetNumWeapons");
     BG_GetInfoForWeapon = (BG_GetInfoForWeapon_t)dlsym(ret, "BG_GetInfoForWeapon");
     BG_GetWeaponIndexForName = (BG_GetWeaponIndexForName_t)dlsym(ret, "BG_GetWeaponIndexForName");

@@ -1,7 +1,18 @@
 #ifndef _FUNCTIONS_HPP_
 #define _FUNCTIONS_HPP_
 
-/* MAKE FUNCTIONS STATIC, SO THEY CAN BE IN EVERY FILE */
+// trap
+typedef void (*trap_Argv_t)(int arg, char *buffer, int bufferLength);
+
+typedef void (*trap_SendServerCommand_t)(int clientnum, svscmd_type type, const char *text);
+extern trap_SendServerCommand_t trap_SendServerCommand;
+
+typedef const char * (*trap_GetConfigstringConst_t)(int index);
+extern trap_GetConfigstringConst_t trap_GetConfigstringConst;
+
+typedef void (*trap_GetConfigstring_t)( int index, char *buffer, int bufferSize );
+extern trap_GetConfigstring_t trap_GetConfigstring;
+//
 
 // Cmd
 typedef char * (*Cmd_Argv_t)(int arg);
@@ -10,10 +21,14 @@ static const Cmd_Argv_t Cmd_Argv = (Cmd_Argv_t)0x0805b258;
 typedef int (*Cmd_Argc_t)();
 static const Cmd_Argc_t Cmd_Argc = (Cmd_Argc_t)0x0805b24c;
 
-typedef void (*Cmd_ArgvBuffer_t)(int arg, char *buffer, int bufferLength);
-
 typedef void (*Cmd_AddCommand_t)(const char *cmd_name, xcommand_t function);
 static const Cmd_AddCommand_t Cmd_AddCommand = (Cmd_AddCommand_t)0x0805aef8;
+
+typedef void (*Cmd_ArgvBuffer_t)(int arg, char *buffer, int bufferLength);
+static const Cmd_ArgvBuffer_t Cmd_ArgvBuffer = (Cmd_ArgvBuffer_t)0x0805b27c;
+
+typedef void (*Cmd_TokenizeString_t)(const char *text_in);
+static const Cmd_TokenizeString_t Cmd_TokenizeString = (Cmd_TokenizeString_t)0x0805b398;
 //
 
 // Com
@@ -118,9 +133,6 @@ static const SV_RunFrame_t SV_RunFrame = (SV_RunFrame_t)0x0808d3d4;
 typedef void (*SV_AddServerCommand_t)(client_t *client, svscmd_type type, const char *cmd);
 static const SV_AddServerCommand_t SV_AddServerCommand = (SV_AddServerCommand_t)0x0808b680;
 
-typedef void (*SV_GameSendServerCommand_t)(int clientnum, svscmd_type type, const char *text);
-extern SV_GameSendServerCommand_t SV_GameSendServerCommand;
-
 typedef void (QDECL *SV_SendServerCommand_t)(client_t *cl, int type, const char *fmt, ...);
 static const SV_SendServerCommand_t SV_SendServerCommand = (SV_SendServerCommand_t)0x0808b900;
 
@@ -135,12 +147,6 @@ static const SV_GetChallenge_t SV_GetChallenge = (SV_GetChallenge_t)0x08084d90;
 
 typedef void (*SV_DirectConnect_t)(netadr_t from);
 static const SV_DirectConnect_t SV_DirectConnect = (SV_DirectConnect_t)0x08085498;
-
-typedef const char * (*SV_GetConfigstringConst_t)(int index);
-extern SV_GetConfigstringConst_t SV_GetConfigstringConst;
-
-typedef void (*SV_GetConfigstring_t)( int index, char *buffer, int bufferSize );
-extern SV_GetConfigstring_t SV_GetConfigstring;
 
 typedef void (*SV_SetConfigstring_t)(int index, const char *val);
 static const SV_SetConfigstring_t SV_SetConfigstring = (SV_SetConfigstring_t)0x08089bf0;
@@ -159,6 +165,9 @@ static const SV_MapRestart_f_t SV_MapRestart_f = (SV_MapRestart_f_t)0x08083de4;
 
 typedef void (*SV_ExecuteClientCommand_t)(client_t *cl, char *s, qboolean clientOK);
 static const SV_ExecuteClientCommand_t SV_ExecuteClientCommand = (SV_ExecuteClientCommand_t)0x08086d58;
+
+typedef void (*SV_Netchan_AddOOBProfilePacket_t)(int iLength);
+static const SV_Netchan_AddOOBProfilePacket_t SV_Netchan_AddOOBProfilePacket = (SV_Netchan_AddOOBProfilePacket_t)0x0808dd10;
 //
 
 // Info
@@ -220,6 +229,15 @@ static const MSG_WriteData_t MSG_WriteData = (MSG_WriteData_t)0x0807eef0;
 
 typedef char * (*MSG_ReadString_t)(msg_t *msg);
 static const MSG_ReadString_t MSG_ReadString = (MSG_ReadString_t)0x0807f320;
+
+typedef void (*MSG_BeginReading_t)(msg_t *buf);
+static const MSG_BeginReading_t MSG_BeginReading = (MSG_BeginReading_t)0x0807f174;
+
+typedef int (*MSG_ReadLong_t)(msg_t *msg);
+static const MSG_ReadLong_t MSG_ReadLong = (MSG_ReadLong_t)0x0807f2f0;
+
+typedef char * (*MSG_ReadStringLine_t)(msg_t *msg);
+static const MSG_ReadStringLine_t MSG_ReadStringLine = (MSG_ReadStringLine_t)0x0807f3fc;
 //
 
 // Weapon
@@ -364,5 +382,8 @@ static const UI_GetMapRotationToken_t UI_GetMapRotationToken = (UI_GetMapRotatio
 
 typedef void (*Cbuf_ExecuteText_t)(cbufExec_t exec_when, const char* text);
 static const Cbuf_ExecuteText_t Cbuf_ExecuteText = (Cbuf_ExecuteText_t)0x0805a8a0;
+
+typedef void (*Huff_Decompress_t)(msg_t *mbuf, int offset);
+static const Huff_Decompress_t Huff_Decompress = (Huff_Decompress_t)0x08071f7c;
 
 #endif

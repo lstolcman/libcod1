@@ -17,7 +17,7 @@ void gsc_utils_sendcommandtoclient()
         return;
     }
 
-    SV_GameSendServerCommand(clientNum, SV_CMD_CAN_IGNORE, message);
+    trap_SendServerCommand(clientNum, SV_CMD_CAN_IGNORE, message);
     stackPushBool(qtrue);
 }
 
@@ -406,7 +406,7 @@ void gsc_utils_getconfigstring()
         return;
     }
 
-    const char *string = SV_GetConfigstringConst(index);
+    const char *string = trap_GetConfigstringConst(index);
 
     if ( !*string )
         stackPushUndefined();
@@ -434,8 +434,19 @@ void gsc_utils_makelocalizedstring()
     var->type = STACK_LOCALIZED_STRING;
 }
 
+void gsc_utils_ban()
+{
+    int playernum;
+
+    if (Scr_GetNumParam())
+    {
+        playernum = Scr_GetInt(0);
+        Cbuf_ExecuteText(EXEC_APPEND, custom_va("ban %i\n", playernum));
+    }
+}
+
 #if COMPILE_LIBCURL == 1
-void gsc_utils_webhookmessage()
+void gsc_utils_webhookmessage() // TODO: See if needs threading
 {
     char *url;
     char *message;

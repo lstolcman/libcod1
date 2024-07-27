@@ -37,6 +37,8 @@ scr_function_t scriptFunctions[] =
     {"getSystemTime", gsc_utils_getsystemtime, 0},
     {"getConfigString", gsc_utils_getconfigstring, 0},
     {"makeLocalizedString", gsc_utils_makelocalizedstring, 0},
+    {"ban", gsc_utils_ban, 0},
+
 #if COMPILE_LIBCURL == 1
     {"webhookMessage", gsc_utils_webhookmessage, 0}, // From Kazam pull request #8
 #endif
@@ -53,12 +55,12 @@ scr_function_t scriptFunctions[] =
 xfunction_t Scr_GetCustomFunction(const char **fname, int *fdev)
 {
     xfunction_t m = Scr_GetFunction(fname, fdev);
-    if ( m )
+    if(m)
         return m;
 
-    for ( int i = 0; scriptFunctions[i].name; i++ )
+    for (int i = 0; scriptFunctions[i].name; i++)
     {
-        if ( strcasecmp(*fname, scriptFunctions[i].name) )
+        if(strcasecmp(*fname, scriptFunctions[i].name))
             continue;
 
         scr_function_t func = scriptFunctions[i];
@@ -66,7 +68,6 @@ xfunction_t Scr_GetCustomFunction(const char **fname, int *fdev)
         *fdev = func.developer;
         return func.call;
     }
-
     return NULL;
 }
 
@@ -112,24 +113,19 @@ scr_method_t scriptMethods[] =
 xmethod_t Scr_GetCustomMethod(const char **fname, qboolean *fdev)
 {
     xmethod_t m = Scr_GetMethod(fname, fdev);
-    
-    if ( m )
+    if(m)
         return m;
 
-    for ( int i = 0; scriptMethods[i].name; i++ )
+    for (int i = 0; scriptMethods[i].name; i++)
     {
-        if ( strcasecmp(*fname, scriptMethods[i].name) )
+        if(strcasecmp(*fname, scriptMethods[i].name))
             continue;
-
+        
         scr_method_t func = scriptMethods[i];
-
         *fname = func.name;
         *fdev = func.developer;
-
         return func.call;
     }
-
-
     return NULL;
 }
 

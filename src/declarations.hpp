@@ -257,7 +257,7 @@ typedef struct
     byte pad[356];
     VariableValue *top;
     //...
-} scrVmPub_t;
+} scrVmPub_t; // TODO: verify
 
 typedef int	fileHandle_t;
 typedef void *unzFile;
