@@ -1,13 +1,3 @@
-#if COMPILE_LIBCURL == 1
-#include <curl/curl.h>
-#include "vendor/json.hpp"
-#include <string>
-#include <thread>
-#include <map>
-
-using json = nlohmann::json;
-#endif
-
 #include <signal.h>
 
 #include <memory>
@@ -40,8 +30,6 @@ cvar_t *g_debugCallbacks;
 cvar_t *g_playerEject;
 cvar_t *g_resetSlide;
 cvar_t *sv_cracked;
-cvar_t *sv_antiVpn;
-cvar_t *sv_antiVpn_apiKey;
 
 cHook *hook_clientendframe;
 cHook *hook_com_init;
@@ -172,8 +160,6 @@ void custom_Com_Init(char *commandLine)
     g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
     g_playerEject = Cvar_Get("g_playerEject", "1", CVAR_ARCHIVE);
     g_resetSlide = Cvar_Get("g_resetSlide", "0", CVAR_ARCHIVE);
-    sv_antiVpn = Cvar_Get("sv_antiVpn", "0", CVAR_ARCHIVE);
-    sv_antiVpn_apiKey = Cvar_Get("sv_antiVpn_apiKey", "", CVAR_ARCHIVE);
     sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
 
     /*
@@ -1038,62 +1024,6 @@ void hook_SV_GetChallenge(netadr_t from)
     SV_GetChallenge(from);
 }
 
-#if COMPILE_LIBCURL == 1
-std::map<std::string, bool> vpnIpsMap;
-size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
-{
-    ((std::string*)userp)->append((char*)contents, size * nmemb);
-    return size * nmemb;
-}
-void SV_DirectConnect_checkVpn(std::string ip, std::unique_ptr<char[]> argBackup, netadr_t from)
-{
-    CURL *curl = curl_easy_init();
-    CURLcode res;
-    if (curl)
-    {
-        std::string provider = "https://vpnapi.io/api/";
-        std::string provider_parameter = "?key=";
-        std::string apiKey = sv_antiVpn_apiKey->string;
-        std::string url = provider + ip + provider_parameter + apiKey;
-
-        std::string response_string;
-
-        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_string);
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 4L);
-        res = curl_easy_perform(curl);
-        curl_easy_cleanup(curl);
-        if (res == CURLE_OK)
-        {
-            json j = json::parse(response_string);
-            if (j.contains("security"))
-            {
-                json security = j["security"];
-                if (security.contains("vpn") && security["vpn"].is_boolean())
-                {
-                    bool isVpn = security["vpn"].get<bool>();
-                    if(isVpn)
-                    {
-                        Com_Printf("rejected connection from VPN %s\n", NET_AdrToString(from));
-                        NET_OutOfBandPrint(NS_SERVER, from, "error\nVPN connection rejected");
-                        vpnIpsMap[ip] = true;
-                        return;
-                    }
-                    else
-                    {
-                        vpnIpsMap[ip] = false;
-                    }
-                }
-            }
-        }
-    }
-
-    Cmd_TokenizeString(argBackup.get());
-    SV_DirectConnect(from);
-}
-#endif
-
 void hook_SV_DirectConnect(netadr_t from)
 {
     // Prevent using connect as an amplifier
@@ -1121,6 +1051,8 @@ void hook_SV_DirectConnect(netadr_t from)
     sprintf(argBackup.get(), argBackup_prefix);
     strcat(argBackup.get(), userinfo);
     strcat(argBackup.get(), argBackup_suffix);
+
+    bool unbanned = false;
     
     auto banInfo = banInfoForIp(ip);
     if(std::get<0>(banInfo) == true) // banned
@@ -1135,7 +1067,7 @@ void hook_SV_DirectConnect(netadr_t from)
             if (remaining_seconds <= 0)
             {
                 Cbuf_ExecuteText(EXEC_APPEND, custom_va("unban %s\n", ip));
-                goto next;
+                unbanned = true;
             }
             else
             {
@@ -1163,59 +1095,30 @@ void hook_SV_DirectConnect(netadr_t from)
                     sprintf(remainingTime, "%d second%s", seconds, (seconds > 1) ? "s" : "");
             }
         }
-        
-        char banInfoMessage[MAX_STRINGLENGTH];
-        sprintf(banInfoMessage, "error\nBanned IP");
-        if(strcmp(std::get<1>(banInfo), "none"))
+
+        if (!unbanned)
         {
-            strcat(banInfoMessage, " - Reason: ");
-            strcat(banInfoMessage, std::get<1>(banInfo));
+            char banInfoMessage[MAX_STRINGLENGTH];
+            sprintf(banInfoMessage, "error\nBanned IP");
+            if(strcmp(std::get<1>(banInfo), "none"))
+            {
+                strcat(banInfoMessage, " - Reason: ");
+                strcat(banInfoMessage, std::get<1>(banInfo));
+            }
+            if(*remainingTime)
+            {
+                strcat(banInfoMessage, " - Remaining: ");
+                strcat(banInfoMessage, remainingTime);
+            }
+            
+            Com_Printf("rejected connection from banned IP %s\n", NET_AdrToString(from));
+            NET_OutOfBandPrint(NS_SERVER, from, banInfoMessage);
+            return;
         }
-        if(*remainingTime)
-        {
-            strcat(banInfoMessage, " - Remaining: ");
-            strcat(banInfoMessage, remainingTime);
-        }
-        
-        Com_Printf("rejected connection from banned IP %s\n", NET_AdrToString(from));
-        NET_OutOfBandPrint(NS_SERVER, from, banInfoMessage);
-        return;
     }
 
-next:
-
-#if COMPILE_LIBCURL == 1
-    if (sv_antiVpn->integer)
-    {
-        if (*sv_antiVpn_apiKey->string)
-        {
-            std::string ipString(ip);
-            auto it = vpnIpsMap.find(ipString);
-            if (it != vpnIpsMap.end())
-            {
-                bool isVpn = it->second;
-                if (isVpn)
-                {
-                    Com_Printf("rejected connection from VPN %s\n", NET_AdrToString(from));
-                    NET_OutOfBandPrint(NS_SERVER, from, "error\nVPN IP rejected");
-                    return;
-                }
-            }
-            else
-            {
-                std::thread thread_SV_DirectConnect_checkVpn(SV_DirectConnect_checkVpn, ipString, std::move(argBackup), from);
-                thread_SV_DirectConnect_checkVpn.detach();
-                return;
-            }
-        }
-        else
-        {
-            Com_Printf("sv_antiVpn is enabled but sv_antiVpn_apiKey is empty\n");
-        }
-    }
-#endif
-
-    Cmd_TokenizeString(argBackup.get()); // restore arg for if unban occured
+    if(unbanned)
+        Cmd_TokenizeString(argBackup.get());
     SV_DirectConnect(from);
 }
 
