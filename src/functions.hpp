@@ -51,6 +51,10 @@ typedef char * (*Com_Parse_t)(const char **data_p);
 static const Com_Parse_t Com_Parse = (Com_Parse_t)0x08081d1c;
 
 typedef void (*Com_SkipRestOfLine_t)(const char **data);
+
+typedef char * (*Com_ParseRestOfLine_t)(const char **data);
+
+typedef int (*Com_ParseInt_t)(const char **data);
 //
 
 // FS

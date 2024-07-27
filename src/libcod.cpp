@@ -10,6 +10,8 @@ using json = nlohmann::json;
 
 #include <signal.h>
 
+#include <tuple>
+
 #include "gsc.hpp"
 
 // Stock cvars
@@ -130,6 +132,8 @@ StuckInClient_t StuckInClient;
 trap_Argv_t trap_Argv;
 ClientCommand_t ClientCommand;
 Com_SkipRestOfLine_t Com_SkipRestOfLine;
+Com_ParseRestOfLine_t Com_ParseRestOfLine;
+Com_ParseInt_t Com_ParseInt;
 
 void custom_Com_Init(char *commandLine)
 {
@@ -406,34 +410,36 @@ void custom_SV_SpawnServer(char *server)
 #endif
 }
 
-qboolean isBannedIp(char* ip)
+std::tuple<bool, char*, int, int> banInfoForIp(char* ip)
 {
     char *file;
-    int banned;
     const char *token;
     const char *text;
+    std::tuple<bool, char*, int, int> banInfo = std::make_tuple(false, nullptr, 0, 0);
 
-    if (FS_ReadFile("ban.txt", (void **)&file) < 0)
-        return 0;
+    if(FS_ReadFile("ban.txt", (void **)&file) < 0)
+        return banInfo;
 
     text = file;
-    banned = 0;
-
     while (1)
     {
         token = Com_Parse(&text);
-        if (!token[0])
+        if(!token[0])
             break;
 
         if (!strcmp(token, ip))
         {
-            banned = 1;
+            std::get<0>(banInfo) = true;
+            Com_Parse(&text); // player name
+            std::get<1>(banInfo) = Com_Parse(&text); // reason
+            std::get<2>(banInfo) = Com_ParseInt(&text); // days
+            std::get<3>(banInfo) = Com_ParseInt(&text); // ban date
             break;
         }
         Com_SkipRestOfLine(&text);
     }
     FS_FreeFile(file);
-    return banned;
+    return banInfo;
 }
 
 static void ban()
@@ -445,10 +451,11 @@ static void ban()
 
     int i;
     time_t current_time;
-    const char *reason;
+    const char *reason_argv;
     const char *reason_log;
-    const char *days_argv;
-    int days;
+    char reason_drop[MAX_STRINGLENGTH];
+    char *duration_argv;
+    int duration_seconds;
     
     if (!com_sv_running->integer)
     {
@@ -458,38 +465,74 @@ static void ban()
 
     if (Cmd_Argc() < 2)
     {
-        Com_Printf("Usage: ban <client number> <reason> <days>\n");
+        Com_Printf("Usage: ban <client number> <optional reason> <optional duration (h = hours, d = days)>\n");
         return;
     }
     
-    reason = Cmd_Argv(2);
-    if(!*reason)
+    reason_argv = Cmd_Argv(2);
+    if(!*reason_argv)
     {
-        reason = "EXE_PLAYERKICKED";
         reason_log = "none";
+
+        sprintf(reason_drop, "EXE_PLAYERKICKED");
     }
     else
     {
-        reason_log = reason;
+        reason_log = reason_argv;
+        
+        char* reason_concat = new char[MAX_STRINGLENGTH];
+        sprintf(reason_concat, "Ban reason: ");
+        strcat(reason_concat, reason_argv);
+
+        sprintf(reason_drop, reason_concat);
+        delete[] reason_concat;
     }
     
-    days_argv = Cmd_Argv(3);
-    if(*days_argv)
+    duration_argv = Cmd_Argv(3);
+    if (*duration_argv)
     {
-        for (i = 0; days_argv[i]; i++)
+        size_t duration_argv_len = strlen(duration_argv);
+        char lastChar = duration_argv[duration_argv_len - 1];
+        if(lastChar != 'h' && lastChar != 'd')
         {
-            if (days_argv[i] < '0' || days_argv[i] > '9')
+            Com_Printf("Incorrect duration parameter\n");
+            return;
+        }
+        duration_argv[duration_argv_len - 1] = '\0'; // Remove unit indicator from duration argument
+        
+        for (i = 0; duration_argv[i]; i++)
+        {
+            if (duration_argv[i] < '0' || duration_argv[i] > '9')
             {
-                Com_Printf("Incorrect days parameter\n");
+                Com_Printf("Incorrect duration parameter\n");
                 return;
             }
         }
-        days = atoi(days_argv);
+        
+        strcat(reason_drop, " - ");
+        strcat(reason_drop, "Duration: ");
+        strcat(reason_drop, duration_argv);
+
+        int duration_argv_int = std::atoi(duration_argv);        
+        if(lastChar == 'h')
+        {
+            duration_seconds = duration_argv_int * 3600;
+
+            strcat(reason_drop, " hour");
+            if(duration_argv_int > 1)
+                strcat(reason_drop, "s");
+        }
+        else if(lastChar == 'd')
+        {
+            duration_seconds = duration_argv_int * 86400;
+
+            strcat(reason_drop, " day");
+            if(duration_argv_int > 1)
+                strcat(reason_drop, "s");
+        }
     }
     else
-    {
-        days = -1;
-    }
+        duration_seconds = -1;
     
     current_time = time(NULL);
     
@@ -497,19 +540,21 @@ static void ban()
     if (cl)
     {
         snprintf(ip, sizeof(ip), "%d.%d.%d.%d", cl->netchan.remoteAddress.ip[0], cl->netchan.remoteAddress.ip[1], cl->netchan.remoteAddress.ip[2], cl->netchan.remoteAddress.ip[3]);
-        if (isBannedIp(ip))
+        
+        auto banInfo = banInfoForIp(ip);
+        if(std::get<0>(banInfo) == true) // banned
         {
             Com_Printf("This IP (%s) is already banned\n", NET_AdrToString(cl->netchan.remoteAddress));
-            return;
+            return;            
         }
 
         if(FS_FOpenFileByMode("ban.txt", &file, FS_APPEND) < 0)
             return;
 
         Q_strncpyz(cleanName, cl->name, sizeof(cleanName));
-        FS_Write(file, "%s %s %s %i %i\r\n", ip, cleanName, reason_log, days, current_time);
+        FS_Write(file, "\"%s\" \"%s\" \"%s\" \"%i\" \"%i\"\r\n", ip, cleanName, reason_log, duration_seconds, current_time);
         FS_FCloseFile(file);
-        SV_DropClient(cl, reason);
+        SV_DropClient(cl, reason_drop);
         cl->lastPacketTime = svs.time;
     }
 }
@@ -518,7 +563,7 @@ static void unban()
 {
     if (Cmd_Argc() != 2)
     {
-        Com_Printf("Usage: unban <client number>\n");
+        Com_Printf("Usage: unban <ip>\n");
         return;
     }
 
@@ -531,7 +576,7 @@ static void unban()
     char *text;
 
     fileSize = FS_ReadFile("ban.txt", (void **)&file);
-    if (fileSize < 0)
+    if(fileSize < 0)
         return;
     
     ip = Cmd_Argv(1);
@@ -542,10 +587,10 @@ static void unban()
     {
         line = text;
         token = Com_Parse((const char **)&text);
-        if (!token[0])
+        if(!token[0])
             break;
 
-        if (!strcmp(token, ip))
+        if(!strcmp(token, ip))
             found = true;
 
         Com_SkipRestOfLine((const char **)&text);
@@ -562,7 +607,7 @@ static void unban()
     FS_WriteFile("ban.txt", file, fileSize);
     FS_FreeFile(file);
 
-    if (found)
+    if(found)
         Com_Printf("unbanned IP %s\n", ip);
     else
         Com_Printf("IP %s not found\n", ip);
@@ -601,7 +646,7 @@ qboolean hook_StuckInClient(gentity_s *self)
     return StuckInClient(self);
 }
 
-qboolean shouldServeFile(const char *requestedFilePath)
+bool shouldServeFile(const char *requestedFilePath)
 {
     static char localFilePath[MAX_OSPATH*2+5];
     searchpath_t* search;
@@ -615,24 +660,24 @@ qboolean shouldServeFile(const char *requestedFilePath)
             snprintf(localFilePath, sizeof(localFilePath), "%s/%s.pk3", search->pak->pakGamename, search->pak->pakBasename);
             if(!strcmp(localFilePath, requestedFilePath))
                 if(!FS_svrPak(search->pak->pakBasename))
-                    return qtrue;
+                    return true;
         }
     }
-    return qfalse;
+    return false;
 }
 
 void custom_SV_BeginDownload_f(client_t *cl)
 {
     // Patch q3dirtrav
     int args = Cmd_Argc();
-    if(args > 1)
+    if (args > 1)
     {
         const char* arg1 = Cmd_Argv(1);
-        if(!shouldServeFile(arg1))
+        if (!shouldServeFile(arg1))
         {
             char ip[16];
             snprintf(ip, sizeof(ip), "%d.%d.%d.%d", cl->netchan.remoteAddress.ip[0], cl->netchan.remoteAddress.ip[1], cl->netchan.remoteAddress.ip[2], cl->netchan.remoteAddress.ip[3]);
-            printf("####### WARNING: %s (%s) tried to download %s.\n", cl->name, ip, arg1);
+            Com_Printf("WARNING: %s (%s) tried to download %s.\n", cl->name, ip, arg1);
             return;
         }
     }
@@ -688,7 +733,7 @@ void custom_SV_ExecuteClientMessage(client_t *cl, msg_t *msg)
 
         } while (cl->state != CS_ZOMBIE);
     }
-    else if((cl->serverId & 0xF0) == (sv_serverId_value & 0xF0))
+    else if ((cl->serverId & 0xF0) == (sv_serverId_value & 0xF0))
     {
         if (cl->state == CS_PRIMED)
         {
@@ -697,7 +742,7 @@ void custom_SV_ExecuteClientMessage(client_t *cl, msg_t *msg)
     }
     else
     {
-        if(cl->gamestateMessageNum < cl->messageAcknowledge)
+        if (cl->gamestateMessageNum < cl->messageAcknowledge)
         {
             Com_DPrintf("%s : dropped gamestate, resending\n", cl->name);
             SV_SendClientGameState(cl);
@@ -745,9 +790,9 @@ void custom_SV_ClientThink(int clientNum)
 
     customPlayerState[clientNum].frames++;
 
-    if ( Sys_Milliseconds64() - customPlayerState[clientNum].frameTime >= 1000 )
+    if (Sys_Milliseconds64() - customPlayerState[clientNum].frameTime >= 1000)
     {
-        if ( customPlayerState[clientNum].frames > 1000 )
+        if(customPlayerState[clientNum].frames > 1000)
             customPlayerState[clientNum].frames = 1000;
 
         customPlayerState[clientNum].fps = customPlayerState[clientNum].frames;
@@ -768,21 +813,17 @@ int custom_ClientEndFrame(gentity_t *ent)
     {
         int num = ent - g_entities;
 
-        if (customPlayerState[num].speed > 0)
+        if(customPlayerState[num].speed > 0)
             ent->client->ps.speed = customPlayerState[num].speed;
 
-        if (customPlayerState[num].ufo == 1)
+        if(customPlayerState[num].ufo == 1)
             ent->client->ps.pm_type = PM_UFO;
 
-        // Experimental slide bug fix
+        // Stop slide after fall damage
         if (g_resetSlide->integer)
         {
-            if ((ent->client->ps.pm_flags & PMF_SLIDING) != 0 /*&& (ent->client->ps).pm_time == 0*/)
-            {
-                //printf("##### SLIDING\n");
-                //printf("##### pm_time = %i\n", (ent->client->ps).pm_time);
+            if(ent->client->ps.pm_flags & PMF_SLIDING)
                 ent->client->ps.pm_flags = ent->client->ps.pm_flags & ~PMF_SLIDING;
-            }
         }
     }
 
@@ -931,7 +972,7 @@ bool SVC_ApplyRconLimit(netadr_t from, qboolean badRconPassword)
     // Prevent using rcon as an amplifier and make dictionary attacks impractical
     if (SVC_RateLimitAddress(from, 10, 1000))
     {
-        if (!SVC_callback("RCON:ADDRESS", NET_AdrToString(from)))
+        if(!SVC_callback("RCON:ADDRESS", NET_AdrToString(from)))
             Com_DPrintf("SVC_RemoteCommand: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
         return true;
     }
@@ -943,7 +984,7 @@ bool SVC_ApplyRconLimit(netadr_t from, qboolean badRconPassword)
         // Make DoS via rcon impractical
         if (SVC_RateLimit(&bucket, 10, 1000))
         {
-            if (!SVC_callback("RCON:GLOBAL", NET_AdrToString(from)))
+            if(!SVC_callback("RCON:GLOBAL", NET_AdrToString(from)))
                 Com_DPrintf("SVC_RemoteCommand: rate limit exceeded, dropping request\n");
             return true;
         }
@@ -957,7 +998,7 @@ bool SVC_ApplyStatusLimit(netadr_t from)
     // Prevent using getstatus as an amplifier
     if (SVC_RateLimitAddress(from, 10, 1000))
     {
-        if (!SVC_callback("STATUS:ADDRESS", NET_AdrToString(from)))
+        if(!SVC_callback("STATUS:ADDRESS", NET_AdrToString(from)))
             Com_DPrintf("SVC_Status: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
         return true;
     }
@@ -966,7 +1007,7 @@ bool SVC_ApplyStatusLimit(netadr_t from)
     // excess outbound bandwidth usage when being flooded inbound
     if (SVC_RateLimit(&outboundLeakyBucket, 10, 100))
     {
-        if ( !SVC_callback("STATUS:GLOBAL", NET_AdrToString(from)) )
+        if(!SVC_callback("STATUS:GLOBAL", NET_AdrToString(from)))
             Com_DPrintf("SVC_Status: rate limit exceeded, dropping request\n");
         return true;
     }
@@ -979,23 +1020,22 @@ void hook_SV_GetChallenge(netadr_t from)
     // Prevent using getchallenge as an amplifier
     if (SVC_RateLimitAddress(from, 10, 1000))
     {
-        if (!SVC_callback("CHALLENGE:ADDRESS", NET_AdrToString(from)))
+        if(!SVC_callback("CHALLENGE:ADDRESS", NET_AdrToString(from)))
             Com_DPrintf("SV_GetChallenge: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
         return;
     }
 
     // Allow getchallenge to be DoSed relatively easily, but prevent
     // excess outbound bandwidth usage when being flooded inbound
-    if ( SVC_RateLimit(&outboundLeakyBucket, 10, 100) )
+    if (SVC_RateLimit(&outboundLeakyBucket, 10, 100))
     {
-        if (!SVC_callback("CHALLENGE:GLOBAL", NET_AdrToString(from)))
+        if(!SVC_callback("CHALLENGE:GLOBAL", NET_AdrToString(from)))
             Com_DPrintf("SV_GetChallenge: rate limit exceeded, dropping request\n");
         return;
     }
 
     SV_GetChallenge(from);
 }
-
 
 #if COMPILE_LIBCURL == 1
 std::map<std::string, bool> vpnIpsMap;
@@ -1004,17 +1044,8 @@ size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
     ((std::string*)userp)->append((char*)contents, size * nmemb);
     return size * nmemb;
 }
-void SV_DirectConnect_checkVpn(std::string ip, netadr_t from)
+void SV_DirectConnect_checkVpn(std::string ip, std::unique_ptr<char[]> argBackup, netadr_t from)
 {
-    char *userinfo = Cmd_Argv(1);
-    const char userinfo_backup_prefix[] = "connect \"";
-    const char userinfo_backup_suffix[] = "\"";
-    size_t userinfo_backup_length = strlen(userinfo_backup_prefix) + strlen(userinfo) + strlen(userinfo_backup_suffix) + 1;
-    char *userinfo_backup = new char[userinfo_backup_length];
-    strcpy(userinfo_backup, userinfo_backup_prefix);
-    strcat(userinfo_backup, userinfo);
-    strcat(userinfo_backup, userinfo_backup_suffix);
-    
     CURL *curl = curl_easy_init();
     CURLcode res;
     if (curl)
@@ -1029,6 +1060,7 @@ void SV_DirectConnect_checkVpn(std::string ip, netadr_t from)
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_string);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 4L);
         res = curl_easy_perform(curl);
         curl_easy_cleanup(curl);
         if (res == CURLE_OK)
@@ -1055,10 +1087,8 @@ void SV_DirectConnect_checkVpn(std::string ip, netadr_t from)
             }
         }
     }
-    
-    Cmd_TokenizeString(userinfo_backup);
-    delete[] userinfo_backup;
-    
+
+    Cmd_TokenizeString(argBackup.get());
     SV_DirectConnect(from);
 }
 #endif
@@ -1082,18 +1112,81 @@ void hook_SV_DirectConnect(netadr_t from)
 
     char ip[16];
     snprintf(ip, sizeof(ip), "%d.%d.%d.%d", from.ip[0], from.ip[1], from.ip[2], from.ip[3]);
-
-    if (isBannedIp(ip))
+    
+    char *userinfo = Cmd_Argv(1);
+    const char argBackup_prefix[] = "connect \"";
+    const char argBackup_suffix[] = "\"";
+    std::unique_ptr<char[]> argBackup(new char[MAX_STRINGLENGTH]);
+    sprintf(argBackup.get(), argBackup_prefix);
+    strcat(argBackup.get(), userinfo);
+    strcat(argBackup.get(), argBackup_suffix);
+    
+    auto banInfo = banInfoForIp(ip);
+    if(std::get<0>(banInfo) == true) // banned
     {
+        time_t current_time = time(NULL);
+        char remainingTime[100] = {0};
+        
+        if(std::get<2>(banInfo) != -1) // duration
+        {
+            int elapsed_seconds = difftime(current_time, std::get<3>(banInfo)); // ban date
+            int remaining_seconds = std::get<2>(banInfo) - elapsed_seconds;
+            if (remaining_seconds <= 0)
+            {
+                Cbuf_ExecuteText(EXEC_APPEND, custom_va("unban %s\n", ip));
+                goto next;
+            }
+            else
+            {
+                int days = remaining_seconds / (60 * 60 * 24);
+                int hours = (remaining_seconds % (60 * 60 * 24)) / (60 * 60);
+                int minutes = (remaining_seconds % (60 * 60)) / 60;
+                int seconds = remaining_seconds % 60;
+                if (days > 0)
+                {
+                    if(hours > 0)
+                        sprintf(remainingTime, "%d day%s, %d hour%s", days, (days > 1) ? "s" : "", hours, (hours > 1) ? "s" : "");
+                    else
+                        sprintf(remainingTime, "%d day%s", days, (days > 1) ? "s" : "");
+                }
+                else if (hours > 0)
+                {
+                    if(minutes > 0)
+                        sprintf(remainingTime, "%d hour%s, %d minute%s", hours, (hours > 1) ? "s" : "", minutes, (minutes > 1) ? "s" : "");
+                    else
+                        sprintf(remainingTime, "%d hour%s", hours, (hours > 1) ? "s" : "");
+                }
+                else if(minutes > 0)
+                    sprintf(remainingTime, "%d minute%s", minutes, (minutes > 1) ? "s" : "");
+                else
+                    sprintf(remainingTime, "%d second%s", seconds, (seconds > 1) ? "s" : "");
+            }
+        }
+        
+        char banInfoMessage[MAX_STRINGLENGTH];
+        sprintf(banInfoMessage, "error\nBanned IP");
+        if(strcmp(std::get<1>(banInfo), "none"))
+        {
+            strcat(banInfoMessage, " - Reason: ");
+            strcat(banInfoMessage, std::get<1>(banInfo));
+        }
+        if(*remainingTime)
+        {
+            strcat(banInfoMessage, " - Remaining: ");
+            strcat(banInfoMessage, remainingTime);
+        }
+        
         Com_Printf("rejected connection from banned IP %s\n", NET_AdrToString(from));
-        NET_OutOfBandPrint(NS_SERVER, from, "error\nYou are banned from this server");
+        NET_OutOfBandPrint(NS_SERVER, from, banInfoMessage);
         return;
     }
 
+next:
+
 #if COMPILE_LIBCURL == 1
-    if(sv_antiVpn->integer)
+    if (sv_antiVpn->integer)
     {
-        if(*sv_antiVpn_apiKey->string)
+        if (*sv_antiVpn_apiKey->string)
         {
             std::string ipString(ip);
             auto it = vpnIpsMap.find(ipString);
@@ -1103,13 +1196,13 @@ void hook_SV_DirectConnect(netadr_t from)
                 if (isVpn)
                 {
                     Com_Printf("rejected connection from VPN %s\n", NET_AdrToString(from));
-                    NET_OutOfBandPrint(NS_SERVER, from, "error\nVPN connection rejected");
+                    NET_OutOfBandPrint(NS_SERVER, from, "error\nVPN IP rejected");
                     return;
                 }
             }
             else
             {
-                std::thread thread_SV_DirectConnect_checkVpn(SV_DirectConnect_checkVpn, ipString, from);
+                std::thread thread_SV_DirectConnect_checkVpn(SV_DirectConnect_checkVpn, ipString, std::move(argBackup), from);
                 thread_SV_DirectConnect_checkVpn.detach();
                 return;
             }
@@ -1121,6 +1214,7 @@ void hook_SV_DirectConnect(netadr_t from)
     }
 #endif
 
+    Cmd_TokenizeString(argBackup.get()); // restore arg for if unban occured
     SV_DirectConnect(from);
 }
 
@@ -1255,7 +1349,7 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     fp = fopen("/proc/self/maps", "r");
     if(!fp)
         return 0;
-    while(fgets(buf, sizeof(buf), fp))
+    while (fgets(buf, sizeof(buf), fp))
     {
         if(!strstr(buf, libPath))
             continue;
@@ -1276,6 +1370,8 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     trap_Argv = (trap_Argv_t)dlsym(ret, "trap_Argv");
     ClientCommand = (ClientCommand_t)dlsym(ret, "ClientCommand");
     Com_SkipRestOfLine = (Com_SkipRestOfLine_t)dlsym(ret, "Com_SkipRestOfLine");
+    Com_ParseRestOfLine = (Com_ParseRestOfLine_t)dlsym(ret, "Com_ParseRestOfLine");
+    Com_ParseInt = (Com_ParseInt_t)dlsym(ret, "Com_ParseInt");
     Scr_GetFunction = (Scr_GetFunction_t)dlsym(ret, "Scr_GetFunction");
     Scr_GetMethod = (Scr_GetMethod_t)dlsym(ret, "Scr_GetMethod");
     trap_SendServerCommand = (trap_SendServerCommand_t)dlsym(ret, "trap_SendServerCommand");
