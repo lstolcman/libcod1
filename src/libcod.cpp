@@ -10,6 +10,7 @@ using json = nlohmann::json;
 
 #include <signal.h>
 
+#include <memory>
 #include <tuple>
 
 #include "gsc.hpp"
