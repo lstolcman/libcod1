@@ -452,6 +452,22 @@ void gsc_utils_ban()
     }
 }
 
+void gsc_utils_unban()
+{
+    int numParam = Scr_GetNumParam();
+    if (numParam)
+    {
+        std::string command = "unban";
+        command.append(" ");
+        for (int i = 0; i < numParam; i++)
+        {
+            std::string param = Scr_GetString(i);
+            command.append(param);
+        }
+        Cbuf_ExecuteText(EXEC_APPEND, custom_va(command.c_str()));
+    }
+}
+
 #if COMPILE_LIBCURL == 1
 void gsc_utils_webhookmessage() // TODO: See if needs threading
 {

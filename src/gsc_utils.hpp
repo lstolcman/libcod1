@@ -21,6 +21,7 @@ void gsc_utils_getsystemtime();
 void gsc_utils_getconfigstring();
 void gsc_utils_makelocalizedstring();
 void gsc_utils_ban();
+void gsc_utils_unban();
 
 #if COMPILE_LIBCURL == 1
 void gsc_utils_webhookmessage();

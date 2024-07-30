@@ -443,24 +443,34 @@ std::tuple<bool, int, int, std::string> banInfoForIp(char* ip)
 
 
 
-void sendErrorToAdminOrServer(client_t *cl, std::string errorMessage)
+void sendMessageTo_inGameAdmin_orServerConsole(client_t *cl, std::string message)
 {
-    std::string finalErrorMessage;
+    std::string finalMessage;
     if (cl)
     {
-        finalErrorMessage = "e \"";
-        finalErrorMessage.append(errorMessage);
-        finalErrorMessage.append("\"");
-        SV_SendServerCommand(cl, SV_CMD_CAN_IGNORE, finalErrorMessage.c_str());
+        finalMessage = "e \"";
+        finalMessage.append(message);
+        finalMessage.append("\"");
+        SV_SendServerCommand(cl, SV_CMD_CAN_IGNORE, finalMessage.c_str());
     }
     else
     {
-        finalErrorMessage = errorMessage;
-        finalErrorMessage.append("\n");
-        Com_Printf(finalErrorMessage.c_str());
+        finalMessage = message;
+        finalMessage.append("\n");
+        Com_Printf(finalMessage.c_str());
     }
 }
+
+
+
+
+
+
+
+
+
 const std::array<std::string, 5> banParameters = {"-i", "-n", "-r", "-d", "-a"};
+const std::array<std::string, 2> unbanParameters = {"-i", "-a"};
 /*
 -i: ip
 -n: banned client number
@@ -468,11 +478,12 @@ const std::array<std::string, 5> banParameters = {"-i", "-n", "-r", "-d", "-a"};
 -d: duration
 -a: admin client number
 */
-bool isBanParameter(std::string toCheck)
+template <std::size_t N>
+bool isValidParameter(std::string toCheck, std::array<std::string, N> parameters)
 {
-    for (const std::string&banParameter : banParameters)
+    for (const std::string&parameter : parameters)
     {
-        if(toCheck == banParameter)
+        if(toCheck == parameter)
             return true;
     }
     return false;
@@ -492,9 +503,9 @@ static void ban()
         return;
     }
 
-    std::vector<std::string> argvList;    
-    std::map<std::string, std::string> parameters;
-    std::string errorMessage;
+    std::vector<std::string> argvList;
+    std::map<std::string, std::string> parsedParameters;
+    std::string infoMessage;
     bool useIp = false;
     bool useClientnum = false;
     int file;
@@ -521,16 +532,16 @@ static void ban()
     for (std::size_t i = 0; i < argvList.size(); i++)
     {
         std::string argv = argvList[i];
-        if (isBanParameter(argv)) // Found an option
+        if (isValidParameter(argv, banParameters)) // Found an option
         {
-            if (parameters.find(argv) == parameters.end())
+            if (parsedParameters.find(argv) == parsedParameters.end())
             {
                 // Parse the argument
                 std::string value;
                 for (std::size_t j = i+1; j < argvList.size(); j++)
                 {
                     std::string argv_next = argvList[j];
-                    if(!isBanParameter(argv_next))
+                    if (!isValidParameter(argv_next, banParameters))
                     {
                         if(j != i+1)
                             value.append(" ");
@@ -541,7 +552,7 @@ static void ban()
                 }
                 // Store the pair
                 if(!value.empty())
-                    parameters[argv] = value;
+                    parsedParameters[argv] = value;
 
                 /*
                 Check if got admin client after first storage and only once
@@ -550,8 +561,8 @@ static void ban()
                 */
                 if (!clAdmin_searched)
                 {
-                    auto adminParam = parameters.find("-a");
-                    if (adminParam != parameters.end())
+                    auto adminParam = parsedParameters.find("-a");
+                    if (adminParam != parsedParameters.end())
                     {
                         std::string arg_sv_getplayerbynum = "dummy " + adminParam->second; // Cmd_Argv(1) for SV_GetPlayerByNum
                         Cmd_TokenizeString(arg_sv_getplayerbynum.c_str());
@@ -562,15 +573,15 @@ static void ban()
             }
             else
             {
-                errorMessage = "Duplicated option " + argv;
-                sendErrorToAdminOrServer(clAdmin, errorMessage);
+                infoMessage = "Duplicated option " + argv;
+                sendMessageTo_inGameAdmin_orServerConsole(clAdmin, infoMessage);
                 return;
             }
         }
-        else if (argv[0] == '-' && !isBanParameter(argv))
+        else if (argv[0] == '-' && !isValidParameter(argv, banParameters))
         {
-            errorMessage = "Unrecognized option " + argv;
-            sendErrorToAdminOrServer(clAdmin, errorMessage);
+            infoMessage = "Unrecognized option " + argv;
+            sendMessageTo_inGameAdmin_orServerConsole(clAdmin, infoMessage);
             return;
         }
     }
@@ -578,27 +589,27 @@ static void ban()
     
     //// Check the parameters
     // Client number
-    if (parameters.find("-n") != parameters.end())
+    if (parsedParameters.find("-n") != parsedParameters.end())
     {
         // Check if specified both an IP and a client number
-        if(parameters.find("-i") != parameters.end())
+        if(parsedParameters.find("-i") != parsedParameters.end())
         {
-            errorMessage = "Don't use both an IP and a client number";
-            sendErrorToAdminOrServer(clAdmin, errorMessage);
+            infoMessage = "Don't use both an IP and a client number";
+            sendMessageTo_inGameAdmin_orServerConsole(clAdmin, infoMessage);
             return;
         }
         useClientnum = true;
     }
 
     // IP
-    auto ipParam = parameters.find("-i");
-    if (ipParam != parameters.end())
+    auto ipParam = parsedParameters.find("-i");
+    if (ipParam != parsedParameters.end())
     {
         struct sockaddr_in sa;
         if(!inet_pton(AF_INET, ipParam->second.c_str(), &(sa.sin_addr)))
         {
-            errorMessage = "Invalid IP address " + ipParam->second;
-            sendErrorToAdminOrServer(clAdmin, errorMessage);
+            infoMessage = "Invalid IP address " + ipParam->second;
+            sendMessageTo_inGameAdmin_orServerConsole(clAdmin, infoMessage);
             return;
         }
         useIp = true;
@@ -607,20 +618,20 @@ static void ban()
 
     if(!useClientnum && !useIp)
     {
-        errorMessage = "Use an IP or a client number";
-        sendErrorToAdminOrServer(clAdmin, errorMessage);
+        infoMessage = "Use an IP or a client number";
+        sendMessageTo_inGameAdmin_orServerConsole(clAdmin, infoMessage);
         return;
     }
 
     // Duration
-    auto durationParam = parameters.find("-d");
-    if (durationParam != parameters.end())
+    auto durationParam = parsedParameters.find("-d");
+    if (durationParam != parsedParameters.end())
     {
         char durationParam_lastChar = durationParam->second.back();
         if (durationParam_lastChar != 'h' && durationParam_lastChar != 'd')
         {
-            errorMessage = "Invalid duration parameter " + durationParam->second;
-            sendErrorToAdminOrServer(clAdmin, errorMessage);
+            infoMessage = "Invalid duration parameter " + durationParam->second;
+            sendMessageTo_inGameAdmin_orServerConsole(clAdmin, infoMessage);
             return;
         }
         else
@@ -628,8 +639,8 @@ static void ban()
             durationParam->second.pop_back(); // Remove unit indicator
             if (durationParam->second.empty())
             {
-                errorMessage = "Invalid duration parameter " + durationParam->second;
-                sendErrorToAdminOrServer(clAdmin, errorMessage);
+                infoMessage = "Invalid duration parameter " + durationParam->second;
+                sendMessageTo_inGameAdmin_orServerConsole(clAdmin, infoMessage);
                 return;
             }
             else
@@ -638,8 +649,8 @@ static void ban()
                 {
                     if (durationParam->second[i] < '0' || durationParam->second[i] > '9')
                     {
-                        errorMessage = "Invalid duration parameter " + durationParam->second;
-                        sendErrorToAdminOrServer(clAdmin, errorMessage);
+                        infoMessage = "Invalid duration parameter " + durationParam->second;
+                        sendMessageTo_inGameAdmin_orServerConsole(clAdmin, infoMessage);
                         return;
                     }
                 }
@@ -663,8 +674,8 @@ static void ban()
     }
 
     // Reason
-    auto reasonParam = parameters.find("-r");
-    if (reasonParam != parameters.end())
+    auto reasonParam = parsedParameters.find("-r");
+    if (reasonParam != parsedParameters.end())
     {
         reason_log = reasonParam->second.c_str();
         reason_drop = "Ban reason: " + reasonParam->second;
@@ -693,13 +704,13 @@ static void ban()
     // Find the player
     if (useClientnum)
     {
-        std::string arg_sv_getplayerbynum = "dummy " + parameters.find("-n")->second; // Cmd_Argv(1) for SV_GetPlayerByNum
+        std::string arg_sv_getplayerbynum = "dummy " + parsedParameters.find("-n")->second; // Cmd_Argv(1) for SV_GetPlayerByNum
         Cmd_TokenizeString(arg_sv_getplayerbynum.c_str());
         clToBan = SV_GetPlayerByNum();
         if(!clToBan)
         {
-            errorMessage = "Couldn't find player by num " + parameters.find("-n")->second;
-            sendErrorToAdminOrServer(clAdmin, errorMessage);
+            infoMessage = "Couldn't find player by num " + parsedParameters.find("-n")->second;
+            sendMessageTo_inGameAdmin_orServerConsole(clAdmin, infoMessage);
             return;
         }
         else
@@ -729,10 +740,10 @@ static void ban()
     auto banInfo = banInfoForIp(ip);
     if(std::get<0>(banInfo) == true) // banned
     {
-        printf("This IP (%s) is already banned\n", ip);
         std::ostringstream oss;
         oss << "This IP (" << ip << ") is already banned";
-        errorMessage = oss.str();
+        infoMessage = oss.str();
+        sendMessageTo_inGameAdmin_orServerConsole(clAdmin, infoMessage);
         return;
     }
     
@@ -742,8 +753,8 @@ static void ban()
     // Add IP to ban.txt
     if (FS_FOpenFileByMode("ban.txt", &file, FS_APPEND) < 0)
     {
-        errorMessage = "Couldn't open ban.txt";
-        sendErrorToAdminOrServer(clAdmin, errorMessage);
+        infoMessage = "Couldn't open ban.txt";
+        sendMessageTo_inGameAdmin_orServerConsole(clAdmin, infoMessage);
         return;
     }
     else
@@ -763,36 +774,137 @@ static void ban()
 
 static void unban()
 {
-    if (Cmd_Argc() != 2)
+    if (!com_sv_running->integer)
     {
-        Com_Printf("Usage: unban <ip>\n");
+        Com_Printf("Server is not running.\n");
         return;
     }
 
+    if (Cmd_Argc() < 2)
+    {
+        Com_Printf("Usage: unban -i <IP address>\n");
+        return;
+    }
+    
+    std::vector<std::string> argvList;
+    std::map<std::string, std::string> parsedParameters;
+    std::string infoMessage;
+    bool clAdmin_searched = false;
+    client_t *clAdmin;
     char *file;
     int fileSize;
     char *line;
-    const char *token;
-    char *ip;
-    bool found;
+    std::string token;
+    bool found = false;
     char *text;
-
-    fileSize = FS_ReadFile("ban.txt", (void **)&file);
-    if(fileSize < 0)
-        return;
+    std::string ip;
     
-    ip = Cmd_Argv(1);
-    found = false;
-    text = file;
+    // Directly store all the argv to be able to use Cmd_TokenizeString before the end of the parse
+    for (int i = 1; i < Cmd_Argc(); i++)
+    {
+        std::string argv = Cmd_Argv(i);
+        argvList.push_back(argv);
+    }
 
+    //// Parse and store the parameters
+    for (std::size_t i = 0; i < argvList.size(); i++)
+    {
+        std::string argv = argvList[i];
+        if (isValidParameter(argv, unbanParameters)) // Found an option
+        {
+            if (parsedParameters.find(argv) == parsedParameters.end())
+            {
+                // Parse the argument
+                std::string value;
+                for (std::size_t j = i+1; j < argvList.size(); j++)
+                {
+                    std::string argv_next = argvList[j];
+                    if (!isValidParameter(argv_next, unbanParameters))
+                    {
+                        if(j != i+1)
+                            value.append(" ");
+                        value.append(argv_next);
+                    }
+                    else
+                        break;
+                }
+                // Store the pair
+                if(!value.empty())
+                    parsedParameters[argv] = value;
+
+                /*
+                Check if got admin client after first storage and only once
+                because it should be passed as first parameter from gsc
+                so you can redirect the error messages since the beginning
+                */
+                if (!clAdmin_searched)
+                {
+                    auto adminParam = parsedParameters.find("-a");
+                    if (adminParam != parsedParameters.end())
+                    {
+                        std::string arg_sv_getplayerbynum = "dummy " + adminParam->second; // Cmd_Argv(1) for SV_GetPlayerByNum
+                        Cmd_TokenizeString(arg_sv_getplayerbynum.c_str());
+                        clAdmin = SV_GetPlayerByNum();
+                    }
+                    clAdmin_searched = true;
+                }
+            }
+            else
+            {
+                infoMessage = "Duplicated option " + argv;
+                sendMessageTo_inGameAdmin_orServerConsole(clAdmin, infoMessage);
+                return;
+            }
+        }
+        else if (argv[0] == '-' && !isValidParameter(argv, unbanParameters))
+        {
+            infoMessage = "Unrecognized option " + argv;
+            sendMessageTo_inGameAdmin_orServerConsole(clAdmin, infoMessage);
+            return;
+        }
+    }
+    ////
+
+    //// Check the parameters
+    // IP
+    auto ipParam = parsedParameters.find("-i");
+    if (ipParam != parsedParameters.end())
+    {
+        struct sockaddr_in sa;
+        if(!inet_pton(AF_INET, ipParam->second.c_str(), &(sa.sin_addr)))
+        {
+            infoMessage = "Invalid IP address " + ipParam->second;
+            sendMessageTo_inGameAdmin_orServerConsole(clAdmin, infoMessage);
+            return;
+        }
+        ip = ipParam->second;
+    }
+    else
+    {
+        infoMessage = "Specify an IP address";
+        sendMessageTo_inGameAdmin_orServerConsole(clAdmin, infoMessage);
+        return;
+    }
+    ////
+    
+    // Remove IP from ban.txt
+    fileSize = FS_ReadFile("ban.txt", (void **)&file);
+    if (fileSize < 0)
+    {
+        infoMessage = "Couldn't read ban.txt";
+        sendMessageTo_inGameAdmin_orServerConsole(clAdmin, infoMessage);
+        return;        
+    }
+    
+    text = file;
     while (1)
     {
         line = text;
         token = Com_Parse((const char **)&text);
-        if(!token[0])
+        if(token.empty())
             break;
 
-        if(!strcmp(token, ip))
+        if(token == ip)
             found = true;
 
         Com_SkipRestOfLine((const char **)&text);
@@ -809,10 +921,18 @@ static void unban()
     FS_WriteFile("ban.txt", file, fileSize);
     FS_FreeFile(file);
 
-    if(found)
-        Com_Printf("unbanned IP %s\n", ip);
+    if (found)
+    {
+        infoMessage = "Unbanned IP " + ip;
+        sendMessageTo_inGameAdmin_orServerConsole(clAdmin, infoMessage);
+    }
     else
-        Com_Printf("IP %s not found\n", ip);
+    {
+        std::ostringstream oss;
+        oss << "IP " << ip << " not found";
+        infoMessage = oss.str();
+        sendMessageTo_inGameAdmin_orServerConsole(clAdmin, infoMessage);
+    }
 }
 
 void custom_SV_AddOperatorCommands()

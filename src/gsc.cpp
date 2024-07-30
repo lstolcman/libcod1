@@ -32,6 +32,7 @@ scr_function_t scriptFunctions[] =
     {"getConfigString", gsc_utils_getconfigstring, 0},
     {"makeLocalizedString", gsc_utils_makelocalizedstring, 0},
     {"ban", gsc_utils_ban, 0},
+    {"unban", gsc_utils_unban, 0},
 
     // Weapons
     {"setWeaponCookable", gsc_weapons_setweaponcookable, 0},
