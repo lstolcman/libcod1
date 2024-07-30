@@ -440,9 +440,6 @@ std::tuple<bool, int, int, std::string> banInfoForIp(char* ip)
 }
 
 
-
-
-
 void sendMessageTo_inGameAdmin_orServerConsole(client_t *cl, std::string message)
 {
     std::string finalMessage;
@@ -460,15 +457,6 @@ void sendMessageTo_inGameAdmin_orServerConsole(client_t *cl, std::string message
         Com_Printf(finalMessage.c_str());
     }
 }
-
-
-
-
-
-
-
-
-
 const std::array<std::string, 5> banParameters = {"-i", "-n", "-r", "-d", "-a"};
 const std::array<std::string, 2> unbanParameters = {"-i", "-a"};
 /*
