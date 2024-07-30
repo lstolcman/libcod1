@@ -225,30 +225,11 @@ typedef struct
 typedef struct
 {
     const char *fieldBuffer;
-    struct HunkUser *programHunkUser;
-    uint16_t canonicalStrCount;
-    byte developer;
-    byte developer_script;
-    byte evaluate;
-    byte pad[3];
-    const char *error_message;
-    int error_index;
-    unsigned int time;
-    unsigned int timeArrayId;
-    unsigned int pauseArrayId;
+    byte pad[0x4176];
     unsigned int levelId;
-    unsigned int gameId;
-    unsigned int animId;
-    unsigned int freeEntList;
-    unsigned int tempVariable;
-    byte bInited;
-    byte pad2;
-    uint16_t savecount;
-    unsigned int checksum;
-    unsigned int entId;
-    unsigned int entFieldName;
+    // ...
     const char *programBuffer;
-    const char *endScriptBuffer;
+    // ... 
 } scrVarPub_t; // TODO: verify
 
 typedef struct

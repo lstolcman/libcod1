@@ -108,6 +108,9 @@ $cc $debug $options $constants -c gsc.cpp -o objects/gsc.opp
 echo "##### COMPILE GSC_ENTITY.CPP #####"
 $cc $debug $options $constants -c gsc_entity.cpp -o objects/gsc_entity.opp
 
+echo "##### COMPILE GSC_EXEC.CPP #####"
+$cc $debug $options $constants -c gsc_exec.cpp -o objects/gsc_exec.opp
+
 if [ $sqlite_found == 1 ]; then
     echo "##### COMPILE GSC_SQLITE.CPP #####"
     $cc $debug $options $constants -c gsc_sqlite.cpp -o objects/gsc_sqlite.opp

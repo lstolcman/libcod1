@@ -1,8 +1,6 @@
 #ifndef _GSC_HPP_
 #define _GSC_HPP_
 
-#define COD1_1_1 111
-
 /* default stuff */
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,14 +24,13 @@
 #include "functions.hpp"
 
 #include "gsc_entity.hpp"
-
-#if COMPILE_SQLITE == 1
-#include "gsc_sqlite.hpp"
-#endif
-
+#include "gsc_exec.hpp"
 #include "gsc_player.hpp"
 #include "gsc_utils.hpp"
 #include "gsc_weapons.hpp"
+#if COMPILE_SQLITE == 1
+#include "gsc_sqlite.hpp"
+#endif
 
 #define STACK_UNDEFINED 0
 #define STACK_STRING 1

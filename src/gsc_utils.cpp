@@ -3,6 +3,8 @@
 #include <string>
 #endif
 
+#include <string>
+
 #include "gsc_utils.hpp"
 
 void gsc_utils_sendcommandtoclient()
@@ -436,12 +438,17 @@ void gsc_utils_makelocalizedstring()
 
 void gsc_utils_ban()
 {
-    int playernum;
-
-    if (Scr_GetNumParam())
+    int numParam = Scr_GetNumParam();
+    if (numParam)
     {
-        playernum = Scr_GetInt(0);
-        Cbuf_ExecuteText(EXEC_APPEND, custom_va("ban %i\n", playernum));
+        std::string command = "ban";
+        command.append(" ");
+        for (int i = 0; i < numParam; i++)
+        {
+            std::string param = Scr_GetString(i);
+            command.append(param);
+        }
+        Cbuf_ExecuteText(EXEC_APPEND, custom_va(command.c_str()));
     }
 }
 

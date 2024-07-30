@@ -288,6 +288,7 @@ typedef int (*Scr_GetNumParam_t)(void);
 extern Scr_GetNumParam_t Scr_GetNumParam;
 
 typedef int (*Scr_IsSystemActive_t)();
+extern Scr_IsSystemActive_t Scr_IsSystemActive;
 
 typedef int (*Scr_GetInt_t)(unsigned int param);
 extern Scr_GetInt_t Scr_GetInt;

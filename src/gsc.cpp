@@ -13,18 +13,10 @@ scr_function_t scriptFunctions[] =
     {"fclose", gsc_utils_fclose, 0},
 #endif
 
-#if COMPILE_SQLITE == 1
-    {"sqlite_open", gsc_sqlite_open, 0},
-    {"sqlite_query", gsc_sqlite_query, 0},
-    {"sqlite_close", gsc_sqlite_close, 0},
-    {"sqlite_escape_string", gsc_sqlite_escape_string, 0},
-    {"sqlite_databases_count", gsc_sqlite_databases_count, 0},
-    {"sqlite_tasks_count", gsc_sqlite_tasks_count, 0},
-    {"async_sqlite_initialize", gsc_async_sqlite_initialize, 0},
-    {"async_sqlite_create_query", gsc_async_sqlite_create_query, 0},
-    {"async_sqlite_create_query_nosave", gsc_async_sqlite_create_query_nosave, 0},
-    {"async_sqlite_checkdone", gsc_async_sqlite_checkdone, 0},
-#endif
+    {"execute", gsc_exec, 0},
+    {"execute_async_create", gsc_exec_async_create, 0},
+    {"execute_async_create_nosave", gsc_exec_async_create_nosave, 0},
+    {"execute_async_checkdone", gsc_exec_async_checkdone, 0},
 
     {"sendCommandToClient", gsc_utils_sendcommandtoclient, 0},
     {"logPrintConsole", gsc_utils_logprintconsole, 0},
@@ -39,14 +31,27 @@ scr_function_t scriptFunctions[] =
     {"makeLocalizedString", gsc_utils_makelocalizedstring, 0},
     {"ban", gsc_utils_ban, 0},
 
-#if COMPILE_LIBCURL == 1
-    {"webhookMessage", gsc_utils_webhookmessage, 0}, // From Kazam pull request #8
-#endif
-
     // Weapons
     {"setWeaponCookable", gsc_weapons_setweaponcookable, 0},
     {"setWeaponFuseTime", gsc_weapons_setweaponfusetime, 0},
     //
+
+#if COMPILE_SQLITE == 1
+    {"sqlite_open", gsc_sqlite_open, 0},
+    {"sqlite_query", gsc_sqlite_query, 0},
+    {"sqlite_close", gsc_sqlite_close, 0},
+    {"sqlite_escape_string", gsc_sqlite_escape_string, 0},
+    {"sqlite_databases_count", gsc_sqlite_databases_count, 0},
+    {"sqlite_tasks_count", gsc_sqlite_tasks_count, 0},
+    {"async_sqlite_initialize", gsc_async_sqlite_initialize, 0},
+    {"async_sqlite_create_query", gsc_async_sqlite_create_query, 0},
+    {"async_sqlite_create_query_nosave", gsc_async_sqlite_create_query_nosave, 0},
+    {"async_sqlite_checkdone", gsc_async_sqlite_checkdone, 0},
+#endif
+
+#if COMPILE_LIBCURL == 1
+    {"webhookMessage", gsc_utils_webhookmessage, 0}, // From Kazam pull request #8
+#endif
 
     {"testFunction", gsc_testfunction, 0},
     {NULL, NULL, 0} // Terminator
@@ -73,11 +78,6 @@ xfunction_t Scr_GetCustomFunction(const char **fname, int *fdev)
 
 scr_method_t scriptMethods[] =
 {
-#if COMPILE_SQLITE == 1
-    {"async_sqlite_create_entity_query", gsc_async_sqlite_create_entity_query, 0},
-    {"async_sqlite_create_entity_query_nosave", gsc_async_sqlite_create_entity_query_nosave, 0},
-#endif
-
     {"setBounds", gsc_entity_setbounds, 0},
     {"showToPlayer", gsc_entity_showtoplayer, 0},
     {"setVelocity", gsc_player_setvelocity, 0},
@@ -105,6 +105,11 @@ scr_method_t scriptMethods[] =
     {"isOnLadder", gsc_player_isonladder, 0},
     {"setUfo", gsc_player_setufo, 0},
     {"connectionlessPacketToClient", gsc_player_connectionlesspackettoclient, 0},
+
+#if COMPILE_SQLITE == 1
+    {"async_sqlite_create_entity_query", gsc_async_sqlite_create_entity_query, 0},
+    {"async_sqlite_create_entity_query_nosave", gsc_async_sqlite_create_entity_query_nosave, 0},
+#endif
 
     {"testMethod", gsc_testmethod, 0},
     {NULL, NULL, 0} // Terminator
