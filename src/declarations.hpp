@@ -230,7 +230,7 @@ typedef struct
     // ...
     const char *programBuffer;
     // ... 
-} scrVarPub_t; // TODO: verify
+} scrVarPub_t; // TODO: finish setup
 
 typedef struct
 {
@@ -240,7 +240,7 @@ typedef struct
     //...
 } scrVmPub_t; // TODO: verify
 
-typedef int	fileHandle_t;
+typedef int fileHandle_t;
 typedef void *unzFile;
 typedef void (*xfunction_t)();
 typedef void (*xmethod_t)(scr_entref_t);

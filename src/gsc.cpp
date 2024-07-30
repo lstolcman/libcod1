@@ -14,9 +14,11 @@ scr_function_t scriptFunctions[] =
 #endif
 
     {"execute", gsc_exec, 0},
+#if 0
     {"execute_async_create", gsc_exec_async_create, 0},
     {"execute_async_create_nosave", gsc_exec_async_create_nosave, 0},
     {"execute_async_checkdone", gsc_exec_async_checkdone, 0},
+#endif
 
     {"sendCommandToClient", gsc_utils_sendcommandtoclient, 0},
     {"logPrintConsole", gsc_utils_logprintconsole, 0},
@@ -43,10 +45,12 @@ scr_function_t scriptFunctions[] =
     {"sqlite_escape_string", gsc_sqlite_escape_string, 0},
     {"sqlite_databases_count", gsc_sqlite_databases_count, 0},
     {"sqlite_tasks_count", gsc_sqlite_tasks_count, 0},
+#if 0
     {"async_sqlite_initialize", gsc_async_sqlite_initialize, 0},
     {"async_sqlite_create_query", gsc_async_sqlite_create_query, 0},
     {"async_sqlite_create_query_nosave", gsc_async_sqlite_create_query_nosave, 0},
     {"async_sqlite_checkdone", gsc_async_sqlite_checkdone, 0},
+#endif
 #endif
 
 #if COMPILE_LIBCURL == 1
