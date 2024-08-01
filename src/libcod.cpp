@@ -281,7 +281,6 @@ int custom_GScr_LoadGameTypeScript()
     int ret = GScr_LoadGameTypeScript();
     hook_gametype_scripts->hook();
 
-
     if(*fs_callbacks_additional->string)
     {
         if(!Scr_LoadScript(fs_callbacks_additional->string))
