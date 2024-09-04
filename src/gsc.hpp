@@ -31,6 +31,9 @@
 #if COMPILE_SQLITE == 1
 #include "gsc_sqlite.hpp"
 #endif
+#if COMPILE_LIBCURL == 1
+#include "gsc_curl.hpp"
+#endif
 
 #define STACK_UNDEFINED 0
 #define STACK_STRING 1

@@ -55,7 +55,7 @@ scr_function_t scriptFunctions[] =
 #endif
 
 #if COMPILE_LIBCURL == 1
-    {"webhookMessage", gsc_utils_webhookmessage, 0}, // From Kazam pull request #8
+    {"webhookMessage", gsc_curl_webhookmessage, 0}, // From Kazam pull request #8
 #endif
 
     {"testFunction", gsc_testfunction, 0},
