@@ -1,8 +1,3 @@
-#if COMPILE_LIBCURL == 1
-#include <curl/curl.h>
-#include <string>
-#endif
-
 #include <string>
 
 #include "gsc_utils.hpp"
@@ -467,43 +462,3 @@ void gsc_utils_unban()
         Cbuf_ExecuteText(EXEC_APPEND, custom_va(command.c_str()));
     }
 }
-
-#if COMPILE_LIBCURL == 1
-void gsc_utils_webhookmessage() // TODO: See if needs threading
-{
-    char *url;
-    char *message;
-    if(!stackGetParams("ss", &url, &message))
-    {
-        stackError("gsc_utils_webhookmessage() one or more arguments are undefined or have a wrong type");
-        stackPushUndefined();
-        return;
-    }
-
-    CURL *curl;
-    CURLcode responseCode;
-    struct curl_slist *headers = NULL;
-    std::string payload = "{\"content\":\"" + std::string(message) + "\"}";
-
-    curl_global_init(CURL_GLOBAL_ALL);
-    curl = curl_easy_init();
-    if(curl)
-    {
-        headers = curl_slist_append(headers, "Content-Type: application/json");
-        curl_easy_setopt(curl, CURLOPT_URL, url);
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload.c_str());
-
-        responseCode = curl_easy_perform(curl);
-        if(responseCode != CURLE_OK)
-            Com_Printf("curl_easy_perform() failed: %s\n", curl_easy_strerror(responseCode));
-
-        curl_easy_cleanup(curl);
-        curl_slist_free_all(headers);
-    }
-    else
-        Com_Printf("curl_easy_init() failed\n");
-    
-    curl_global_cleanup();
-}
-#endif
