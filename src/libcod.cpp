@@ -37,6 +37,7 @@ cvar_t *g_deadChat;
 cvar_t *g_debugCallbacks;
 cvar_t *g_playerEject;
 cvar_t *g_resetSlide;
+cvar_t *jump_height;
 cvar_t *sv_cracked;
 
 cHook *hook_clientendframe;
@@ -168,6 +169,7 @@ void custom_Com_Init(char *commandLine)
     g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
     g_playerEject = Cvar_Get("g_playerEject", "1", CVAR_ARCHIVE);
     g_resetSlide = Cvar_Get("g_resetSlide", "0", CVAR_ARCHIVE);
+    jump_height = Cvar_Get("jump_height", "39.0", CVAR_ARCHIVE);
     sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
 
     /*
@@ -1558,6 +1560,50 @@ void ServerCrash(int sig)
     exit(1);
 }
 
+
+
+
+
+float valTest = 80.0;
+uintptr_t resume_addr_Jump_Check;
+__attribute__ ((naked)) void hook_Jump_Check_Naked()
+{
+    asm volatile (
+        //"pushal\n" // save registers
+
+        //"call setJumpHeight\n"
+        "fadd %0\n"
+
+        //"popal\n" // restoring registers
+
+        "jmp *%1\n"
+        : // output
+        : "m"(valTest), "r"(resume_addr_Jump_Check) // input (m = memory, r = register)
+        : "memory" // clobbered list
+    );
+}
+/*
+extern "C" void setJumpHeight()
+{
+    printf("##### setJumpHeight\n");
+
+    float valTest = 5.0;
+
+    asm volatile (
+        "fadd %0\n"
+        :
+        : "m"(valTest)
+        : "memory"
+    );
+}
+*/
+
+
+
+
+
+
+
 void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...))
 {
     hook_sys_loaddll->unhook();
@@ -1648,6 +1694,15 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_call((int)dlsym(ret, "ClientEndFrame") + 0x311, (int)hook_StuckInClient);
 
     hook_jmp((int)dlsym(ret, "G_LocalizedStringIndex"), (int)custom_G_LocalizedStringIndex);
+
+
+
+
+    hook_jmp((int)dlsym(ret, "BG_PlayerTouchesItem") + 0x89E, (int)hook_Jump_Check_Naked);
+    resume_addr_Jump_Check = (uintptr_t)dlsym(ret, "BG_PlayerTouchesItem") + 0x8A4;
+
+
+
 
     // Patch codmsgboom
     /* See:
