@@ -354,7 +354,6 @@ typedef struct
     int firstTime;
     int firstPing;
     qboolean connected;
-    int guid;
 } challenge_t;
 
 typedef enum

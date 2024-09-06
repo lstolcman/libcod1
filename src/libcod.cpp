@@ -1132,7 +1132,7 @@ int custom_ClientEndFrame(gentity_t *ent)
         if (g_resetSlide->integer)
         {
             if(ent->client->ps.pm_flags & PMF_SLIDING)
-                ent->client->ps.pm_flags = ent->client->ps.pm_flags & ~PMF_SLIDING;
+                ent->client->ps.pm_flags &= ~PMF_SLIDING;
         }
     }
 
@@ -1480,7 +1480,7 @@ void hook_SVC_Info(netadr_t from)
     // excess outbound bandwidth usage when being flooded inbound
     if (SVC_RateLimit(&outboundLeakyBucket, 10, 100))
     {
-        if (!SVC_callback("INFO:GLOBAL", NET_AdrToString(from)))
+        if(!SVC_callback("INFO:GLOBAL", NET_AdrToString(from)))
             Com_DPrintf("SVC_Info: rate limit exceeded, dropping request\n");
         return;
     }
@@ -1490,7 +1490,7 @@ void hook_SVC_Info(netadr_t from)
 
 void hook_SVC_Status(netadr_t from)
 {
-    if (SVC_ApplyStatusLimit(from))
+    if(SVC_ApplyStatusLimit(from))
         return;
     SVC_Status(from);
 }

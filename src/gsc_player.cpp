@@ -296,7 +296,7 @@ void gsc_player_getip(scr_entref_t ref)
 {
     int id = ref.entnum;
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_getip() entity %i is not a player", id);
         stackPushUndefined();
@@ -304,10 +304,15 @@ void gsc_player_getip(scr_entref_t ref)
     }
 
     client_t *client = &svs.clients[id];
-    char tmp[16];
-    snprintf(tmp, sizeof(tmp), "%d.%d.%d.%d", client->netchan.remoteAddress.ip[0], client->netchan.remoteAddress.ip[1], client->netchan.remoteAddress.ip[2], client->netchan.remoteAddress.ip[3]);
+    char ip[16];
+    
+    snprintf(ip, sizeof(ip), "%d.%d.%d.%d",
+        client->netchan.remoteAddress.ip[0],
+        client->netchan.remoteAddress.ip[1],
+        client->netchan.remoteAddress.ip[2],
+        client->netchan.remoteAddress.ip[3]);
 
-    stackPushString(tmp);
+    stackPushString(ip);
 }
 
 void gsc_player_getping(scr_entref_t ref)

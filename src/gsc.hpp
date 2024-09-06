@@ -1,7 +1,6 @@
 #ifndef _GSC_HPP_
 #define _GSC_HPP_
 
-/* default stuff */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

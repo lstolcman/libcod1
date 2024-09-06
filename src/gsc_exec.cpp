@@ -1,6 +1,8 @@
 #include "gsc_exec.hpp"
 
-#include <pthread.h>
+#include <errno.h>
+
+#include <thread>
 
 enum
 {
@@ -58,6 +60,7 @@ void gsc_exec()
 
     if ( fp == NULL )
     {
+        Com_Printf("gsc_exec() popen failed: %s\n", strerror(errno));
         stackPushUndefined();
         return;
     }
@@ -99,57 +102,14 @@ void *exec_async(void *input_c)
 
     fp = popen(task->command, "r");
 
-    if ( fp == NULL )
-    {	
-        if ( task->callback )
-        {
-            if ( task->hasargument )
-            {
-                switch( task->valueType )
-                {
-                case INT_VALUE:
-                    stackPushInt(task->intValue);
-                    break;
-
-                case FLOAT_VALUE:
-                    stackPushFloat(task->floatValue);
-                    break;
-
-                case STRING_VALUE:
-                    stackPushString(task->stringValue);
-                    break;
-
-                case VECTOR_VALUE:
-                    stackPushVector(task->vectorValue);
-                    break;
-
-                case OBJECT_VALUE:
-                    stackPushObject(task->objectValue);
-                    break;
-
-                default:
-                    stackPushUndefined();
-                    break;
-                }
-            }
-            
-            stackPushArray();
-            
-            if ( task->save )
-            {
-                stackPushUndefined();
-                stackPushArrayLast();
-            }
-                    
-            short ret = Scr_ExecThread(task->callback, task->save + task->hasargument);
-            Scr_FreeThread(ret);
-        }
-        
+    if (fp == NULL)
+    {
+        Com_Printf("exec_async() popen failed: %s\n", strerror(errno));
         task->error = true;
         return NULL;
     }
 
-    if ( task->save )
+    if (task->save)
     {
         exec_outputline *output = new exec_outputline;
         task->output = output;
@@ -178,7 +138,7 @@ void *exec_async(void *input_c)
         output->content[curpos] = '\0';
     }
     else
-        while ( getc(fp) != EOF ); //make thread wait for function to finish
+        while ( getc(fp) != EOF ); // Make thread wait for function to finish
     
     pclose(fp);
     task->done = true;
@@ -435,14 +395,22 @@ void gsc_exec_async_checkdone()
 
                     stackPushArray();
                     exec_outputline *output = task->output;
+                    bool hasoutput = false;
 
-                    while ( output != NULL )
+                    while (output != NULL)
                     {
                         exec_outputline *next = output->next;
                         stackPushString(output->content);
                         stackPushArrayLast();
                         delete output;
                         output = next;
+                        hasoutput = true;
+                    }
+
+                    if (!hasoutput)
+                    {
+                        stackPushUndefined();
+                        stackPushArrayLast();
                     }
                     
                     short ret = Scr_ExecThread(task->callback, task->save + task->hasargument);
@@ -458,11 +426,11 @@ void gsc_exec_async_checkdone()
 
             }
 
-            //free task
-            if ( task->next != NULL )
+            // Free task
+            if(task->next != NULL)
                 task->next->prev = task->prev;
 
-            if ( task->prev != NULL )
+            if(task->prev != NULL)
                 task->prev->next = task->next;
             else
                 first_exec_async_task = task->next;
