@@ -464,25 +464,25 @@ typedef enum
 
 typedef struct playerState_s
 {
-    int commandTime;
-    pmtype_t pm_type;
-    int bobCycle;
-    int pm_flags;
-    int pm_time;
-    vec3_t origin;
-    vec3_t velocity;
-    vec2_t oldVelocity;
-    int weaponTime;
-    int weaponDelay;
-    int gravity;
-    float leanf;
-    int speed;
-    vec3_t delta_angles;
-    int groundEntityNum;
-    vec3_t vLadderVec;
-    int jumpTime;
-    float jumpOriginZ;
-    int legsTimer;
+    int commandTime;        // 0x0
+    pmtype_t pm_type;       // 0x4
+    int bobCycle;           // 0x8
+    int pm_flags;           // 0xC
+    int pm_time;            // 0x10
+    vec3_t origin;          // [0] = 0x14, [1] = 0x18, [2] = 0x1C
+    vec3_t velocity;        // [0] = 0x20, [1] = 0x24, [2] = 0x28
+    vec2_t oldVelocity;     // [0] = 0x2C, [1] = 0x30
+    int weaponTime;         // 0x34
+    int weaponDelay;        // 0x38
+    int gravity;            // 0x3C
+    float leanf;            // 0x40
+    int speed;              // 0x44
+    vec3_t delta_angles;    // [0] = 0x48, [1] = 0x4C, [2] = 0x50
+    int groundEntityNum;    // 0x54
+    vec3_t vLadderVec;      // [0] = 0x58, [1] = 0x5C, [2] = 0x60
+    int jumpTime;           // 0x64
+    float jumpOriginZ;      // 0x68
+    int legsTimer;          // 0x6C
     int legsAnim;
     int torsoTimer;
     int torsoAnim;

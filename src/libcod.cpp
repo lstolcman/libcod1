@@ -1564,39 +1564,96 @@ void ServerCrash(int sig)
 
 
 
-float valTest = 80.0;
+
+
+
+
+
+
+
+
+
+/*
+Inline asm notes
+
+__attribute__ ((naked)): no prologue/epilogue
+extern "C": disable name mangling
+
+pushal: save registers
+popal: restore registers
+
+asm volatile (
+    // instructions
+    : // output
+    : // input (m = memory, r = register)
+    : // clobbered list
+);
+*/
+
+// This applies the height
 uintptr_t resume_addr_Jump_Check;
 __attribute__ ((naked)) void hook_Jump_Check_Naked()
 {
     asm volatile (
-        //"pushal\n" // save registers
-
-        //"call setJumpHeight\n"
-        "fadd %0\n"
-
-        //"popal\n" // restoring registers
-
-        "jmp *%1\n"
-        : // output
-        : "m"(valTest), "r"(resume_addr_Jump_Check) // input (m = memory, r = register)
-        : "memory" // clobbered list
-    );
-}
-/*
-extern "C" void setJumpHeight()
-{
-    printf("##### setJumpHeight\n");
-
-    float valTest = 5.0;
-
-    asm volatile (
-        "fadd %0\n"
+        "pushal\n"
+        "call setJumpHeight\n"
+        "popal\n"
+        "jmp *%0\n"
         :
-        : "m"(valTest)
+        : "r"(resume_addr_Jump_Check)
         : "memory"
     );
 }
-*/
+extern "C" void setJumpHeight()
+{
+    printf("##### setJumpHeight\n");
+    
+    float height = jump_height->value * 2;
+    asm volatile (
+        "fmul %0\n"
+        :
+        : "m"(height)
+        : "memory"
+    );
+}
+
+// This updates ps->jumpTime
+uintptr_t resume_addr_Jump_Check_2;
+__attribute__ ((naked)) void hook_Jump_Check_Naked_2()
+{
+    asm volatile (
+        "pushal\n"
+        "call setJumpHeight_2\n"
+        "popal\n"
+        "jmp *%0\n"
+        :
+        : "r"(resume_addr_Jump_Check_2)
+        : "memory"
+    );
+}
+extern "C" void setJumpHeight_2()
+{
+    printf("##### setJumpHeight_2\n");
+
+    float height = jump_height->value;
+    asm volatile (
+        "fadd %0\n"
+        :
+        : "m"(height)
+        : "memory"
+    );
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1694,16 +1751,12 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_call((int)dlsym(ret, "ClientEndFrame") + 0x311, (int)hook_StuckInClient);
 
     hook_jmp((int)dlsym(ret, "G_LocalizedStringIndex"), (int)custom_G_LocalizedStringIndex);
-
-
-
-
-    hook_jmp((int)dlsym(ret, "BG_PlayerTouchesItem") + 0x89E, (int)hook_Jump_Check_Naked);
-    resume_addr_Jump_Check = (uintptr_t)dlsym(ret, "BG_PlayerTouchesItem") + 0x8A4;
-
-
-
-
+    
+    hook_jmp((int)dlsym(ret, "BG_PlayerTouchesItem") + 0x88C, (int)hook_Jump_Check_Naked);
+    resume_addr_Jump_Check = (uintptr_t)dlsym(ret, "BG_PlayerTouchesItem") + 0x892;
+    hook_jmp((int)dlsym(ret, "BG_PlayerTouchesItem") + 0x89E, (int)hook_Jump_Check_Naked_2);
+    resume_addr_Jump_Check_2 = (uintptr_t)dlsym(ret, "BG_PlayerTouchesItem") + 0x8A4;
+    
     // Patch codmsgboom
     /* See:
     - https://aluigi.altervista.org/adv/codmsgboom-adv.txt
