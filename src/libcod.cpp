@@ -1601,19 +1601,17 @@ __attribute__ ((naked)) void hook_Jump_Check_Naked()
         "jmp *%0\n"
         :
         : "r"(resume_addr_Jump_Check)
-        : "memory"
+        : "%eax"
     );
 }
 extern "C" void setJumpHeight()
 {
-    printf("##### setJumpHeight\n");
-    
     float height = jump_height->value * 2;
     asm volatile (
         "fmul %0\n"
         :
         : "m"(height)
-        : "memory"
+        :
     );
 }
 
@@ -1628,19 +1626,17 @@ __attribute__ ((naked)) void hook_Jump_Check_Naked_2()
         "jmp *%0\n"
         :
         : "r"(resume_addr_Jump_Check_2)
-        : "memory"
+        : "%eax"
     );
 }
 extern "C" void setJumpHeight_2()
 {
-    printf("##### setJumpHeight_2\n");
-
     float height = jump_height->value;
     asm volatile (
         "fadd %0\n"
         :
         : "m"(height)
-        : "memory"
+        :
     );
 }
 
