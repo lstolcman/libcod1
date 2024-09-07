@@ -24,6 +24,7 @@
 
 #include "gsc_entity.hpp"
 #include "gsc_exec.hpp"
+#include "jump.hpp"
 #include "gsc_player.hpp"
 #include "gsc_utils.hpp"
 #include "gsc_weapons.hpp"

@@ -37,15 +37,15 @@ fi
 
 echo $separator
 
-echo -n "Debug: "
+echo -n "Debug:   "
 if [ -v debug ]; then
-    echo " ON"
+    echo "ON"
 else
-    echo " OFF"
+    echo "OFF"
     debug=""
 fi
 
-echo -n "Unsafe: "
+echo -n "Unsafe:  "
 if [ -v unsafe ]; then
     echo "ON"
     constants+=" -D ENABLE_UNSAFE=1"
@@ -59,7 +59,7 @@ sqlite_link=""
 sqlite_libpath="/usr/lib32/libsqlite3.so"
 sqlite_libpath2="/usr/lib/i386-linux-gnu/libsqlite3.so"
 sqlite_libpath3="/usr/lib/libsqlite3.so"
-echo -n "SQLite: "
+echo -n "SQLite:  "
 if [ -v sqlite ]; then
     if [ -e "$sqlite_libpath" ] || [ -e "$sqlite_libpath2" ] || [ -e "$sqlite_libpath3" ]; then
         sqlite_found=1
@@ -99,16 +99,16 @@ echo $separator
 mkdir -p ../bin
 mkdir -p objects
 
-echo "##### COMPILE CRACKING.CPP #####"
+echo "##### COMPILE CRACKING.CPP    #####"
 $cc $debug $options $constants -c cracking.cpp -o objects/cracking.opp
 
-echo "##### COMPILE GSC.CPP #####"
+echo "##### COMPILE GSC.CPP         #####"
 $cc $debug $options $constants -c gsc.cpp -o objects/gsc.opp
 
-echo "##### COMPILE GSC_ENTITY.CPP #####"
+echo "##### COMPILE GSC_ENTITY.CPP  #####"
 $cc $debug $options $constants -c gsc_entity.cpp -o objects/gsc_entity.opp
 
-echo "##### COMPILE GSC_EXEC.CPP #####"
+echo "##### COMPILE GSC_EXEC.CPP    #####"
 $cc $debug $options $constants -c gsc_exec.cpp -o objects/gsc_exec.opp
 
 if [ $sqlite_found == 1 ]; then
@@ -116,19 +116,22 @@ if [ $sqlite_found == 1 ]; then
     $cc $debug $options $constants -c gsc_sqlite.cpp -o objects/gsc_sqlite.opp
 fi
 
-echo "##### COMPILE GSC_PLAYER.CPP #####"
+echo "##### COMPILE GSC_PLAYER.CPP  #####"
 $cc $debug $options $constants -c gsc_player.cpp -o objects/gsc_player.opp
 
-echo "##### COMPILE GSC_UTILS.CPP #####"
+echo "##### COMPILE GSC_UTILS.CPP   #####"
 $cc $debug $options $constants -c gsc_utils.cpp -o objects/gsc_utils.opp
+
+echo "##### COMPILE JUMP.CPP        #####"
+$cc $debug $options $constants -c jump.cpp -o objects/jump.opp
 
 echo "##### COMPILE GSC_WEAPONS.CPP #####"
 $cc $debug $options $constants -c gsc_weapons.cpp -o objects/gsc_weapons.opp
 
-echo "##### COMPILE LIBCOD.CPP #####"
+echo "##### COMPILE LIBCOD.CPP      #####"
 $cc $debug $options $constants -c libcod.cpp -o objects/libcod.opp
 
-echo "##### COMPILE QVSNPRINTF.C #####"
+echo "##### COMPILE QVSNPRINTF.C    #####"
 $cc $debug $options $constants -c vendor/qvsnprintf.c -o objects/qvsnprintf.opp
 
 if [ $libcurl_found == 1 ]; then
@@ -136,7 +139,7 @@ if [ $libcurl_found == 1 ]; then
     $cc $debug $options $constants -c gsc_curl.cpp -o objects/gsc_curl.opp
 fi
 
-echo "##### LINK    libcod1.so #####"
+echo "##### LINK    libcod1.so      #####"
 objects="$(ls objects/*.opp)"
 $cc -m32 -shared -L/lib32 -o ../bin/libcod1.so -ldl $objects -lpthread $sqlite_link $libcurl_link
 rm objects -r
