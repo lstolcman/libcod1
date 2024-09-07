@@ -20,9 +20,29 @@ asm volatile (
 // Custom cvars
 extern cvar_t *jump_height;
 
+// Game lib objects
+extern pmove_t *pm;
+
 // Resume addresses
 extern uintptr_t resume_addr_Jump_Check;
 extern uintptr_t resume_addr_Jump_Check_2;
+
+extern customPlayerState_t customPlayerState[MAX_CLIENTS];
+
+int playerstateToClientNum(playerState_t* ps)
+{
+    return (int)(((byte *)ps - (byte *)sv.gameClients) / sv.gameClientSize);
+}
+
+float getJumpHeight()
+{
+    playerState_t *ps = ((pmove_t*)*((int*)pm))->ps;
+    int id = playerstateToClientNum(ps);
+
+    if(customPlayerState[id].overrideJumpHeight)
+        return customPlayerState[id].jumpHeight;
+    return jump_height->value;
+}
 
 // This applies the height
 __attribute__ ((naked)) void hook_Jump_Check_Naked()
@@ -39,7 +59,7 @@ __attribute__ ((naked)) void hook_Jump_Check_Naked()
 }
 extern "C" void setJumpHeight()
 {
-    float height = jump_height->value * 2;
+    float height = getJumpHeight() * 2;
     asm volatile (
         "fmul %0\n"
         :
@@ -63,7 +83,7 @@ __attribute__ ((naked)) void hook_Jump_Check_Naked_2()
 }
 extern "C" void setJumpHeight_2()
 {
-    float height = jump_height->value;
+    float height = getJumpHeight();
     asm volatile (
         "fadd %0\n"
         :

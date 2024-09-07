@@ -634,6 +634,9 @@ typedef struct
     serverState_t state;
     qboolean restarting;
     int start_frameTime;
+    byte pad[0x6141C];
+    playerState_t *gameClients;
+    int gameClientSize;
     // ...
 } server_t;
 
@@ -754,6 +757,8 @@ typedef struct customPlayerState_s
     int frames;
     uint64_t frameTime;
     int ufo;
+    qboolean overrideJumpHeight;
+    int jumpHeight;
 } customPlayerState_t;
 
 typedef struct callback_s

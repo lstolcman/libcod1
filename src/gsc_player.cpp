@@ -491,3 +491,33 @@ void gsc_player_connectionlesspackettoclient(scr_entref_t ref)
 
     stackPushBool(qtrue);
 }
+
+void gsc_player_setjumpheight(scr_entref_t ref)
+{
+    int id = ref.entnum;
+    float jump_height;
+
+    if ( !stackGetParams("f", &jump_height) )
+    {
+        stackError("gsc_player_setjumpheight() argument is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_setjumpheight() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    if ( jump_height < 0 )
+        customPlayerState[id].overrideJumpHeight = false;
+    else
+    {
+        customPlayerState[id].overrideJumpHeight = true;
+        customPlayerState[id].jumpHeight = jump_height;
+    }
+
+    stackPushBool(qtrue);
+}
