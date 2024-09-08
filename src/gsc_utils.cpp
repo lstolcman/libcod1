@@ -571,8 +571,8 @@ void gsc_utils_hash()
         stackPushUndefined();
         return;
     }
-    if(_len > 63) {
-        _len = 63;
+    if(_len > 64) {
+        _len = 64;
     }
     char hashed_str[65];  // 64 characters + null terminator
 
