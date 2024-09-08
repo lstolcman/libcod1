@@ -19,6 +19,9 @@ while [[ $# -gt 0 ]]; do
         -l | --libcurl)
             libcurl=true
             ;;
+        --evp)
+            evp=true
+            ;;
         -u | --unsafe)
             unsafe=true
             ;;
@@ -43,6 +46,15 @@ if [ -v debug ]; then
 else
     echo "OFF"
     debug=""
+fi
+
+echo -n "EVP HASH: "
+if [ -v evp ]; then
+    echo " ON"
+    constants+=" -D COMPILE_EVPHASH=1"
+else
+    echo " OFF"
+    constants+=" -D COMPILE_EVPHASH=0"
 fi
 
 echo -n "Unsafe:  "
