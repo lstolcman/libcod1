@@ -117,6 +117,10 @@ scr_method_t scriptMethods[] =
     {"async_sqlite_create_entity_query_nosave", gsc_async_sqlite_create_entity_query_nosave, 0},
 #endif
 
+#if COMPILE_EVPHASH == 1
+    {"hash", gsc_utils_hash, 0},
+#endif
+
     {"testMethod", gsc_testmethod, 0},
     {NULL, NULL, 0} // Terminator
 };
