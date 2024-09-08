@@ -41,11 +41,12 @@ cvar_t *jump_height;
 cvar_t *sv_cracked;
 
 cHook *hook_clientendframe;
+cHook *hook_clientThink;
 cHook *hook_com_init;
 cHook *hook_cvar_set2;
 cHook *hook_g_localizedstringindex;
 cHook *hook_gametype_scripts;
-cHook *hook_play_movement;
+cHook *hook_pm_airmove;
 cHook *hook_sv_addoperatorcommands;
 cHook *hook_sv_spawnserver;
 cHook *hook_sv_begindownload_f;
@@ -132,6 +133,7 @@ ClientCommand_t ClientCommand;
 Com_SkipRestOfLine_t Com_SkipRestOfLine;
 Com_ParseRestOfLine_t Com_ParseRestOfLine;
 Com_ParseInt_t Com_ParseInt;
+Jump_Check_t Jump_Check;
 
 // Resume addresses
 uintptr_t resume_addr_Jump_Check;
@@ -512,7 +514,6 @@ static void ban()
     std::string duration_drop;
     std::string reason_log = "none";
     std::string reason_drop;
-
 
     // Directly store all the argv to be able to use Cmd_TokenizeString before the end of the parse
     for (int i = 1; i < Cmd_Argc(); i++)
@@ -1097,11 +1098,11 @@ char *custom_va(const char *format, ...)
 
 void custom_SV_ClientThink(int clientNum)
 {
-    hook_play_movement->unhook();
+    hook_clientThink->unhook();
     void (*ClientThink)(int clientNum);
-    *(int *)&ClientThink = hook_play_movement->from;
+    *(int *)&ClientThink = hook_clientThink->from;
     ClientThink(clientNum);
-    hook_play_movement->hook();
+    hook_clientThink->hook();
 
     customPlayerState[clientNum].frames++;
 
@@ -1143,6 +1144,21 @@ int custom_ClientEndFrame(gentity_t *ent)
     }
 
     return ret;
+}
+
+void custom_PM_AirMove(int *a1, int *a2)
+{
+    /*if (Jump_Check())
+    {
+        printf("####### DOUBLE JUMP\n");
+    }*/
+    
+    
+    hook_pm_airmove->unhook();
+    void (*PM_AirMove)(int *a1, int *a2);
+    *(int *)&PM_AirMove = hook_pm_airmove->from;
+    PM_AirMove(a1, a2);
+    hook_pm_airmove->hook();
 }
 
 // ioquake3 rate limit connectionless requests
@@ -1649,6 +1665,7 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Q_strcat = (Q_strcat_t)dlsym(ret, "Q_strcat");
     Q_strncpyz = (Q_strncpyz_t)dlsym(ret, "Q_strncpyz");
     Q_CleanStr = (Q_CleanStr_t)dlsym(ret, "Q_CleanStr");
+    Jump_Check = (Jump_Check_t)((int)dlsym(ret, "_init") + 0x76F4);
 
     hook_call((int)dlsym(ret, "vmMain") + 0xB0, (int)hook_ClientCommand);
     hook_call((int)dlsym(ret, "ClientEndFrame") + 0x311, (int)hook_StuckInClient);
@@ -1657,8 +1674,30 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     
     hook_jmp((int)dlsym(ret, "BG_PlayerTouchesItem") + 0x88C, (int)hook_Jump_Check_Naked);
     resume_addr_Jump_Check = (uintptr_t)dlsym(ret, "BG_PlayerTouchesItem") + 0x892;
-    hook_jmp((int)dlsym(ret, "BG_PlayerTouchesItem") + 0x89E, (int)hook_Jump_Check_Naked_2);
+    hook_jmp((int)dlsym(ret, "BG_PlayerTouchesItem") + 0x899, (int)hook_Jump_Check_Naked_2);
     resume_addr_Jump_Check_2 = (uintptr_t)dlsym(ret, "BG_PlayerTouchesItem") + 0x8A4;
+
+
+
+
+
+
+
+
+/*
+    int addr = (int)dlsym(ret, "BG_PlayerTouchesItem") + 0x7FD; // 0003ebb9
+    //hook_nop(addr, addr + 2); // if ( pm->cmd.serverTime - pm->ps->jumpTime <= 499 )
+    hook_pm_airmove = new cHook((int)dlsym(ret, "_init") + 0x7B98, (int)custom_PM_AirMove);
+    //hook_pm_airmove->hook();
+*/
+
+
+
+
+
+
+
+
     
     // Patch codmsgboom
     /* See:
@@ -1682,8 +1721,8 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 
     hook_gametype_scripts = new cHook((int)dlsym(ret, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
     hook_gametype_scripts->hook();
-    hook_play_movement = new cHook((int)dlsym(ret, "ClientThink"), (int)custom_SV_ClientThink);
-    hook_play_movement->hook();
+    hook_clientThink = new cHook((int)dlsym(ret, "ClientThink"), (int)custom_SV_ClientThink);
+    hook_clientThink->hook();
     hook_clientendframe = new cHook((int)dlsym(ret, "ClientEndFrame"), (int)custom_ClientEndFrame);
     hook_clientendframe->hook();
 
@@ -1760,6 +1799,7 @@ public:
     ~cCallOfDuty1Pro()
     {
         printf("> [PLUGIN UNLOADED]\n");
+        system("stty sane");
     }
 };
 
