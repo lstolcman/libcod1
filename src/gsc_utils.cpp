@@ -571,6 +571,9 @@ void gsc_utils_hash()
         stackPushUndefined();
         return;
     }
+    if(_len > 63) {
+        _len = 63;
+    }
     char hashed_str[65];  // 64 characters + null terminator
 
     EVP_MD_CTX *mdctx;
