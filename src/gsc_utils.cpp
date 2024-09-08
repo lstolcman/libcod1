@@ -2,6 +2,10 @@
 
 #include "gsc_utils.hpp"
 
+#if COMPILE_EVPHASH == 1
+#include <openssl/evp.h>
+#endif
+
 void gsc_utils_sendcommandtoclient()
 {
     int clientNum;
@@ -462,3 +466,67 @@ void gsc_utils_unban()
         Cbuf_ExecuteText(EXEC_APPEND, custom_va(command.c_str()));
     }
 }
+
+#if COMPILE_EVPHASH == 1
+void gsc_utils_hash()
+{
+    const char *input;
+    int _len; //thanks iBuddie
+
+    if(!stackGetParams("si", &input, &_len))
+    {
+        stackError("gsc_utils_hash() argument is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+    char hashed_str[65];  // 64 characters + null terminator
+
+    EVP_MD_CTX *mdctx;
+    unsigned char hash[EVP_MAX_MD_SIZE];
+    unsigned int hash_len;
+
+    mdctx = EVP_MD_CTX_new();
+    if(mdctx == NULL)
+    {
+        stackError("Failed to create EVP_MD_CTX");
+        stackPushUndefined();
+        return;
+    }
+
+    if(EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL) != 1)
+    {
+        EVP_MD_CTX_free(mdctx);
+        stackError("Failed to initialize digest");
+        stackPushUndefined();
+        return;
+    }
+
+    if(EVP_DigestUpdate(mdctx, input, strlen(input)) != 1)
+    {
+        EVP_MD_CTX_free(mdctx);
+        stackError("Failed to update digest");
+        stackPushUndefined();
+        return;
+    }
+
+    if(EVP_DigestFinal_ex(mdctx, hash, &hash_len) != 1)
+    {
+        EVP_MD_CTX_free(mdctx);
+        stackError("Failed to finalize digest");
+        stackPushUndefined();
+        return;
+    }
+
+    for(unsigned int i = 0; i < hash_len; i++)
+    {
+        sprintf(hashed_str + (i * 2), "%02x", hash[i]);
+    }
+    hashed_str[hash_len * 2] = 0;
+
+    EVP_MD_CTX_free(mdctx);
+
+    hashed_str[_len] = '\0';
+
+    stackPushString(hashed_str);
+}
+#endif
