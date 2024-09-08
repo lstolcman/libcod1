@@ -467,6 +467,98 @@ void gsc_utils_unban()
     }
 }
 
+void gsc_utils_strip() 
+{
+    const char *input;
+    char result[256] = {0};
+    int start = 0, end = 0, i = 0;
+
+    if(!stackGetParams("s", &input)) 
+    {
+        stackError("gsc_utils_strip() argument is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+    
+    while(input[start] == ' ') 
+    {
+        start++;
+    }
+
+    if(input[start] == '\0') 
+    {
+        stackPushString("");
+        return;
+    }
+
+    end = strlen(input) - 1;
+    while(input[end] == ' ') 
+    {
+        end--;
+    }
+
+    for(i = start; i <= end; i++) 
+    {
+        result[i - start] = input[i];
+    }
+
+    stackPushString(result);
+}
+
+
+void gsc_utils_pmatch() 
+{
+    const char *str, *sub;
+    
+    if(!stackGetParams("ss", &str, &sub)) 
+    {
+        stackError("gsc_utils_partial_match() arguments are undefined or have a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    if (strstr(str, sub) != NULL) 
+    {
+        stackPushInt(qtrue);
+    } 
+    else 
+    {
+        stackPushBool(qfalse);
+    }
+}
+
+void monotone(char *str) {
+    char *src = str, *dst = str;
+    while (*src) {
+        if (*src == '^' && (*(src + 1) >= '0' && *(src + 1) <= '7')) {
+            src += 2;
+        } else {
+            *dst++ = *src++;
+        }
+    }
+    *dst = '\0';
+}
+void gsc_utils_monotone() 
+{
+    char *input;
+
+    if(!stackGetParams("s", &input)) 
+    {
+        stackError("gsc_utils_monotone() argument is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    char buffer[256];
+    strncpy(buffer, input, sizeof(buffer) - 1);
+    buffer[sizeof(buffer) - 1] = '\0';
+
+    monotone(buffer);
+    monotone(buffer);
+
+    stackPushString(buffer);
+}
+
 #if COMPILE_EVPHASH == 1
 void gsc_utils_hash()
 {
