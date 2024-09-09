@@ -18,6 +18,7 @@ cvar_t *com_cl_running;
 cvar_t *com_dedicated;
 cvar_t *com_logfile;
 cvar_t *com_sv_running;
+cvar_t *fs_game;
 cvar_t *sv_allowDownload;
 cvar_t *sv_floodProtect;
 cvar_t *sv_gametype;
@@ -143,7 +144,7 @@ void custom_Com_Init(char *commandLine)
 {
     hook_com_init->unhook();
     void (*Com_Init)(char *commandLine);
-    *(int *)&Com_Init = hook_com_init->from;
+    *(int*)&Com_Init = hook_com_init->from;
     Com_Init(commandLine);
     hook_com_init->hook();
     
@@ -152,6 +153,7 @@ void custom_Com_Init(char *commandLine)
     com_dedicated = Cvar_FindVar("dedicated");
     com_logfile = Cvar_FindVar("logfile");
     com_sv_running = Cvar_FindVar("sv_running");
+    fs_game = Cvar_FindVar("fs_game");
     sv_allowDownload = Cvar_FindVar("sv_allowDownload");
     sv_floodProtect = Cvar_FindVar("sv_floodProtect");
     sv_gametype = Cvar_FindVar("g_gametype");
@@ -201,13 +203,13 @@ void hook_G_Say(gentity_s *ent, gentity_s *target, int mode, const char *chatTex
 
 qboolean FS_svrPak(const char *base)
 {
-    if (strstr(base, "_svr_"))
+    if(strstr(base, "_svr_"))
         return qtrue;
 
     if (*fs_svrPaks->string)
     {
         bool isSvrPak = false;
-        size_t lenString = strlen(fs_svrPaks->string) +1;
+        size_t lenString = strlen(fs_svrPaks->string) + 1;
         char* stringCopy = (char*)malloc(lenString);
         strcpy(stringCopy, fs_svrPaks->string);
 
@@ -239,11 +241,10 @@ const char* custom_FS_ReferencedPakNames(void)
 
     info[0] = 0;
     
-    for (search = fs_searchpaths ; search ; search = search->next)
+    for (search = fs_searchpaths; search; search = search->next)
     {
-        if (!search->pak)
+        if(!search->pak)
             continue;
-
         if(FS_svrPak(search->pak->pakBasename))
             continue;
 
@@ -264,11 +265,10 @@ const char* custom_FS_ReferencedPakChecksums(void)
     
     info[0] = 0;
 
-    for (search = fs_searchpaths ; search ; search = search->next)
+    for (search = fs_searchpaths; search; search = search->next)
     {
-        if (!search->pak)
+        if(!search->pak)
             continue;
-        
         if(FS_svrPak(search->pak->pakBasename))
             continue;
         
@@ -280,16 +280,16 @@ const char* custom_FS_ReferencedPakChecksums(void)
 
 int custom_GScr_LoadGameTypeScript()
 {
-    unsigned int i;
-    char path_for_cb[512] = "maps/mp/gametypes/_callbacksetup";
-
     hook_gametype_scripts->unhook();
     int (*GScr_LoadGameTypeScript)();
-    *(int *)&GScr_LoadGameTypeScript = hook_gametype_scripts->from;
+    *(int*)&GScr_LoadGameTypeScript = hook_gametype_scripts->from;
     int ret = GScr_LoadGameTypeScript();
     hook_gametype_scripts->hook();
 
-    if(*fs_callbacks_additional->string)
+    unsigned int i;
+    char path_for_cb[512] = "maps/mp/gametypes/_callbacksetup";
+
+    if (*fs_callbacks_additional->string)
     {
         if(!Scr_LoadScript(fs_callbacks_additional->string))
             Com_DPrintf("custom_GScr_LoadGameTypeScript: Scr_LoadScript for fs_callbacks_additional cvar failed.\n");
@@ -304,7 +304,7 @@ int custom_GScr_LoadGameTypeScript()
         
     for (i = 0; i < sizeof(callbacks)/sizeof(callbacks[0]); i++)
     {
-        if(!strcmp(callbacks[i].name, "CodeCallback_PlayerCommand")) // Custom callback: PlayerCommand
+        if(!strcmp(callbacks[i].name, "CodeCallback_PlayerCommand"))
             *callbacks[i].pos = Scr_GetFunctionHandle(fs_callbacks_additional->string, callbacks[i].name);
         else
             *callbacks[i].pos = Scr_GetFunctionHandle(path_for_cb, callbacks[i].name);
@@ -316,11 +316,10 @@ int custom_GScr_LoadGameTypeScript()
     return ret;
 }
 
+// See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/script.c#L944
 static int localized_string_index = 128;
 int custom_G_LocalizedStringIndex(const char *string)
 {
-    // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/script.c#L944
-    
     int i;
     char s[MAX_STRINGLENGTH];
 
@@ -332,7 +331,7 @@ int custom_G_LocalizedStringIndex(const char *string)
     
     int start = 1244;
 
-    for(i = 1; i < 256; i++)
+    for (i = 1; i < 256; i++)
     {
         trap_GetConfigstring(start + i, s, sizeof(s));
         if(!*s)
@@ -358,7 +357,7 @@ void hook_ClientCommand(int clientNum)
     if(!strcmp(cmd, "gc"))
         return; // Prevent server crash
       
-    if(!codecallback_playercommand)
+    if (!codecallback_playercommand)
     {
         ClientCommand(clientNum);
         return;
@@ -366,14 +365,14 @@ void hook_ClientCommand(int clientNum)
 
     stackPushArray();
     int args = Cmd_Argc();
-    for(int i = 0; i < args; i++)
+    for (int i = 0; i < args; i++)
     {
         char tmp[MAX_STRINGLENGTH];
         trap_Argv(i, tmp, sizeof(tmp));
-        if(i == 1 && tmp[0] >= 20 && tmp[0] <= 22)
+        if (i == 1 && tmp[0] >= 20 && tmp[0] <= 22)
         {
             char *part = strtok(tmp + 1, " ");
-            while(part != NULL)
+            while (part != NULL)
             {
                 stackPushString(part);
                 stackPushArrayLast();
@@ -403,7 +402,7 @@ void custom_SV_SpawnServer(char *server)
 {
     hook_sv_spawnserver->unhook();
     void (*SV_SpawnServer)(char *server);
-    *(int *)&SV_SpawnServer = hook_sv_spawnserver->from;
+    *(int*)&SV_SpawnServer = hook_sv_spawnserver->from;
     SV_SpawnServer(server);
     hook_sv_spawnserver->hook();
 
@@ -446,7 +445,6 @@ std::tuple<bool, int, int, std::string> banInfoForIp(char* ip)
     return banInfo;
 }
 
-
 void sendMessageTo_inGameAdmin_orServerConsole(client_t *cl, std::string message)
 {
     std::string finalMessage;
@@ -464,6 +462,7 @@ void sendMessageTo_inGameAdmin_orServerConsole(client_t *cl, std::string message
         Com_Printf(finalMessage.c_str());
     }
 }
+
 const std::array<std::string, 5> banParameters = {"-i", "-n", "-r", "-d", "-a"};
 const std::array<std::string, 2> unbanParameters = {"-i", "-a"};
 /*
@@ -473,6 +472,7 @@ const std::array<std::string, 2> unbanParameters = {"-i", "-a"};
 -d: duration
 -a: admin client number
 */
+
 template <std::size_t N>
 bool isValidParameter(std::string toCheck, std::array<std::string, N> parameters)
 {
@@ -933,7 +933,7 @@ void custom_SV_AddOperatorCommands()
 {
     hook_sv_addoperatorcommands->unhook();
     void (*SV_AddOperatorCommands)();
-    *(int *)&SV_AddOperatorCommands = hook_sv_addoperatorcommands->from;
+    *(int*)&SV_AddOperatorCommands = hook_sv_addoperatorcommands->from;
     SV_AddOperatorCommands();
 
     Cmd_AddCommand("ban", ban);
@@ -946,7 +946,7 @@ void custom_SV_SendClientGameState(client_t *client)
 {
     hook_sv_sendclientgamestate->unhook();
     void (*SV_SendClientGameState)(client_t *client);
-    *(int *)&SV_SendClientGameState = hook_sv_sendclientgamestate->from;
+    *(int*)&SV_SendClientGameState = hook_sv_sendclientgamestate->from;
     SV_SendClientGameState(client);
     hook_sv_sendclientgamestate->hook();
 
@@ -969,9 +969,9 @@ bool shouldServeFile(const char *requestedFilePath)
 
     localFilePath[0] = 0;
 
-    for(search = fs_searchpaths; search; search = search->next)
+    for (search = fs_searchpaths; search; search = search->next)
     {
-        if(search->pak)
+        if (search->pak)
         {
             snprintf(localFilePath, sizeof(localFilePath), "%s/%s.pk3", search->pak->pakGamename, search->pak->pakBasename);
             if(!strcmp(localFilePath, requestedFilePath))
@@ -992,7 +992,11 @@ void custom_SV_BeginDownload_f(client_t *cl)
         if (!shouldServeFile(arg1))
         {
             char ip[16];
-            snprintf(ip, sizeof(ip), "%d.%d.%d.%d", cl->netchan.remoteAddress.ip[0], cl->netchan.remoteAddress.ip[1], cl->netchan.remoteAddress.ip[2], cl->netchan.remoteAddress.ip[3]);
+            snprintf(ip, sizeof(ip), "%d.%d.%d.%d",
+                cl->netchan.remoteAddress.ip[0],
+                cl->netchan.remoteAddress.ip[1],
+                cl->netchan.remoteAddress.ip[2],
+                cl->netchan.remoteAddress.ip[3]);
             Com_Printf("WARNING: %s (%s) tried to download %s.\n", cl->name, ip, arg1);
             return;
         }
@@ -1000,7 +1004,7 @@ void custom_SV_BeginDownload_f(client_t *cl)
 
     hook_sv_begindownload_f->unhook();
     void (*SV_BeginDownload_f)(client_t *cl);
-    *(int *)&SV_BeginDownload_f = hook_sv_begindownload_f->from;
+    *(int*)&SV_BeginDownload_f = hook_sv_begindownload_f->from;
     SV_BeginDownload_f(cl);
     hook_sv_begindownload_f->hook();
 }
@@ -1017,11 +1021,12 @@ void custom_SV_ExecuteClientMessage(client_t *cl, msg_t *msg)
     if ((cl->serverId == sv_serverId_value || cl->downloadName[0])
         || (!cl->downloadName[0] && strstr(cl->lastClientCommandString, "nextdl")))
     {
-        do {
+        do
+        {
             c = MSG_ReadBits(&decompressMsg, 2);
             if (c == clc_EOF || c != clc_clientCommand)
             {
-                if(sv_pure->integer && cl->pureAuthentic == 2)
+                if (sv_pure->integer && cl->pureAuthentic == 2)
                 {
                     cl->nextSnapshotTime = -1;
                     SV_DropClient(cl, "EXE_UNPURECLIENTDETECTED");
@@ -1030,31 +1035,22 @@ void custom_SV_ExecuteClientMessage(client_t *cl, msg_t *msg)
                     cl->state = CS_ZOMBIE;
                 }
                 if(c == clc_move)
-                {
                     SV_UserMove(cl, &decompressMsg, 1);
-                }
                 else if(c == clc_moveNoDelta)
-                {
                     SV_UserMove(cl, &decompressMsg, 0);
-                }
                 else if(c != clc_EOF)
-                {
                     Com_Printf("WARNING: bad command byte %i for client %i\n", c, cl - svs.clients);
-                }
                 return;
             }
-
-            if (!SV_ClientCommand(cl, &decompressMsg))
+            if(!SV_ClientCommand(cl, &decompressMsg))
                 return;
 
         } while (cl->state != CS_ZOMBIE);
     }
     else if ((cl->serverId & 0xF0) == (sv_serverId_value & 0xF0))
     {
-        if (cl->state == CS_PRIMED)
-        {
+        if(cl->state == CS_PRIMED)
             SV_ClientEnterWorld(cl, &cl->lastUsercmd);
-        }
     }
     else
     {
@@ -1066,11 +1062,10 @@ void custom_SV_ExecuteClientMessage(client_t *cl, msg_t *msg)
     }
 }
 
+// See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/shared.c#L632
+#define MAX_VA_STRING 32000
 char *custom_va(const char *format, ...)
 {
-    // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/shared.c#L632
-
-    #define MAX_VA_STRING 32000
     va_list argptr;
     static char temp_buffer[MAX_VA_STRING];
     static char string[MAX_VA_STRING];
@@ -1100,7 +1095,7 @@ void custom_SV_ClientThink(int clientNum)
 {
     hook_clientThink->unhook();
     void (*ClientThink)(int clientNum);
-    *(int *)&ClientThink = hook_clientThink->from;
+    *(int*)&ClientThink = hook_clientThink->from;
     ClientThink(clientNum);
     hook_clientThink->hook();
 
@@ -1121,7 +1116,7 @@ int custom_ClientEndFrame(gentity_t *ent)
 {
     hook_clientendframe->unhook();
     int (*ClientEndFrame)(gentity_t *ent);
-    *(int *)&ClientEndFrame = hook_clientendframe->from;
+    *(int*)&ClientEndFrame = hook_clientendframe->from;
     int ret = ClientEndFrame(ent);
     hook_clientendframe->hook();
 
@@ -1132,7 +1127,7 @@ int custom_ClientEndFrame(gentity_t *ent)
         if(customPlayerState[num].speed > 0)
             ent->client->ps.speed = customPlayerState[num].speed;
 
-        if(customPlayerState[num].ufo == 1)
+        if(customPlayerState[num].ufo)
             ent->client->ps.pm_type = PM_UFO;
 
         // Stop slide after fall damage
@@ -1152,11 +1147,16 @@ void custom_PM_AirMove(int *a1, int *a2)
     {
         printf("####### DOUBLE JUMP\n");
     }*/
+
+    // check if player is allowed to jump in air
+
+
+
     
     
     hook_pm_airmove->unhook();
     void (*PM_AirMove)(int *a1, int *a2);
-    *(int *)&PM_AirMove = hook_pm_airmove->from;
+    *(int*)&PM_AirMove = hook_pm_airmove->from;
     PM_AirMove(a1, a2);
     hook_pm_airmove->hook();
 }
@@ -1548,7 +1548,7 @@ void hook_SVC_RemoteCommand(netadr_t from, msg_t *msg)
     char* password = Cmd_Argv(1);
     qboolean badRconPassword = !strlen(sv_rconPassword->string) || !str_iseq(password, sv_rconPassword->string);
     
-    if (SVC_ApplyRconLimit(from, badRconPassword))
+    if(SVC_ApplyRconLimit(from, badRconPassword))
         return;
     
     SVC_RemoteCommand(from, msg);
@@ -1583,22 +1583,24 @@ void ServerCrash(int sig)
 void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...))
 {
     hook_sys_loaddll->unhook();
-    void* (*Sys_LoadDll)(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...));
-    *(int *)&Sys_LoadDll = hook_sys_loaddll->from;
-    void* ret = Sys_LoadDll(name, fqpath, entryPoint, systemcalls);
+    void*(*Sys_LoadDll)(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...));
+    *(int*)&Sys_LoadDll = hook_sys_loaddll->from;
+    void* libHandle = Sys_LoadDll(name, fqpath, entryPoint, systemcalls);
     hook_sys_loaddll->hook();
-
-    // Unprotect the game lib
+    
     char libPath[512];
-    cvar_t* fs_game = Cvar_FindVar("fs_game");
-    if(*fs_game->string)
-        sprintf(libPath, "%s/game.mp.i386.so", fs_game->string);
-    else
-        sprintf(libPath, "main/game.mp.i386.so");
     char buf[512];
     char flags[4];
     void *low, *high;
     FILE *fp;
+    
+    if(*fs_game->string)
+        sprintf(libPath, "%s/game.mp.i386.so", fs_game->string);
+    else
+        sprintf(libPath, "main/game.mp.i386.so");
+    
+    //// Unprotect game.mp.i386.so
+    // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/librarymodule.c#L55
     fp = fopen("/proc/self/maps", "r");
     if(!fp)
         return 0;
@@ -1611,129 +1613,132 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
         mprotect((void *)low, (int)high-(int)low, PROT_READ | PROT_WRITE | PROT_EXEC);
     }
     fclose(fp);
+    ////
     
-    g_entities = (gentity_t*)dlsym(ret, "g_entities");
-    g_clients = (gclient_t*)dlsym(ret, "g_clients");
-    level = (level_locals_t*)dlsym(ret, "level");
-    pm = (pmove_t*)dlsym(ret, "pm");
-    scr_const = (stringIndex_t*)dlsym(ret, "scr_const");
+    // Objects
+    g_clients = (gclient_t*)dlsym(libHandle, "g_clients");
+    g_entities = (gentity_t*)dlsym(libHandle, "g_entities");
+    level = (level_locals_t*)dlsym(libHandle, "level");
+    pm = (pmove_t*)dlsym(libHandle, "pm");
+    scr_const = (stringIndex_t*)dlsym(libHandle, "scr_const");
 
-    Scr_GetFunctionHandle = (Scr_GetFunctionHandle_t)dlsym(ret, "Scr_GetFunctionHandle");
-    Scr_GetNumParam = (Scr_GetNumParam_t)dlsym(ret, "Scr_GetNumParam");
-    trap_Argv = (trap_Argv_t)dlsym(ret, "trap_Argv");
-    ClientCommand = (ClientCommand_t)dlsym(ret, "ClientCommand");
-    Com_SkipRestOfLine = (Com_SkipRestOfLine_t)dlsym(ret, "Com_SkipRestOfLine");
-    Com_ParseRestOfLine = (Com_ParseRestOfLine_t)dlsym(ret, "Com_ParseRestOfLine");
-    Com_ParseInt = (Com_ParseInt_t)dlsym(ret, "Com_ParseInt");
-    Scr_GetFunction = (Scr_GetFunction_t)dlsym(ret, "Scr_GetFunction");
-    Scr_GetMethod = (Scr_GetMethod_t)dlsym(ret, "Scr_GetMethod");
-    trap_SendServerCommand = (trap_SendServerCommand_t)dlsym(ret, "trap_SendServerCommand");
-    Scr_ExecThread = (Scr_ExecThread_t)dlsym(ret, "Scr_ExecThread");
-    Scr_ExecEntThread = (Scr_ExecEntThread_t)dlsym(ret, "Scr_ExecEntThread");
-    Scr_ExecEntThreadNum = (Scr_ExecEntThreadNum_t)dlsym(ret, "Scr_ExecEntThreadNum");
-    Scr_FreeThread = (Scr_FreeThread_t)dlsym(ret, "Scr_FreeThread");
-    Scr_Error = (Scr_Error_t)dlsym(ret, "Scr_Error");
-    Scr_ObjectError = (Scr_ObjectError_t)dlsym(ret, "Scr_ObjectError");
-    Scr_GetConstString = (Scr_GetConstString_t)dlsym(ret, "Scr_GetConstString");
-    Scr_ParamError = (Scr_ParamError_t)dlsym(ret, "Scr_ParamError");
-    G_Say = (G_Say_t)dlsym(ret, "G_Say");
-    G_RegisterCvars = (G_RegisterCvars_t)dlsym(ret, "G_RegisterCvars");
-    trap_GetConfigstringConst = (trap_GetConfigstringConst_t)dlsym(ret, "trap_GetConfigstringConst");
-    trap_GetConfigstring = (trap_GetConfigstring_t)dlsym(ret, "trap_GetConfigstring");
-    BG_GetNumWeapons = (BG_GetNumWeapons_t)dlsym(ret, "BG_GetNumWeapons");
-    BG_GetInfoForWeapon = (BG_GetInfoForWeapon_t)dlsym(ret, "BG_GetInfoForWeapon");
-    BG_GetWeaponIndexForName = (BG_GetWeaponIndexForName_t)dlsym(ret, "BG_GetWeaponIndexForName");
-    BG_AnimationIndexForString = (BG_AnimationIndexForString_t)dlsym(ret, "BG_AnimationIndexForString");
-    Scr_IsSystemActive = (Scr_IsSystemActive_t)dlsym(ret, "Scr_IsSystemActive");
-    Scr_GetInt = (Scr_GetInt_t)dlsym(ret, "Scr_GetInt");
-    Scr_GetString = (Scr_GetString_t)dlsym(ret, "Scr_GetString");
-    Scr_GetType = (Scr_GetType_t)dlsym(ret, "Scr_GetType");
-    Scr_GetEntity = (Scr_GetEntity_t)dlsym(ret, "Scr_GetEntity");
-    Scr_AddBool = (Scr_AddBool_t)dlsym(ret, "Scr_AddBool");
-    Scr_AddInt = (Scr_AddInt_t)dlsym(ret, "Scr_AddInt");
-    Scr_AddFloat = (Scr_AddFloat_t)dlsym(ret, "Scr_AddFloat");
-    Scr_AddString = (Scr_AddString_t)dlsym(ret, "Scr_AddString");
-    Scr_AddUndefined = (Scr_AddUndefined_t)dlsym(ret, "Scr_AddUndefined");
-    Scr_AddVector = (Scr_AddVector_t)dlsym(ret, "Scr_AddVector");
-    Scr_MakeArray = (Scr_MakeArray_t)dlsym(ret, "Scr_MakeArray");
-    Scr_AddArray = (Scr_AddArray_t)dlsym(ret, "Scr_AddArray");
-    Scr_AddObject = (Scr_AddObject_t)dlsym(ret, "Scr_AddObject");
-    Scr_LoadScript = (Scr_LoadScript_t)dlsym(ret, "Scr_LoadScript");
-    StuckInClient = (StuckInClient_t)dlsym(ret, "StuckInClient");
-    Q_strlwr = (Q_strlwr_t)dlsym(ret, "Q_strlwr");
-    Q_strupr = (Q_strupr_t)dlsym(ret, "Q_strupr");
-    Q_strcat = (Q_strcat_t)dlsym(ret, "Q_strcat");
-    Q_strncpyz = (Q_strncpyz_t)dlsym(ret, "Q_strncpyz");
-    Q_CleanStr = (Q_CleanStr_t)dlsym(ret, "Q_CleanStr");
-    Jump_Check = (Jump_Check_t)((int)dlsym(ret, "_init") + 0x76F4);
+    // Functions
+    Scr_GetFunctionHandle = (Scr_GetFunctionHandle_t)dlsym(libHandle, "Scr_GetFunctionHandle");
+    Scr_GetNumParam = (Scr_GetNumParam_t)dlsym(libHandle, "Scr_GetNumParam");
+    trap_Argv = (trap_Argv_t)dlsym(libHandle, "trap_Argv");
+    ClientCommand = (ClientCommand_t)dlsym(libHandle, "ClientCommand");
+    Com_SkipRestOfLine = (Com_SkipRestOfLine_t)dlsym(libHandle, "Com_SkipRestOfLine");
+    Com_ParseRestOfLine = (Com_ParseRestOfLine_t)dlsym(libHandle, "Com_ParseRestOfLine");
+    Com_ParseInt = (Com_ParseInt_t)dlsym(libHandle, "Com_ParseInt");
+    Scr_GetFunction = (Scr_GetFunction_t)dlsym(libHandle, "Scr_GetFunction");
+    Scr_GetMethod = (Scr_GetMethod_t)dlsym(libHandle, "Scr_GetMethod");
+    trap_SendServerCommand = (trap_SendServerCommand_t)dlsym(libHandle, "trap_SendServerCommand");
+    Scr_ExecThread = (Scr_ExecThread_t)dlsym(libHandle, "Scr_ExecThread");
+    Scr_ExecEntThread = (Scr_ExecEntThread_t)dlsym(libHandle, "Scr_ExecEntThread");
+    Scr_ExecEntThreadNum = (Scr_ExecEntThreadNum_t)dlsym(libHandle, "Scr_ExecEntThreadNum");
+    Scr_FreeThread = (Scr_FreeThread_t)dlsym(libHandle, "Scr_FreeThread");
+    Scr_Error = (Scr_Error_t)dlsym(libHandle, "Scr_Error");
+    Scr_ObjectError = (Scr_ObjectError_t)dlsym(libHandle, "Scr_ObjectError");
+    Scr_GetConstString = (Scr_GetConstString_t)dlsym(libHandle, "Scr_GetConstString");
+    Scr_ParamError = (Scr_ParamError_t)dlsym(libHandle, "Scr_ParamError");
+    G_Say = (G_Say_t)dlsym(libHandle, "G_Say");
+    G_RegisterCvars = (G_RegisterCvars_t)dlsym(libHandle, "G_RegisterCvars");
+    trap_GetConfigstringConst = (trap_GetConfigstringConst_t)dlsym(libHandle, "trap_GetConfigstringConst");
+    trap_GetConfigstring = (trap_GetConfigstring_t)dlsym(libHandle, "trap_GetConfigstring");
+    BG_GetNumWeapons = (BG_GetNumWeapons_t)dlsym(libHandle, "BG_GetNumWeapons");
+    BG_GetInfoForWeapon = (BG_GetInfoForWeapon_t)dlsym(libHandle, "BG_GetInfoForWeapon");
+    BG_GetWeaponIndexForName = (BG_GetWeaponIndexForName_t)dlsym(libHandle, "BG_GetWeaponIndexForName");
+    BG_AnimationIndexForString = (BG_AnimationIndexForString_t)dlsym(libHandle, "BG_AnimationIndexForString");
+    Scr_IsSystemActive = (Scr_IsSystemActive_t)dlsym(libHandle, "Scr_IsSystemActive");
+    Scr_GetInt = (Scr_GetInt_t)dlsym(libHandle, "Scr_GetInt");
+    Scr_GetString = (Scr_GetString_t)dlsym(libHandle, "Scr_GetString");
+    Scr_GetType = (Scr_GetType_t)dlsym(libHandle, "Scr_GetType");
+    Scr_GetEntity = (Scr_GetEntity_t)dlsym(libHandle, "Scr_GetEntity");
+    Scr_AddBool = (Scr_AddBool_t)dlsym(libHandle, "Scr_AddBool");
+    Scr_AddInt = (Scr_AddInt_t)dlsym(libHandle, "Scr_AddInt");
+    Scr_AddFloat = (Scr_AddFloat_t)dlsym(libHandle, "Scr_AddFloat");
+    Scr_AddString = (Scr_AddString_t)dlsym(libHandle, "Scr_AddString");
+    Scr_AddUndefined = (Scr_AddUndefined_t)dlsym(libHandle, "Scr_AddUndefined");
+    Scr_AddVector = (Scr_AddVector_t)dlsym(libHandle, "Scr_AddVector");
+    Scr_MakeArray = (Scr_MakeArray_t)dlsym(libHandle, "Scr_MakeArray");
+    Scr_AddArray = (Scr_AddArray_t)dlsym(libHandle, "Scr_AddArray");
+    Scr_AddObject = (Scr_AddObject_t)dlsym(libHandle, "Scr_AddObject");
+    Scr_LoadScript = (Scr_LoadScript_t)dlsym(libHandle, "Scr_LoadScript");
+    StuckInClient = (StuckInClient_t)dlsym(libHandle, "StuckInClient");
+    Q_strlwr = (Q_strlwr_t)dlsym(libHandle, "Q_strlwr");
+    Q_strupr = (Q_strupr_t)dlsym(libHandle, "Q_strupr");
+    Q_strcat = (Q_strcat_t)dlsym(libHandle, "Q_strcat");
+    Q_strncpyz = (Q_strncpyz_t)dlsym(libHandle, "Q_strncpyz");
+    Q_CleanStr = (Q_CleanStr_t)dlsym(libHandle, "Q_CleanStr");
+    Jump_Check = (Jump_Check_t)((int)dlsym(libHandle, "_init") + 0x76F4);
 
-    hook_call((int)dlsym(ret, "vmMain") + 0xB0, (int)hook_ClientCommand);
-    hook_call((int)dlsym(ret, "ClientEndFrame") + 0x311, (int)hook_StuckInClient);
-
-    hook_jmp((int)dlsym(ret, "G_LocalizedStringIndex"), (int)custom_G_LocalizedStringIndex);
-    
-    hook_jmp((int)dlsym(ret, "BG_PlayerTouchesItem") + 0x88C, (int)hook_Jump_Check_Naked);
-    resume_addr_Jump_Check = (uintptr_t)dlsym(ret, "BG_PlayerTouchesItem") + 0x892;
-    hook_jmp((int)dlsym(ret, "BG_PlayerTouchesItem") + 0x899, (int)hook_Jump_Check_Naked_2);
-    resume_addr_Jump_Check_2 = (uintptr_t)dlsym(ret, "BG_PlayerTouchesItem") + 0x8A4;
-
-
-
-
-
-
-
-
-/*
-    int addr = (int)dlsym(ret, "BG_PlayerTouchesItem") + 0x7FD; // 0003ebb9
-    //hook_nop(addr, addr + 2); // if ( pm->cmd.serverTime - pm->ps->jumpTime <= 499 )
-    hook_pm_airmove = new cHook((int)dlsym(ret, "_init") + 0x7B98, (int)custom_PM_AirMove);
-    //hook_pm_airmove->hook();
-*/
-
-
-
-
-
-
-
-
-    
-    // Patch codmsgboom
+    //// Patch codmsgboom
     /* See:
     - https://aluigi.altervista.org/adv/codmsgboom-adv.txt
     - https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/librarymodule.c#L146
     */
-    *(int*)((int)dlsym(ret, "G_Say") + 0x50e) = 0x37f;
-    *(int*)((int)dlsym(ret, "G_Say") + 0x5ca) = 0x37f;
-    // end
+    *(int*)((int)dlsym(libHandle, "G_Say") + 0x50e) = 0x37f;
+    *(int*)((int)dlsym(libHandle, "G_Say") + 0x5ca) = 0x37f;
+    ////
 
-    // 1.1 deadchat support
+    //// 1.1 deadchat support
     /* See:
     - https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/librarymodule.c#L161
     */
-    *(byte*)((int)dlsym(ret, "G_Say") + 0x2B3) = 0xeb;
-    *(byte*)((int)dlsym(ret, "G_Say") + 0x3B6) = 0xeb;
-    hook_call((int)dlsym(ret, "G_Say") + 0x5EA, (int)hook_G_Say);
-    hook_call((int)dlsym(ret, "G_Say") + 0x77D, (int)hook_G_Say);
-    hook_call((int)dlsym(ret, "G_Say") + 0x791, (int)hook_G_Say);
-    // end
+    *(byte*)((int)dlsym(libHandle, "G_Say") + 0x2B3) = 0xeb;
+    *(byte*)((int)dlsym(libHandle, "G_Say") + 0x3B6) = 0xeb;
+    hook_call((int)dlsym(libHandle, "G_Say") + 0x5EA, (int)hook_G_Say);
+    hook_call((int)dlsym(libHandle, "G_Say") + 0x77D, (int)hook_G_Say);
+    hook_call((int)dlsym(libHandle, "G_Say") + 0x791, (int)hook_G_Say);
+    ////
+    
+    hook_call((int)dlsym(libHandle, "vmMain") + 0xB0, (int)hook_ClientCommand);
+    hook_call((int)dlsym(libHandle, "ClientEndFrame") + 0x311, (int)hook_StuckInClient);
 
-    hook_gametype_scripts = new cHook((int)dlsym(ret, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
+    hook_jmp((int)dlsym(libHandle, "G_LocalizedStringIndex"), (int)custom_G_LocalizedStringIndex);
+    
+    hook_jmp((int)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x88C, (int)hook_Jump_Check_Naked);
+    resume_addr_Jump_Check = (uintptr_t)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x892;
+    hook_jmp((int)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x899, (int)hook_Jump_Check_Naked_2);
+    resume_addr_Jump_Check_2 = (uintptr_t)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x8A4;
+    
+    hook_gametype_scripts = new cHook((int)dlsym(libHandle, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
     hook_gametype_scripts->hook();
-    hook_clientThink = new cHook((int)dlsym(ret, "ClientThink"), (int)custom_SV_ClientThink);
+    hook_clientThink = new cHook((int)dlsym(libHandle, "ClientThink"), (int)custom_SV_ClientThink);
     hook_clientThink->hook();
-    hook_clientendframe = new cHook((int)dlsym(ret, "ClientEndFrame"), (int)custom_ClientEndFrame);
+    hook_clientendframe = new cHook((int)dlsym(libHandle, "ClientEndFrame"), (int)custom_ClientEndFrame);
     hook_clientendframe->hook();
 
-    return ret;
+
+
+
+    
+    
+    
+    
+    int addr = (int)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x7FD; // 0003ebb9
+    hook_nop(addr, addr + 2); // if ( pm->cmd.serverTime - pm->ps->jumpTime <= 499 )
+    hook_pm_airmove = new cHook((int)dlsym(libHandle, "_init") + 0x7B98, (int)custom_PM_AirMove);
+    hook_pm_airmove->hook();
+
+
+
+
+
+
+    
+
+    return libHandle;
 }
 
-class cCallOfDuty1Pro
+class libcod
 {
-public:
-    cCallOfDuty1Pro()
+    public:
+    libcod()
     {
+        printf("------------- libcod -------------\n");
+        printf("Compiled on %s %s using g++ %s\n", __DATE__, __TIME__, __VERSION__);
+
         // Don't inherit lib of parent
         unsetenv("LD_PRELOAD");
 
@@ -1742,28 +1747,11 @@ public:
         signal(SIGABRT, ServerCrash);
         
         // Otherwise the printf()'s are printed at crash/end on older os/compiler versions
+        // See https://github.com/M-itch/libcod/blob/e58d6a01b11c911fbf886659b6ea67795776cf4a/libcod.cpp#L1346
         setbuf(stdout, NULL);
-
-        printf("> [LIBCOD] Compiled for: CoD1 1.1\n");
-
-        printf("> [LIBCOD] Compiled %s %s using GCC %s\n", __DATE__, __TIME__, __VERSION__);
 
         // Allow to write in executable memory
         mprotect((void *)0x08048000, 0x135000, PROT_READ | PROT_WRITE | PROT_EXEC);
-
-        hook_call(0x08085213, (int)hook_AuthorizeState);
-        hook_call(0x08094c54, (int)Scr_GetCustomFunction);
-        hook_call(0x080951c4, (int)Scr_GetCustomMethod);
-        hook_call(0x0808c780, (int)hook_SV_GetChallenge);
-        hook_call(0x0808c7b8, (int)hook_SV_DirectConnect);
-        hook_call(0x0808c7ea, (int)hook_SV_AuthorizeIpPacket);
-        hook_call(0x0808c74e, (int)hook_SVC_Info);
-        hook_call(0x0808c71c, (int)hook_SVC_Status);
-        hook_call(0x0808c81d, (int)hook_SVC_RemoteCommand);
-
-        hook_jmp(0x080717a4, (int)custom_FS_ReferencedPakChecksums);
-        hook_jmp(0x080716cc, (int)custom_FS_ReferencedPakNames);
-        hook_jmp(0x080872ec, (int)custom_SV_ExecuteClientMessage);
 
         // Patch q3infoboom
         /* See:
@@ -1779,7 +1767,21 @@ public:
         - https://github.com/ibuddieat/zk_libcod/blob/0f07cacf303d104a0375bf6235b8013e30b668ca/code/libcod.cpp#L3486
         */
         *(unsigned char*)0x808C41F = 0xeb;
+        
+        hook_call(0x08085213, (int)hook_AuthorizeState);
+        hook_call(0x08094c54, (int)Scr_GetCustomFunction);
+        hook_call(0x080951c4, (int)Scr_GetCustomMethod);
+        hook_call(0x0808c780, (int)hook_SV_GetChallenge);
+        hook_call(0x0808c7b8, (int)hook_SV_DirectConnect);
+        hook_call(0x0808c7ea, (int)hook_SV_AuthorizeIpPacket);
+        hook_call(0x0808c74e, (int)hook_SVC_Info);
+        hook_call(0x0808c71c, (int)hook_SVC_Status);
+        hook_call(0x0808c81d, (int)hook_SVC_RemoteCommand);
 
+        hook_jmp(0x080717a4, (int)custom_FS_ReferencedPakChecksums);
+        hook_jmp(0x080716cc, (int)custom_FS_ReferencedPakNames);
+        hook_jmp(0x080872ec, (int)custom_SV_ExecuteClientMessage);
+        
         hook_sys_loaddll = new cHook(0x080c5fe4, (int)custom_Sys_LoadDll);
         hook_sys_loaddll->hook();
         hook_com_init = new cHook(0x0806c654, (int)custom_Com_Init);
@@ -1793,22 +1795,23 @@ public:
         hook_sv_addoperatorcommands = new cHook(0x08084a3c, (int)custom_SV_AddOperatorCommands);
         hook_sv_addoperatorcommands->hook();
 
-        printf("> [PLUGIN LOADED]\n");
+        printf("Loading complete\n");
+        printf("-----------------------------------\n");
     }
 
-    ~cCallOfDuty1Pro()
+    ~libcod()
     {
-        printf("> [PLUGIN UNLOADED]\n");
+        printf("Libcod unloaded\n");
         system("stty sane");
     }
 };
 
-cCallOfDuty1Pro *pro;
+libcod *lc;
 void __attribute__ ((constructor)) lib_load(void)
 {
-    pro = new cCallOfDuty1Pro;
+    lc = new libcod;
 }
 void __attribute__ ((destructor)) lib_unload(void)
 {
-    delete pro;
+    delete lc;
 }

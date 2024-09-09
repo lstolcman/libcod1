@@ -756,7 +756,7 @@ typedef struct customPlayerState_s
     int fps;
     int frames;
     uint64_t frameTime;
-    int ufo;
+    qboolean ufo;
     qboolean overrideJumpHeight;
     int jumpHeight;
 } customPlayerState_t;

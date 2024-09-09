@@ -441,28 +441,28 @@ void gsc_player_setufo(scr_entref_t ref)
     int id = ref.entnum;
     int state;
 
-    if ( !stackGetParams("i", &state) )
+    if (!stackGetParams("i", &state))
     {
         stackError("gsc_player_setufo() argument is undefined or has a wrong type");
         stackPushUndefined();
         return;
     }
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_setufo() entity %i is not a player", id);
         stackPushUndefined();
         return;
     }
 
-    if (state != 0 && state != 1)
+    if (state != qfalse && state != qtrue)
     {
         stackError("gsc_player_setufo() param must be 0 or 1");
         stackPushUndefined();
         return;
     }
 
-    customPlayerState[id].ufo = state;
+    customPlayerState[id].ufo = state ? qtrue : qfalse;
 
     stackPushBool(qtrue);
 }
@@ -472,14 +472,14 @@ void gsc_player_connectionlesspackettoclient(scr_entref_t ref)
     int id = ref.entnum;
     char *cmd;
 
-    if ( !stackGetParams("s", &cmd) )
+    if (!stackGetParams("s", &cmd))
     {
         stackError("gsc_player_connectionlesspackettoclient() argument is undefined or has a wrong type");
         stackPushUndefined();
         return;
     }
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_connectionlesspackettoclient() entity %i is not a player", id);
         stackPushUndefined();
@@ -497,21 +497,21 @@ void gsc_player_setjumpheight(scr_entref_t ref)
     int id = ref.entnum;
     float jump_height;
 
-    if ( !stackGetParams("f", &jump_height) )
+    if (!stackGetParams("f", &jump_height))
     {
         stackError("gsc_player_setjumpheight() argument is undefined or has a wrong type");
         stackPushUndefined();
         return;
     }
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_setjumpheight() entity %i is not a player", id);
         stackPushUndefined();
         return;
     }
 
-    if ( jump_height < 0 )
+    if(jump_height < 0)
         customPlayerState[id].overrideJumpHeight = false;
     else
     {
