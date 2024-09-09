@@ -39,6 +39,7 @@ cvar_t *g_debugCallbacks;
 cvar_t *g_playerEject;
 cvar_t *g_resetSlide;
 cvar_t *jump_height;
+cvar_t *jump_height_air;
 cvar_t *sv_cracked;
 
 cHook *hook_clientendframe;
@@ -48,6 +49,7 @@ cHook *hook_cvar_set2;
 cHook *hook_g_localizedstringindex;
 cHook *hook_gametype_scripts;
 cHook *hook_pm_airmove;
+cHook *hook_pm_crashland;
 cHook *hook_sv_addoperatorcommands;
 cHook *hook_sv_spawnserver;
 cHook *hook_sv_begindownload_f;
@@ -178,6 +180,7 @@ void custom_Com_Init(char *commandLine)
     g_playerEject = Cvar_Get("g_playerEject", "1", CVAR_ARCHIVE);
     g_resetSlide = Cvar_Get("g_resetSlide", "0", CVAR_ARCHIVE);
     jump_height = Cvar_Get("jump_height", "39.0", CVAR_ARCHIVE);
+    jump_height_air = Cvar_Get("jump_height_air", "58.5", CVAR_ARCHIVE);
     sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
 
     /*
@@ -1141,23 +1144,39 @@ int custom_ClientEndFrame(gentity_t *ent)
     return ret;
 }
 
-void custom_PM_AirMove(int *a1, int *a2)
+void custom_PM_CrashLand()
 {
-    /*if (Jump_Check())
+    int clientNum = pm->ps->clientNum;
+    if (customPlayerState[clientNum].overrideJumpHeight_air)
     {
-        printf("####### DOUBLE JUMP\n");
-    }*/
-
-    // check if player is allowed to jump in air
-
-
-
+        // Player landed an airjump, disable overrideJumpHeight_air
+        customPlayerState[clientNum].overrideJumpHeight_air = qfalse;
+    }
     
+    hook_pm_crashland->unhook();
+    void (*PM_CrashLand)();
+    *(int*)&PM_CrashLand = hook_pm_crashland->from;
+    PM_CrashLand();
+    hook_pm_crashland->hook();
+}
+
+void custom_PM_AirMove(pmove_t *pm, int *a2)
+{
+    // Player is in air
+    int clientNum = pm->ps->clientNum;
+    if (customPlayerState[clientNum].airJumpsAvailable > 0)
+    {
+        // Player is allowed to jump, enable overrideJumpHeight_air
+        customPlayerState[clientNum].overrideJumpHeight_air = qtrue;
+        customPlayerState[clientNum].jumpHeight = jump_height_air->value;
+        if(Jump_Check())
+            customPlayerState[clientNum].airJumpsAvailable--;
+    }
     
     hook_pm_airmove->unhook();
-    void (*PM_AirMove)(int *a1, int *a2);
+    void (*PM_AirMove)(pmove_t *pm, int *a2);
     *(int*)&PM_AirMove = hook_pm_airmove->from;
-    PM_AirMove(a1, a2);
+    PM_AirMove(pm, a2);
     hook_pm_airmove->hook();
 }
 
@@ -1696,7 +1715,8 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_call((int)dlsym(libHandle, "ClientEndFrame") + 0x311, (int)hook_StuckInClient);
 
     hook_jmp((int)dlsym(libHandle, "G_LocalizedStringIndex"), (int)custom_G_LocalizedStringIndex);
-    
+
+    // Jump height override
     hook_jmp((int)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x88C, (int)hook_Jump_Check_Naked);
     resume_addr_Jump_Check = (uintptr_t)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x892;
     hook_jmp((int)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x899, (int)hook_Jump_Check_Naked_2);
@@ -1708,26 +1728,17 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_clientThink->hook();
     hook_clientendframe = new cHook((int)dlsym(libHandle, "ClientEndFrame"), (int)custom_ClientEndFrame);
     hook_clientendframe->hook();
-
-
-
-
     
-    
-    
-    
-    int addr = (int)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x7FD; // 0003ebb9
-    hook_nop(addr, addr + 2); // if ( pm->cmd.serverTime - pm->ps->jumpTime <= 499 )
+    //// Air jumping
     hook_pm_airmove = new cHook((int)dlsym(libHandle, "_init") + 0x7B98, (int)custom_PM_AirMove);
     hook_pm_airmove->hook();
-
-
-
-
-
-
+    hook_pm_crashland = new cHook((int)dlsym(libHandle, "_init") + 0x88C4, (int)custom_PM_CrashLand);
+    hook_pm_crashland->hook();
+    // TODO: Ignore the JLE only for players allowed to air jump
+    int addr_Jump_Check_JLE = (int)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x7FD; // if ( pm->cmd.serverTime - pm->ps->jumpTime <= 499 )
+    hook_nop(addr_Jump_Check_JLE, addr_Jump_Check_JLE + 2);
+    ////
     
-
     return libHandle;
 }
 

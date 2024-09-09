@@ -148,7 +148,7 @@ echo "##### COMPILE QVSNPRINTF.C    #####"
 $cc $debug $options $constants -c vendor/qvsnprintf.c -o objects/qvsnprintf.opp
 
 if [ $libcurl_found == 1 ]; then
-    echo "##### COMPILE GSC_CURL.CPP #####"
+    echo "##### COMPILE GSC_CURL.CPP    #####"
     $cc $debug $options $constants -c gsc_curl.cpp -o objects/gsc_curl.opp
 fi
 

@@ -728,20 +728,17 @@ static const int vmpub_offset = 0x082f57e0;
 
 // Check for critical structure sizes and fail if not match
 #if __GNUC__ >= 6
-
 static_assert((sizeof(netchan_t) == 32832), "ERROR: netchan_t size is invalid!");
 static_assert((sizeof(entityState_t) == 240), "ERROR: entityState_t size is invalid!");
 static_assert((sizeof(client_t) == 370940), "ERROR: client_t size is invalid!");
 static_assert((sizeof(playerState_t) == 8400), "ERROR: playerState_t size is invalid!");
 static_assert((sizeof(entityShared_t) == 100), "ERROR: entityShared_t size is invalid!");
 static_assert((sizeof(gentity_t) == 788), "ERROR: gentity_t size is invalid!");
-
 #endif
 
 #endif
 
 // Custom data types
-
 #define MAX_ERROR_BUFFER 64
 
 typedef struct src_error_s
@@ -759,6 +756,8 @@ typedef struct customPlayerState_s
     qboolean ufo;
     qboolean overrideJumpHeight;
     int jumpHeight;
+    int airJumpsAvailable;
+    qboolean overrideJumpHeight_air;
 } customPlayerState_t;
 
 typedef struct callback_s

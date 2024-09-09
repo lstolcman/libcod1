@@ -114,6 +114,7 @@ scr_method_t scriptMethods[] =
     {"dropClient", gsc_player_dropclient, 0},
     {"setSpeed", gsc_player_setspeed, 0},
     {"setJumpHeight", gsc_player_setjumpheight, 0},
+    {"setAirJumps", gsc_player_setairjumps, 0},
     {"getFps", gsc_player_getfps, 0},
     {"isOnLadder", gsc_player_isonladder, 0},
     {"setUfo", gsc_player_setufo, 0},
@@ -430,24 +431,19 @@ void gsc_testfunction()
 }
 void gsc_testmethod(scr_entref_t ref)
 {
-    printf("##### gsc_testmethod\n");
-
+    //printf("##### gsc_testmethod\n");
     int id = ref.entnum;
-
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_testcommand() entity %i is not a player", id);
         stackPushUndefined();
         return;
     }
-
+    
     //client_t* client = &svs.clients[id];
     //gentity_t* gentity = &g_entities[id];
     //playerState_t *ps = SV_GameClientNum(id);
     //gclient_t *gclient = gentity->client;
 
-
     //printf("##### ps->gravity = %i\n", ps->gravity);
-    //printf("##### ps->viewangles[0] = %f, ps->viewangles[1] = %f, ps->viewangles[2] = %f\n", ps->viewangles[0], ps->viewangles[1], ps->viewangles[2]);
-    
 }

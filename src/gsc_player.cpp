@@ -512,12 +512,36 @@ void gsc_player_setjumpheight(scr_entref_t ref)
     }
 
     if(jump_height < 0)
-        customPlayerState[id].overrideJumpHeight = false;
+        customPlayerState[id].overrideJumpHeight = qfalse;
     else
     {
-        customPlayerState[id].overrideJumpHeight = true;
+        customPlayerState[id].overrideJumpHeight = qtrue;
         customPlayerState[id].jumpHeight = jump_height;
     }
+
+    stackPushBool(qtrue);
+}
+
+void gsc_player_setairjumps(scr_entref_t ref)
+{
+    int id = ref.entnum;
+    int airJumps;
+
+    if (!stackGetParams("i", &airJumps))
+    {
+        stackError("gsc_player_setairjumps() argument is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    if (id >= MAX_CLIENTS)
+    {
+        stackError("gsc_player_setairjumps() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    customPlayerState[id].airJumpsAvailable = airJumps;
 
     stackPushBool(qtrue);
 }

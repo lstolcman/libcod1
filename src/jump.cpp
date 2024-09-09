@@ -30,18 +30,12 @@ extern uintptr_t resume_addr_Jump_Check_2;
 
 extern customPlayerState_t customPlayerState[MAX_CLIENTS];
 
-int playerstateToClientNum(playerState_t* ps)
-{
-    return (int)(((byte *)ps - (byte *)sv.gameClients) / sv.gameClientSize);
-}
-
 float getJumpHeight()
 {
-    playerState_t *ps = ((pmove_t*)*((int*)pm))->ps;
-    int id = playerstateToClientNum(ps);
+    int clientNum = pm->ps->clientNum;
 
-    if(customPlayerState[id].overrideJumpHeight)
-        return customPlayerState[id].jumpHeight;
+    if(customPlayerState[clientNum].overrideJumpHeight || customPlayerState[clientNum].overrideJumpHeight_air)
+        return customPlayerState[clientNum].jumpHeight;
     return jump_height->value;
 }
 
