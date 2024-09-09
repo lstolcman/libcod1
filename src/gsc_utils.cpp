@@ -471,7 +471,8 @@ void gsc_utils_strip()
 {
     const char *input;
     char result[256] = {0};
-    int start = 0, end = 0, i = 0;
+    int start = 0, end = 0, i = 0, j = 0;
+    int spaces = 0;
 
     if(!stackGetParams("s", &input)) 
     {
@@ -479,7 +480,7 @@ void gsc_utils_strip()
         stackPushUndefined();
         return;
     }
-    
+
     while(input[start] == ' ') 
     {
         start++;
@@ -499,12 +500,20 @@ void gsc_utils_strip()
 
     for(i = start; i <= end; i++) 
     {
-        result[i - start] = input[i];
+        if(input[i] != ' ') 
+        {
+            result[j++] = input[i];
+            spaces = 0;
+        } 
+        else if(!spaces) 
+        {
+            result[j++] = ' ';
+            spaces = 1;
+        }
     }
 
     stackPushString(result);
 }
-
 
 void gsc_utils_pmatch() 
 {
@@ -512,14 +521,14 @@ void gsc_utils_pmatch()
     
     if(!stackGetParams("ss", &str, &sub)) 
     {
-        stackError("gsc_utils_partial_match() arguments are undefined or have a wrong type");
+        stackError("gsc_utils_pmatch() arguments are undefined or have a wrong type");
         stackPushUndefined();
         return;
     }
 
     if (strstr(str, sub) != NULL) 
     {
-        stackPushInt(qtrue);
+        stackPushBool(qtrue);
     } 
     else 
     {
@@ -530,14 +539,23 @@ void gsc_utils_pmatch()
 void monotone(char *str) {
     char *src = str, *dst = str;
     while (*src) {
-        if (*src == '^' && (*(src + 1) >= '0' && *(src + 1) <= '7')) {
-            src += 2;
+        if (*src == '^') {
+            if (*(src + 1) == '^' && (*(src + 2) >= '0' && *(src + 2) <= '7')) {
+                src += 3;
+            }
+            else if (*(src + 1) >= '0' && *(src + 1) <= '7') {
+                src += 2;
+            } 
+            else {
+                *dst++ = *src++;
+            }
         } else {
             *dst++ = *src++;
         }
     }
     *dst = '\0';
 }
+
 void gsc_utils_monotone() 
 {
     char *input;

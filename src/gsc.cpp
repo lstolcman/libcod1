@@ -61,6 +61,10 @@ scr_function_t scriptFunctions[] =
     {"webhookMessage", gsc_curl_webhookmessage, 0}, // From Kazam pull request #8
 #endif
 
+#if COMPILE_EVPHASH == 1
+    {"hash", gsc_utils_hash, 0},
+#endif
+
     {"testFunction", gsc_testfunction, 0},
     {NULL, NULL, 0} // Terminator
 };
@@ -118,10 +122,6 @@ scr_method_t scriptMethods[] =
 #if COMPILE_SQLITE == 1
     {"async_sqlite_create_entity_query", gsc_async_sqlite_create_entity_query, 0},
     {"async_sqlite_create_entity_query_nosave", gsc_async_sqlite_create_entity_query_nosave, 0},
-#endif
-
-#if COMPILE_EVPHASH == 1
-    {"hash", gsc_utils_hash, 0},
 #endif
 
     {"testMethod", gsc_testmethod, 0},
