@@ -471,8 +471,7 @@ void gsc_utils_strip()
 {
     const char *input;
     char result[256] = {0};
-    int start = 0, end = 0, i = 0, j = 0;
-    int spaces = 0;
+    int start = 0, end = 0, i = 0;
 
     if(!stackGetParams("s", &input)) 
     {
@@ -480,7 +479,7 @@ void gsc_utils_strip()
         stackPushUndefined();
         return;
     }
-
+    
     while(input[start] == ' ') 
     {
         start++;
@@ -500,22 +499,13 @@ void gsc_utils_strip()
 
     for(i = start; i <= end; i++) 
     {
-        if(input[i] != ' ') 
-        {
-            result[j++] = input[i];
-            spaces = 0;
-        } 
-        else if(!spaces) 
-        {
-            result[j++] = ' ';
-            spaces = 1;
-        }
+        result[i - start] = input[i];
     }
 
     stackPushString(result);
 }
 
-void gsc_utils_pmatch() 
+void gsc_utils_strstr() 
 {
     const char *str, *sub;
     
@@ -536,26 +526,6 @@ void gsc_utils_pmatch()
     }
 }
 
-void monotone(char *str) {
-    char *src = str, *dst = str;
-    while (*src) {
-        if (*src == '^') {
-            if (*(src + 1) == '^' && (*(src + 2) >= '0' && *(src + 2) <= '7')) {
-                src += 3;
-            }
-            else if (*(src + 1) >= '0' && *(src + 1) <= '7') {
-                src += 2;
-            } 
-            else {
-                *dst++ = *src++;
-            }
-        } else {
-            *dst++ = *src++;
-        }
-    }
-    *dst = '\0';
-}
-
 void gsc_utils_monotone() 
 {
     char *input;
@@ -571,8 +541,26 @@ void gsc_utils_monotone()
     strncpy(buffer, input, sizeof(buffer) - 1);
     buffer[sizeof(buffer) - 1] = '\0';
 
-    monotone(buffer);
-    monotone(buffer);
+    char *src = buffer, *dst = buffer;
+    while (*src) {
+        if (*src == '^') {
+            if (*(src + 1) == '^' && (*(src + 2) >= '0' && *(src + 2) <= '7') && (*(src + 3) >= '0' && *(src + 3) <= '7')) {
+                src += 4;
+            }
+            else if (*(src + 1) == '^' && (*(src + 2) >= '0' && *(src + 2) <= '7')) {
+                src += 3;
+            }
+            else if (*(src + 1) >= '0' && *(src + 1) <= '7') {
+                src += 2;
+            } 
+            else {
+                *dst++ = *src++;
+            }
+        } else {
+            *dst++ = *src++;
+        }
+    }
+    *dst = '\0';
 
     stackPushString(buffer);
 }

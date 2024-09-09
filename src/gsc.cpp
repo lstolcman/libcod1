@@ -34,7 +34,7 @@ scr_function_t scriptFunctions[] =
     {"ban", gsc_utils_ban, 0},
     {"unban", gsc_utils_unban, 0},
     {"strip", gsc_utils_strip, 0},
-    {"pmatch", gsc_utils_pmatch, 0},
+    {"strstr", gsc_utils_strstr, 0},
     {"monotone", gsc_utils_monotone, 0},
 
     // Weapons
