@@ -79,6 +79,22 @@ callback_t callbacks[] =
     { &codecallback_playercommand, "CodeCallback_PlayerCommand"},
 };
 
+void UCMD_test(client_t *cl);
+static ucmd_t ucmds[] =
+{
+    {"userinfo",        SV_UpdateUserinfo_f,     },
+    {"disconnect",      SV_Disconnect_f,         },
+    {"cp",              SV_VerifyPaks_f,         },
+    {"vdr",             SV_ResetPureClient_f,    },
+    {"download",        SV_BeginDownload_f,      },
+    {"nextdl",          SV_NextDownload_f,       },
+    {"stopdl",          SV_StopDownload_f,       },
+    {"donedl",          SV_DoneDownload_f,       },
+    {"retransdl",       SV_RetransmitDownload_f, },
+    {"test",            UCMD_test, },
+    {NULL, NULL}
+};
+
 customPlayerState_t customPlayerState[MAX_CLIENTS];
 
 // Game lib objects
@@ -1065,6 +1081,52 @@ void custom_SV_ExecuteClientMessage(client_t *cl, msg_t *msg)
     }
 }
 
+// See https://github.com/voron00/CoD2rev_Server/blob/b012c4b45a25f7f80dc3f9044fe9ead6463cb5c6/src/server/sv_client_mp.cpp#L2128
+void custom_SV_ExecuteClientCommand(client_t *cl, const char *s, qboolean clientOK)
+{
+    ucmd_t *u;
+
+    ((void(*)(int))0x080bfea0)(1); // Unknown function
+    Cmd_TokenizeString(s);
+
+    for (u = ucmds; u->name; u++)
+    {
+        if (!strcmp(Cmd_Argv(0), u->name))
+        {
+            u->func(cl);
+            break;
+        }
+    }
+
+    if(clientOK)
+        if(!u->name && sv.state == SS_GAME)
+            VM_Call(gvm, GAME_CLIENT_COMMAND, cl - svs.clients);
+}
+
+
+
+
+
+
+void UCMD_test(client_t *cl)
+{
+    printf("##### UCMD_test from %s\n", cl->name);
+    int clientNum = cl - svs.clients;
+    printf("##### clientNum = %i\n", clientNum);
+
+
+
+
+
+
+}
+
+
+
+
+
+
+
 // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/shared.c#L632
 #define MAX_VA_STRING 32000
 char *custom_va(const char *format, ...)
@@ -1304,7 +1366,7 @@ bool SVC_RateLimitAddress(netadr_t from, int burst, int period)
 }
 
 bool SVC_callback(const char *str, const char *ip)
-{	
+{
     if (codecallback_client_spam && Scr_IsSystemActive())
     {
         stackPushString(ip);
@@ -1792,7 +1854,8 @@ class libcod
         hook_jmp(0x080717a4, (int)custom_FS_ReferencedPakChecksums);
         hook_jmp(0x080716cc, (int)custom_FS_ReferencedPakNames);
         hook_jmp(0x080872ec, (int)custom_SV_ExecuteClientMessage);
-        
+        hook_jmp(0x08086d58, (int)custom_SV_ExecuteClientCommand);
+
         hook_sys_loaddll = new cHook(0x080c5fe4, (int)custom_Sys_LoadDll);
         hook_sys_loaddll->hook();
         hook_com_init = new cHook(0x0806c654, (int)custom_Com_Init);

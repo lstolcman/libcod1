@@ -3,8 +3,6 @@
 
 #include <setjmp.h>
 
-#define QDECL __attribute__((cdecl))
-
 #define qboolean int
 #define qtrue 1
 #define qfalse 0
@@ -70,6 +68,8 @@ typedef unsigned char byte;
 typedef signed char sbyte;
 typedef struct gclient_s gclient_t;
 typedef struct gentity_s gentity_t;
+
+struct vm_t;
 
 typedef struct scr_entref_s
 {
@@ -317,6 +317,18 @@ typedef struct usercmd_s
     signed char forwardmove, rightmove, upmove;
     byte unknown;
 } usercmd_t;
+
+typedef enum
+{
+    GAME_INIT,
+    GAME_SHUTDOWN,
+    GAME_CLIENT_CONNECT,
+    GAME_CLIENT_BEGIN,
+    GAME_CLIENT_USERINFO_CHANGED,
+    GAME_CLIENT_DISCONNECT,
+    GAME_CLIENT_COMMAND,
+    //...
+} gameExport_t;
 
 typedef void netProfileInfo_t;
 
@@ -596,6 +608,12 @@ typedef struct client_s
 
 typedef struct
 {
+    const char *name;
+    void (*func)(client_t *cl);
+} ucmd_t;
+
+typedef struct
+{
     qboolean initialized;
     int time;
     int snapFlagServerBit;
@@ -717,6 +735,7 @@ static const int sv_offset = 0x08355260;
 static const int svs_offset = 0x083b67a0;
 static const int varpub_offset = 0x082f17d8;
 static const int vmpub_offset = 0x082f57e0;
+static const int gvm_offset = 0x080e30c4;
 
 #define com_frameTime (*((int*)( com_frameTime_offset )))
 #define fs_searchpaths (*((searchpath_t**)( fs_searchpaths_offset )))
@@ -725,6 +744,7 @@ static const int vmpub_offset = 0x082f57e0;
 #define sv (*((server_t*)( sv_offset )))
 #define sv_serverId_value (*((int*)( sv_serverId_value_offset )))
 #define svs (*((serverStatic_t*)( svs_offset )))
+#define gvm (*(vm_t**)(gvm_offset))
 
 // Check for critical structure sizes and fail if not match
 #if __GNUC__ >= 6

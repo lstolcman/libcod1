@@ -137,7 +137,7 @@ static const SV_RunFrame_t SV_RunFrame = (SV_RunFrame_t)0x0808d3d4;
 typedef void (*SV_AddServerCommand_t)(client_t *client, svscmd_type type, const char *cmd);
 static const SV_AddServerCommand_t SV_AddServerCommand = (SV_AddServerCommand_t)0x0808b680;
 
-typedef void (QDECL *SV_SendServerCommand_t)(client_t *cl, int type, const char *fmt, ...);
+typedef void (*SV_SendServerCommand_t)(client_t *cl, int type, const char *fmt, ...);
 static const SV_SendServerCommand_t SV_SendServerCommand = (SV_SendServerCommand_t)0x0808b900;
 
 typedef void (*SV_DropClient_t)(client_t *drop, const char *reason);
@@ -172,6 +172,33 @@ static const SV_ExecuteClientCommand_t SV_ExecuteClientCommand = (SV_ExecuteClie
 
 typedef void (*SV_Netchan_AddOOBProfilePacket_t)(int iLength);
 static const SV_Netchan_AddOOBProfilePacket_t SV_Netchan_AddOOBProfilePacket = (SV_Netchan_AddOOBProfilePacket_t)0x0808dd10;
+
+typedef void (*SV_UpdateUserinfo_f_t)(client_t *cl);
+static const SV_UpdateUserinfo_f_t SV_UpdateUserinfo_f = (SV_UpdateUserinfo_f_t)0x08087b28;
+
+typedef void (*SV_Disconnect_f_t)(client_t *cl);
+static const SV_Disconnect_f_t SV_Disconnect_f = (SV_Disconnect_f_t)0x08087af8;
+
+typedef void (*SV_VerifyPaks_f_t)(client_t *cl);
+static const SV_VerifyPaks_f_t SV_VerifyPaks_f = (SV_VerifyPaks_f_t)0x0808674c;
+
+typedef void (*SV_ResetPureClient_f_t)(client_t *cl);
+static const SV_ResetPureClient_f_t SV_ResetPureClient_f = (SV_ResetPureClient_f_t)0x08087b14;
+
+typedef void (*SV_BeginDownload_f_t)(client_t *cl);
+static const SV_BeginDownload_f_t SV_BeginDownload_f = (SV_BeginDownload_f_t)0x08087a64;
+
+typedef void (*SV_NextDownload_f_t)(client_t *cl);
+static const SV_NextDownload_f_t SV_NextDownload_f = (SV_NextDownload_f_t)0x08086168;
+
+typedef void (*SV_StopDownload_f_t)(client_t *cl);
+static const SV_StopDownload_f_t SV_StopDownload_f = (SV_StopDownload_f_t)0x08087960;
+
+typedef void (*SV_DoneDownload_f_t)(client_t *cl);
+static const SV_DoneDownload_f_t SV_DoneDownload_f = (SV_DoneDownload_f_t)0x080879fc;
+
+typedef void (*SV_RetransmitDownload_f_t)(client_t *cl);
+static const SV_RetransmitDownload_f_t SV_RetransmitDownload_f = (SV_RetransmitDownload_f_t)0x08087a2c;
 //
 
 // Info
@@ -364,7 +391,7 @@ extern StuckInClient_t StuckInClient;
 typedef qboolean (*Sys_IsLANAddress_t)(netadr_t adr);
 static const Sys_IsLANAddress_t Sys_IsLANAddress = (Sys_IsLANAddress_t)0x080c72f8;
 
-typedef void * (*Z_MallocInternal_t)(int size);
+typedef void* (*Z_MallocInternal_t)(int size);
 static const Z_MallocInternal_t Z_MallocInternal = (Z_MallocInternal_t)0x080681e8;
 
 typedef unsigned int (*GetVariableName_t)(unsigned int a1);
@@ -373,10 +400,10 @@ static const GetVariableName_t GetVariableName = (GetVariableName_t)0x080a3060;
 typedef unsigned int (*GetNextVariable_t)(unsigned int a1);
 static const GetNextVariable_t GetNextVariable = (GetNextVariable_t)0x080a3028;
 
-typedef char * (*SL_ConvertToString_t)(unsigned int index);
+typedef char* (*SL_ConvertToString_t)(unsigned int index);
 static const SL_ConvertToString_t SL_ConvertToString = (SL_ConvertToString_t)0x0809cac4;
 
-typedef int (QDECL *VM_Call_t)( int, int callnum, ... );
+typedef int (*VM_Call_t)(vm_t *vm, int callnum, ... );
 static const VM_Call_t VM_Call = (VM_Call_t)0x08092158;
 
 typedef void (*ClientCommand_t)(int clientNum);
