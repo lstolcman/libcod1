@@ -22,5 +22,12 @@ void gsc_utils_getconfigstring();
 void gsc_utils_makelocalizedstring();
 void gsc_utils_ban();
 void gsc_utils_unban();
+void gsc_utils_strip();
+void gsc_utils_strstr();
+void gsc_utils_monotone();
+
+#if COMPILE_EVPHASH == 1
+void gsc_utils_hash();
+#endif
 
 #endif

@@ -19,6 +19,9 @@ while [[ $# -gt 0 ]]; do
         -l | --libcurl)
             libcurl=true
             ;;
+        --evp)
+            evp=true
+            ;;
         -u | --unsafe)
             unsafe=true
             ;;
@@ -43,6 +46,16 @@ if [ -v debug ]; then
 else
     echo "OFF"
     debug=""
+fi
+
+echo -n "EVP HASH: "
+if [ -v evp ]; then
+    echo " ON"
+    constants+=" -D COMPILE_EVPHASH=1"
+    evp_link="-lssl -lcrypto"
+else
+    echo " OFF"
+    constants+=" -D COMPILE_EVPHASH=0"
 fi
 
 echo -n "Unsafe:  "
@@ -141,5 +154,5 @@ fi
 
 echo "##### LINK    libcod1.so      #####"
 objects="$(ls objects/*.opp)"
-$cc -m32 -shared -L/lib32 -o ../bin/libcod1.so -ldl $objects -lpthread $sqlite_link $libcurl_link
+$cc -m32 -shared -L/lib32 -o ../bin/libcod1.so -ldl $objects -lpthread $sqlite_link $libcurl_link $evp_link
 rm objects -r

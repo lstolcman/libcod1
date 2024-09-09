@@ -33,6 +33,9 @@ scr_function_t scriptFunctions[] =
     {"makeLocalizedString", gsc_utils_makelocalizedstring, 0},
     {"ban", gsc_utils_ban, 0},
     {"unban", gsc_utils_unban, 0},
+    {"strip", gsc_utils_strip, 0},
+    {"strstr", gsc_utils_strstr, 0},
+    {"monotone", gsc_utils_monotone, 0},
 
     // Weapons
     {"setWeaponCookable", gsc_weapons_setweaponcookable, 0},
@@ -56,6 +59,10 @@ scr_function_t scriptFunctions[] =
 
 #if COMPILE_LIBCURL == 1
     {"webhookMessage", gsc_curl_webhookmessage, 0}, // From Kazam pull request #8
+#endif
+
+#if COMPILE_EVPHASH == 1
+    {"hash", gsc_utils_hash, 0},
 #endif
 
     {"testFunction", gsc_testfunction, 0},
