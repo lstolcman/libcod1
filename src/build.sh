@@ -40,7 +40,7 @@ fi
 
 echo $separator
 
-echo -n "Debug:   "
+echo -n "Debug:    "
 if [ -v debug ]; then
     echo "ON"
 else
@@ -50,15 +50,15 @@ fi
 
 echo -n "EVP HASH: "
 if [ -v evp ]; then
-    echo " ON"
+    echo "ON"
     constants+=" -D COMPILE_EVPHASH=1"
     evp_link="-lssl -lcrypto"
 else
-    echo " OFF"
+    echo "OFF"
     constants+=" -D COMPILE_EVPHASH=0"
 fi
 
-echo -n "Unsafe:  "
+echo -n "Unsafe:   "
 if [ -v unsafe ]; then
     echo "ON"
     constants+=" -D ENABLE_UNSAFE=1"
@@ -72,7 +72,7 @@ sqlite_link=""
 sqlite_libpath="/usr/lib32/libsqlite3.so"
 sqlite_libpath2="/usr/lib/i386-linux-gnu/libsqlite3.so"
 sqlite_libpath3="/usr/lib/libsqlite3.so"
-echo -n "SQLite:  "
+echo -n "SQLite:   "
 if [ -v sqlite ]; then
     if [ -e "$sqlite_libpath" ] || [ -e "$sqlite_libpath2" ] || [ -e "$sqlite_libpath3" ]; then
         sqlite_found=1
@@ -91,7 +91,7 @@ fi
 libcurl_found=0
 libcurl_link=""
 libcurl_libpath="/usr/lib/i386-linux-gnu/libcurl.so.4"
-echo -n "libcurl: "
+echo -n "libcurl:  "
 if [ -v libcurl ]; then
     if [ -e "$libcurl_libpath" ]; then
         libcurl_found=1

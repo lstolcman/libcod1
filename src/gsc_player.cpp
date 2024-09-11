@@ -276,7 +276,7 @@ void gsc_player_getstance(scr_entref_t ref)
 {
     int id = ref.entnum;
     
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_getstance() entity %i is not a player", id);
         stackPushUndefined();
@@ -284,9 +284,9 @@ void gsc_player_getstance(scr_entref_t ref)
     }
     
     playerState_t *ps = SV_GameClientNum(id);
-    if ( ps->eFlags & EF_CROUCHING )
+    if(ps->eFlags & EF_CROUCHING)
         stackPushString("crouch");
-    else if ( ps->eFlags & EF_PRONE )
+    else if(ps->eFlags & EF_PRONE)
         stackPushString("prone");
     else
         stackPushString("stand");
@@ -544,4 +544,18 @@ void gsc_player_setairjumps(scr_entref_t ref)
     customPlayerState[id].airJumpsAvailable = airJumps;
 
     stackPushBool(qtrue);
+}
+
+void gsc_player_getairjumps(scr_entref_t ref)
+{
+    int id = ref.entnum;
+
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_getairjumps() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    stackPushInt(customPlayerState[id].airJumpsAvailable);
 }

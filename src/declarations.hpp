@@ -54,8 +54,6 @@
 #define KEY_MASK_LEANRIGHT      0x20
 #define KEY_MASK_ADS_MODE       0x10
 
-// playerState_t->eFlags
-// entityState_t->eFlags
 #define EF_CROUCHING    0x20
 #define EF_PRONE        0x40
 
@@ -711,6 +709,18 @@ struct pmove_t
     //...
 };
 
+struct pml_t
+{
+    vec3_t forward;
+    vec3_t right;
+    vec3_t up;
+    float frametime;
+    int msec;
+    int walking;
+    int groundPlane;
+    //...
+};
+
 typedef struct
 {
     byte pad[4];
@@ -778,6 +788,9 @@ typedef struct customPlayerState_s
     int jumpHeight;
     int airJumpsAvailable;
     qboolean overrideJumpHeight_air;
+    qboolean sprintActive;
+    qboolean sprintRequestPending;
+    int sprintTimer;
 } customPlayerState_t;
 
 typedef struct callback_s

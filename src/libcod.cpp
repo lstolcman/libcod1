@@ -39,22 +39,24 @@ cvar_t *g_debugCallbacks;
 cvar_t *g_playerEject;
 cvar_t *g_resetSlide;
 cvar_t *jump_height;
-cvar_t *jump_height_air;
+cvar_t *jump_height_airScale;
 cvar_t *sv_cracked;
+cvar_t *player_sprint;
+cvar_t *player_sprintSpeedScale;
+cvar_t *player_sprintTime;
 
-cHook *hook_clientendframe;
-cHook *hook_clientThink;
-cHook *hook_com_init;
-cHook *hook_cvar_set2;
-cHook *hook_g_localizedstringindex;
-cHook *hook_gametype_scripts;
-cHook *hook_pm_airmove;
-cHook *hook_pm_crashland;
-cHook *hook_sv_addoperatorcommands;
-cHook *hook_sv_spawnserver;
-cHook *hook_sv_begindownload_f;
-cHook *hook_sv_sendclientgamestate;
-cHook *hook_sys_loaddll;
+cHook *hook_ClientEndFrame;
+cHook *hook_ClientThink;
+cHook *hook_Com_Init;
+cHook *hook_GScr_LoadGameTypeScript;
+cHook *hook_PM_AirMove;
+cHook *hook_PM_CrashLand;
+cHook *hook_PmoveSingle;
+cHook *hook_SV_AddOperatorCommands;
+cHook *hook_SV_BeginDownload_f;
+cHook *hook_SV_SendClientGameState;
+cHook *hook_SV_SpawnServer;
+cHook *hook_Sys_LoadDll;
 
 // Stock callbacks
 int codecallback_startgametype = 0;
@@ -66,6 +68,7 @@ int codecallback_playerkilled = 0;
 // Custom callbacks
 int codecallback_client_spam = 0;
 int codecallback_playercommand = 0;
+int codecallback_playerairjump = 0;
 
 callback_t callbacks[] =
 {
@@ -77,9 +80,11 @@ callback_t callbacks[] =
 
     { &codecallback_client_spam, "CodeCallback_CLSpam"},
     { &codecallback_playercommand, "CodeCallback_PlayerCommand"},
+    { &codecallback_playerairjump, "CodeCallback_PlayerAirJump"},
 };
 
-void UCMD_test(client_t *cl);
+void UCMD_custom_sprint(client_t *cl);
+// See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/sv_client.c#L98
 static ucmd_t ucmds[] =
 {
     {"userinfo",        SV_UpdateUserinfo_f,     },
@@ -91,7 +96,7 @@ static ucmd_t ucmds[] =
     {"stopdl",          SV_StopDownload_f,       },
     {"donedl",          SV_DoneDownload_f,       },
     {"retransdl",       SV_RetransmitDownload_f, },
-    {"test",            UCMD_test, },
+    {"sprint",          UCMD_custom_sprint, },
     {NULL, NULL}
 };
 
@@ -102,6 +107,7 @@ gentity_t* g_entities;
 gclient_t* g_clients;
 level_locals_t* level;
 pmove_t* pm;
+pml_t* pml;
 stringIndex_t* scr_const;
 
 // Game lib functions
@@ -160,11 +166,11 @@ uintptr_t resume_addr_Jump_Check_2;
 
 void custom_Com_Init(char *commandLine)
 {
-    hook_com_init->unhook();
+    hook_Com_Init->unhook();
     void (*Com_Init)(char *commandLine);
-    *(int*)&Com_Init = hook_com_init->from;
+    *(int*)&Com_Init = hook_Com_Init->from;
     Com_Init(commandLine);
-    hook_com_init->hook();
+    hook_Com_Init->hook();
     
     // Get references to stock cvars
     com_cl_running = Cvar_FindVar("cl_running");
@@ -185,8 +191,8 @@ void custom_Com_Init(char *commandLine)
 
     // Register custom cvars
     Cvar_Get("libcod", "1", CVAR_SERVERINFO);
-    Cvar_Get("sv_wwwDownload", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
     Cvar_Get("sv_wwwBaseURL", "", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
+    Cvar_Get("sv_wwwDownload", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
     
     fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
     fs_callbacks_additional = Cvar_Get("fs_callbacks_additional", "", CVAR_ARCHIVE);
@@ -196,7 +202,10 @@ void custom_Com_Init(char *commandLine)
     g_playerEject = Cvar_Get("g_playerEject", "1", CVAR_ARCHIVE);
     g_resetSlide = Cvar_Get("g_resetSlide", "0", CVAR_ARCHIVE);
     jump_height = Cvar_Get("jump_height", "39.0", CVAR_ARCHIVE);
-    jump_height_air = Cvar_Get("jump_height_air", "58.5", CVAR_ARCHIVE);
+    jump_height_airScale = Cvar_Get("jump_height_airScaleScale", "1.5", CVAR_ARCHIVE);
+    player_sprint = Cvar_Get("player_sprint", "0", CVAR_ARCHIVE);
+    player_sprintSpeedScale = Cvar_Get("player_sprintSpeedScale", "1.5", CVAR_ARCHIVE);
+    player_sprintTime = Cvar_Get("player_sprintTime", "4.0", CVAR_ARCHIVE);
     sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
 
     /*
@@ -206,13 +215,10 @@ void custom_Com_Init(char *commandLine)
     Cvar_Get("cl_allowDownload", "1", CVAR_SYSTEMINFO);
 }
 
+// 1.1 deadchat support
+// See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/sv_client.c#L940
 void hook_G_Say(gentity_s *ent, gentity_s *target, int mode, const char *chatText)
 {
-    // 1.1 deadchat support
-    /* See:
-    - https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/sv_client.c#L940
-    */
-
     int unknown_var = *(int*)((int)ent->client + 8400);
     if(unknown_var && !g_deadChat->integer)
         return;
@@ -297,13 +303,13 @@ const char* custom_FS_ReferencedPakChecksums(void)
     return info;
 }
 
-int custom_GScr_LoadGameTypeScript()
+void custom_GScr_LoadGameTypeScript()
 {
-    hook_gametype_scripts->unhook();
-    int (*GScr_LoadGameTypeScript)();
-    *(int*)&GScr_LoadGameTypeScript = hook_gametype_scripts->from;
-    int ret = GScr_LoadGameTypeScript();
-    hook_gametype_scripts->hook();
+    hook_GScr_LoadGameTypeScript->unhook();
+    void (*GScr_LoadGameTypeScript)();
+    *(int*)&GScr_LoadGameTypeScript = hook_GScr_LoadGameTypeScript->from;
+    GScr_LoadGameTypeScript();
+    hook_GScr_LoadGameTypeScript->hook();
 
     unsigned int i;
     char path_for_cb[512] = "maps/mp/gametypes/_callbacksetup";
@@ -323,16 +329,17 @@ int custom_GScr_LoadGameTypeScript()
         
     for (i = 0; i < sizeof(callbacks)/sizeof(callbacks[0]); i++)
     {
-        if(!strcmp(callbacks[i].name, "CodeCallback_PlayerCommand"))
+        if (!strcmp(callbacks[i].name, "CodeCallback_PlayerCommand")
+            || !strcmp(callbacks[i].name, "CodeCallback_PlayerAirJump"))
+        {
             *callbacks[i].pos = Scr_GetFunctionHandle(fs_callbacks_additional->string, callbacks[i].name);
+        }
         else
             *callbacks[i].pos = Scr_GetFunctionHandle(path_for_cb, callbacks[i].name);
         
         /*if ( *callbacks[i].pos && g_debugCallbacks->integer )
             Com_Printf("%s found @ %p\n", callbacks[i].name, scrVarPub.programBuffer + *callbacks[i].pos);*/ //TODO: verify scrVarPub_t
     }
-
-    return ret;
 }
 
 // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/script.c#L944
@@ -419,11 +426,11 @@ const char* hook_AuthorizeState(int arg)
 
 void custom_SV_SpawnServer(char *server)
 {
-    hook_sv_spawnserver->unhook();
+    hook_SV_SpawnServer->unhook();
     void (*SV_SpawnServer)(char *server);
-    *(int*)&SV_SpawnServer = hook_sv_spawnserver->from;
+    *(int*)&SV_SpawnServer = hook_SV_SpawnServer->from;
     SV_SpawnServer(server);
-    hook_sv_spawnserver->hook();
+    hook_SV_SpawnServer->hook();
 
 #if COMPILE_SQLITE == 1
     free_sqlite_db_stores_and_tasks();
@@ -950,24 +957,23 @@ static void unban()
 
 void custom_SV_AddOperatorCommands()
 {
-    hook_sv_addoperatorcommands->unhook();
+    hook_SV_AddOperatorCommands->unhook();
     void (*SV_AddOperatorCommands)();
-    *(int*)&SV_AddOperatorCommands = hook_sv_addoperatorcommands->from;
+    *(int*)&SV_AddOperatorCommands = hook_SV_AddOperatorCommands->from;
     SV_AddOperatorCommands();
+    hook_SV_AddOperatorCommands->hook();
 
     Cmd_AddCommand("ban", ban);
     Cmd_AddCommand("unban", unban);
-
-    hook_sv_addoperatorcommands->hook();
 }
 
 void custom_SV_SendClientGameState(client_t *client)
 {
-    hook_sv_sendclientgamestate->unhook();
+    hook_SV_SendClientGameState->unhook();
     void (*SV_SendClientGameState)(client_t *client);
-    *(int*)&SV_SendClientGameState = hook_sv_sendclientgamestate->from;
+    *(int*)&SV_SendClientGameState = hook_SV_SendClientGameState->from;
     SV_SendClientGameState(client);
-    hook_sv_sendclientgamestate->hook();
+    hook_SV_SendClientGameState->hook();
 
     // Reset custom player state to default values
     int id = client - svs.clients;
@@ -1021,11 +1027,11 @@ void custom_SV_BeginDownload_f(client_t *cl)
         }
     }
 
-    hook_sv_begindownload_f->unhook();
+    hook_SV_BeginDownload_f->unhook();
     void (*SV_BeginDownload_f)(client_t *cl);
-    *(int*)&SV_BeginDownload_f = hook_sv_begindownload_f->from;
+    *(int*)&SV_BeginDownload_f = hook_SV_BeginDownload_f->from;
     SV_BeginDownload_f(cl);
-    hook_sv_begindownload_f->hook();
+    hook_SV_BeginDownload_f->hook();
 }
 
 void custom_SV_ExecuteClientMessage(client_t *cl, msg_t *msg)
@@ -1103,29 +1109,27 @@ void custom_SV_ExecuteClientCommand(client_t *cl, const char *s, qboolean client
             VM_Call(gvm, GAME_CLIENT_COMMAND, cl - svs.clients);
 }
 
-
-
-
-
-
-void UCMD_test(client_t *cl)
+void UCMD_custom_sprint(client_t *cl)
 {
-    printf("##### UCMD_test from %s\n", cl->name);
     int clientNum = cl - svs.clients;
-    printf("##### clientNum = %i\n", clientNum);
-
-
-
-
-
-
+    if (!player_sprint->integer)
+    {
+        std::string message = "e \"";
+        message.append("Sprint is not enabled on this server.");
+        message.append("\"");
+        SV_SendServerCommand(cl, SV_CMD_CAN_IGNORE, message.c_str());
+        return;
+    }
+    
+    if (customPlayerState[clientNum].sprintActive)
+    {
+        customPlayerState[clientNum].sprintActive = qfalse;
+    }
+    else
+    {
+        customPlayerState[clientNum].sprintRequestPending = qtrue;
+    }
 }
-
-
-
-
-
-
 
 // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/shared.c#L632
 #define MAX_VA_STRING 32000
@@ -1158,11 +1162,11 @@ char *custom_va(const char *format, ...)
 
 void custom_SV_ClientThink(int clientNum)
 {
-    hook_clientThink->unhook();
+    hook_ClientThink->unhook();
     void (*ClientThink)(int clientNum);
-    *(int*)&ClientThink = hook_clientThink->from;
+    *(int*)&ClientThink = hook_ClientThink->from;
     ClientThink(clientNum);
-    hook_clientThink->hook();
+    hook_ClientThink->hook();
 
     customPlayerState[clientNum].frames++;
 
@@ -1177,33 +1181,43 @@ void custom_SV_ClientThink(int clientNum)
     }
 }
 
-int custom_ClientEndFrame(gentity_t *ent)
+void custom_ClientEndFrame(gentity_t *ent)
 {
-    hook_clientendframe->unhook();
-    int (*ClientEndFrame)(gentity_t *ent);
-    *(int*)&ClientEndFrame = hook_clientendframe->from;
-    int ret = ClientEndFrame(ent);
-    hook_clientendframe->hook();
+    hook_ClientEndFrame->unhook();
+    void (*ClientEndFrame)(gentity_t *ent);
+    *(int*)&ClientEndFrame = hook_ClientEndFrame->from;
+    ClientEndFrame(ent);
+    hook_ClientEndFrame->hook();
 
     if (ent->client->sess.sessionState == STATE_PLAYING)
     {
-        int num = ent - g_entities;
+        int clientNum = ent - g_entities;
 
-        if(customPlayerState[num].speed > 0)
-            ent->client->ps.speed = customPlayerState[num].speed;
-
-        if(customPlayerState[num].ufo)
+        if(customPlayerState[clientNum].speed > 0)
+            ent->client->ps.speed = customPlayerState[clientNum].speed;
+        
+        if (customPlayerState[clientNum].sprintActive)
+        {
+            if (!(ent->client->ps.eFlags & EF_CROUCHING) && !(ent->client->ps.eFlags & EF_PRONE))
+            {
+                // Allow sprint only when standing
+                ent->client->ps.speed *= player_sprintSpeedScale->value;
+            }
+            else
+            {
+                // Turn off sprint when not standing
+                customPlayerState[clientNum].sprintActive = qfalse;                
+            }
+        }
+        
+        if(customPlayerState[clientNum].ufo)
             ent->client->ps.pm_type = PM_UFO;
 
         // Stop slide after fall damage
-        if (g_resetSlide->integer)
-        {
+        if(g_resetSlide->integer)
             if(ent->client->ps.pm_flags & PMF_SLIDING)
                 ent->client->ps.pm_flags &= ~PMF_SLIDING;
-        }
     }
-
-    return ret;
 }
 
 void custom_PM_CrashLand()
@@ -1215,14 +1229,14 @@ void custom_PM_CrashLand()
         customPlayerState[clientNum].overrideJumpHeight_air = qfalse;
     }
     
-    hook_pm_crashland->unhook();
+    hook_PM_CrashLand->unhook();
     void (*PM_CrashLand)();
-    *(int*)&PM_CrashLand = hook_pm_crashland->from;
+    *(int*)&PM_CrashLand = hook_PM_CrashLand->from;
     PM_CrashLand();
-    hook_pm_crashland->hook();
+    hook_PM_CrashLand->hook();
 }
 
-void custom_PM_AirMove(pmove_t *pm, int *a2)
+void custom_PM_AirMove()
 {
     // Player is in air
     int clientNum = pm->ps->clientNum;
@@ -1230,16 +1244,78 @@ void custom_PM_AirMove(pmove_t *pm, int *a2)
     {
         // Player is allowed to jump, enable overrideJumpHeight_air
         customPlayerState[clientNum].overrideJumpHeight_air = qtrue;
-        customPlayerState[clientNum].jumpHeight = jump_height_air->value;
-        if(Jump_Check())
+        customPlayerState[clientNum].jumpHeight = jump_height->value * jump_height_airScale->value;
+        
+        if (Jump_Check())
+        {
+            // Air jump initiated
             customPlayerState[clientNum].airJumpsAvailable--;
+            if (codecallback_playerairjump)
+            {
+                gentity_t *gentity = &g_entities[pm->ps->clientNum];
+                short ret = Scr_ExecEntThread(gentity, codecallback_playerairjump, 0);
+                Scr_FreeThread(ret);
+            }
+        }
     }
     
-    hook_pm_airmove->unhook();
-    void (*PM_AirMove)(pmove_t *pm, int *a2);
-    *(int*)&PM_AirMove = hook_pm_airmove->from;
-    PM_AirMove(pm, a2);
-    hook_pm_airmove->hook();
+    hook_PM_AirMove->unhook();
+    void (*PM_AirMove)();
+    *(int*)&PM_AirMove = hook_PM_AirMove->from;
+    PM_AirMove();
+    hook_PM_AirMove->hook();
+}
+
+// See https://github.com/voron00/CoD2rev_Server/blob/b012c4b45a25f7f80dc3f9044fe9ead6463cb5c6/src/bgame/bg_weapons.cpp#L481
+void PM_UpdateSprint()
+{
+    int timerMsec;
+    int clientNum;
+    int sprint_time;
+
+    clientNum = pm->ps->clientNum;
+    sprint_time = (int)(player_sprintTime->value * 1000.0);
+    
+    if (sprint_time > 0)
+    {
+        if (customPlayerState[clientNum].sprintRequestPending)
+        {
+            if(!customPlayerState[clientNum].sprintTimer)
+                customPlayerState[clientNum].sprintActive = qtrue;
+            customPlayerState[clientNum].sprintRequestPending = qfalse;
+        }
+        
+        if(customPlayerState[clientNum].sprintActive)
+            timerMsec = customPlayerState[clientNum].sprintTimer + pml->msec;
+        else
+            timerMsec = customPlayerState[clientNum].sprintTimer - pml->msec;
+
+        customPlayerState[clientNum].sprintTimer = timerMsec;
+
+        if (customPlayerState[clientNum].sprintTimer < 0)
+            customPlayerState[clientNum].sprintTimer = 0;
+        
+        if (customPlayerState[clientNum].sprintActive && customPlayerState[clientNum].sprintTimer > sprint_time)
+        {
+            customPlayerState[clientNum].sprintActive = qfalse;
+        }
+    }
+    else
+    {
+        customPlayerState[clientNum].sprintActive = qfalse;
+        customPlayerState[clientNum].sprintTimer = 0;
+    }
+}
+
+void custom_PmoveSingle(pmove_t *pmove)
+{
+    hook_PmoveSingle->unhook();
+    void (*PmoveSingle)(pmove_t *pmove);
+    *(int*)&PmoveSingle = hook_PmoveSingle->from;
+    PmoveSingle(pmove);
+    hook_PmoveSingle->hook();
+
+    PM_UpdateSprint();
 }
 
 // ioquake3 rate limit connectionless requests
@@ -1663,11 +1739,11 @@ void ServerCrash(int sig)
 
 void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...))
 {
-    hook_sys_loaddll->unhook();
+    hook_Sys_LoadDll->unhook();
     void*(*Sys_LoadDll)(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...));
-    *(int*)&Sys_LoadDll = hook_sys_loaddll->from;
+    *(int*)&Sys_LoadDll = hook_Sys_LoadDll->from;
     void* libHandle = Sys_LoadDll(name, fqpath, entryPoint, systemcalls);
-    hook_sys_loaddll->hook();
+    hook_Sys_LoadDll->hook();
     
     char libPath[512];
     char buf[512];
@@ -1701,6 +1777,7 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     g_entities = (gentity_t*)dlsym(libHandle, "g_entities");
     level = (level_locals_t*)dlsym(libHandle, "level");
     pm = (pmove_t*)dlsym(libHandle, "pm");
+    pml = (pml_t*)dlsym(libHandle, "pml");
     scr_const = (stringIndex_t*)dlsym(libHandle, "scr_const");
 
     // Functions
@@ -1763,9 +1840,8 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     ////
 
     //// 1.1 deadchat support
-    /* See:
-    - https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/librarymodule.c#L161
-    */
+    // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/librarymodule.c#L161
+
     *(byte*)((int)dlsym(libHandle, "G_Say") + 0x2B3) = 0xeb;
     *(byte*)((int)dlsym(libHandle, "G_Say") + 0x3B6) = 0xeb;
     hook_call((int)dlsym(libHandle, "G_Say") + 0x5EA, (int)hook_G_Say);
@@ -1784,18 +1860,21 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_jmp((int)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x899, (int)hook_Jump_Check_Naked_2);
     resume_addr_Jump_Check_2 = (uintptr_t)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x8A4;
     
-    hook_gametype_scripts = new cHook((int)dlsym(libHandle, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
-    hook_gametype_scripts->hook();
-    hook_clientThink = new cHook((int)dlsym(libHandle, "ClientThink"), (int)custom_SV_ClientThink);
-    hook_clientThink->hook();
-    hook_clientendframe = new cHook((int)dlsym(libHandle, "ClientEndFrame"), (int)custom_ClientEndFrame);
-    hook_clientendframe->hook();
+    hook_GScr_LoadGameTypeScript = new cHook((int)dlsym(libHandle, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
+    hook_GScr_LoadGameTypeScript->hook();
+    hook_ClientThink = new cHook((int)dlsym(libHandle, "ClientThink"), (int)custom_SV_ClientThink);
+    hook_ClientThink->hook();
+    hook_ClientEndFrame = new cHook((int)dlsym(libHandle, "ClientEndFrame"), (int)custom_ClientEndFrame);
+    hook_ClientEndFrame->hook();
+
+    hook_PmoveSingle = new cHook((int)dlsym(libHandle, "PmoveSingle"), (int)custom_PmoveSingle);
+    hook_PmoveSingle->hook();
     
     //// Air jumping
-    hook_pm_airmove = new cHook((int)dlsym(libHandle, "_init") + 0x7B98, (int)custom_PM_AirMove);
-    hook_pm_airmove->hook();
-    hook_pm_crashland = new cHook((int)dlsym(libHandle, "_init") + 0x88C4, (int)custom_PM_CrashLand);
-    hook_pm_crashland->hook();
+    hook_PM_AirMove = new cHook((int)dlsym(libHandle, "_init") + 0x7B98, (int)custom_PM_AirMove);
+    hook_PM_AirMove->hook();
+    hook_PM_CrashLand = new cHook((int)dlsym(libHandle, "_init") + 0x88C4, (int)custom_PM_CrashLand);
+    hook_PM_CrashLand->hook();
     // TODO: Ignore the JLE only for players allowed to air jump
     int addr_Jump_Check_JLE = (int)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x7FD; // if ( pm->cmd.serverTime - pm->ps->jumpTime <= 499 )
     hook_nop(addr_Jump_Check_JLE, addr_Jump_Check_JLE + 2);
@@ -1856,18 +1935,18 @@ class libcod
         hook_jmp(0x080872ec, (int)custom_SV_ExecuteClientMessage);
         hook_jmp(0x08086d58, (int)custom_SV_ExecuteClientCommand);
 
-        hook_sys_loaddll = new cHook(0x080c5fe4, (int)custom_Sys_LoadDll);
-        hook_sys_loaddll->hook();
-        hook_com_init = new cHook(0x0806c654, (int)custom_Com_Init);
-        hook_com_init->hook();
-        hook_sv_spawnserver = new cHook(0x0808a220, (int)custom_SV_SpawnServer);
-        hook_sv_spawnserver->hook();
-        hook_sv_begindownload_f = new cHook(0x08087a64, (int)custom_SV_BeginDownload_f);
-        hook_sv_begindownload_f->hook();
-        hook_sv_sendclientgamestate = new cHook(0x08085eec, (int)custom_SV_SendClientGameState);
-        hook_sv_sendclientgamestate->hook();
-        hook_sv_addoperatorcommands = new cHook(0x08084a3c, (int)custom_SV_AddOperatorCommands);
-        hook_sv_addoperatorcommands->hook();
+        hook_Sys_LoadDll = new cHook(0x080c5fe4, (int)custom_Sys_LoadDll);
+        hook_Sys_LoadDll->hook();
+        hook_Com_Init = new cHook(0x0806c654, (int)custom_Com_Init);
+        hook_Com_Init->hook();
+        hook_SV_SpawnServer = new cHook(0x0808a220, (int)custom_SV_SpawnServer);
+        hook_SV_SpawnServer->hook();
+        hook_SV_BeginDownload_f = new cHook(0x08087a64, (int)custom_SV_BeginDownload_f);
+        hook_SV_BeginDownload_f->hook();
+        hook_SV_SendClientGameState = new cHook(0x08085eec, (int)custom_SV_SendClientGameState);
+        hook_SV_SendClientGameState->hook();
+        hook_SV_AddOperatorCommands = new cHook(0x08084a3c, (int)custom_SV_AddOperatorCommands);
+        hook_SV_AddOperatorCommands->hook();
 
         printf("Loading complete\n");
         printf("-----------------------------------\n");
