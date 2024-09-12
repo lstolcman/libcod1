@@ -113,6 +113,8 @@ stringIndex_t* scr_const;
 // Game lib functions
 G_Say_t G_Say;
 G_RegisterCvars_t G_RegisterCvars;
+G_AddEvent_t G_AddEvent;
+G_AddPredictableEvent_t G_AddPredictableEvent;
 trap_SendServerCommand_t trap_SendServerCommand;
 trap_GetConfigstringConst_t trap_GetConfigstringConst;
 trap_GetConfigstring_t trap_GetConfigstring;
@@ -159,6 +161,7 @@ Com_SkipRestOfLine_t Com_SkipRestOfLine;
 Com_ParseRestOfLine_t Com_ParseRestOfLine;
 Com_ParseInt_t Com_ParseInt;
 Jump_Check_t Jump_Check;
+PM_GetEffectiveStance_t PM_GetEffectiveStance;
 
 // Resume addresses
 uintptr_t resume_addr_Jump_Check;
@@ -584,9 +587,7 @@ static void ban()
                     auto adminParam = parsedParameters.find("-a");
                     if (adminParam != parsedParameters.end())
                     {
-                        std::string arg_sv_getplayerbynum = "dummy " + adminParam->second; // Cmd_Argv(1) for SV_GetPlayerByNum
-                        Cmd_TokenizeString(arg_sv_getplayerbynum.c_str());
-                        clAdmin = SV_GetPlayerByNum();
+                        clAdmin = &svs.clients[std::stoi(adminParam->second)];
                     }
                     clAdmin_searched = true;
                 }
@@ -724,9 +725,7 @@ static void ban()
     // Find the player
     if (useClientnum)
     {
-        std::string arg_sv_getplayerbynum = "dummy " + parsedParameters.find("-n")->second; // Cmd_Argv(1) for SV_GetPlayerByNum
-        Cmd_TokenizeString(arg_sv_getplayerbynum.c_str());
-        clToBan = SV_GetPlayerByNum();
+        clToBan = &svs.clients[std::stoi(parsedParameters.find("-n")->second)];
         if(!clToBan)
         {
             infoMessage = "Couldn't find player by num " + parsedParameters.find("-n")->second;
@@ -862,9 +861,7 @@ static void unban()
                     auto adminParam = parsedParameters.find("-a");
                     if (adminParam != parsedParameters.end())
                     {
-                        std::string arg_sv_getplayerbynum = "dummy " + adminParam->second; // Cmd_Argv(1) for SV_GetPlayerByNum
-                        Cmd_TokenizeString(arg_sv_getplayerbynum.c_str());
-                        clAdmin = SV_GetPlayerByNum();
+                        clAdmin = &svs.clients[std::stoi(adminParam->second)];
                     }
                     clAdmin_searched = true;
                 }
@@ -1121,14 +1118,10 @@ void UCMD_custom_sprint(client_t *cl)
         return;
     }
     
-    if (customPlayerState[clientNum].sprintActive)
-    {
-        customPlayerState[clientNum].sprintActive = qfalse;
-    }
+    if(customPlayerState[clientNum].sprintActive)
+        customPlayerState[clientNum].sprintActive = false;
     else
-    {
-        customPlayerState[clientNum].sprintRequestPending = qtrue;
-    }
+        customPlayerState[clientNum].sprintRequestPending = true;
 }
 
 // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/shared.c#L632
@@ -1196,19 +1189,8 @@ void custom_ClientEndFrame(gentity_t *ent)
         if(customPlayerState[clientNum].speed > 0)
             ent->client->ps.speed = customPlayerState[clientNum].speed;
         
-        if (customPlayerState[clientNum].sprintActive)
-        {
-            if (!(ent->client->ps.eFlags & EF_CROUCHING) && !(ent->client->ps.eFlags & EF_PRONE))
-            {
-                // Allow sprint only when standing
-                ent->client->ps.speed *= player_sprintSpeedScale->value;
-            }
-            else
-            {
-                // Turn off sprint when not standing
-                customPlayerState[clientNum].sprintActive = qfalse;                
-            }
-        }
+        if(customPlayerState[clientNum].sprintActive)
+            ent->client->ps.speed *= player_sprintSpeedScale->value;
         
         if(customPlayerState[clientNum].ufo)
             ent->client->ps.pm_type = PM_UFO;
@@ -1226,7 +1208,7 @@ void custom_PM_CrashLand()
     if (customPlayerState[clientNum].overrideJumpHeight_air)
     {
         // Player landed an airjump, disable overrideJumpHeight_air
-        customPlayerState[clientNum].overrideJumpHeight_air = qfalse;
+        customPlayerState[clientNum].overrideJumpHeight_air = false;
     }
     
     hook_PM_CrashLand->unhook();
@@ -1243,7 +1225,7 @@ void custom_PM_AirMove()
     if (customPlayerState[clientNum].airJumpsAvailable > 0)
     {
         // Player is allowed to jump, enable overrideJumpHeight_air
-        customPlayerState[clientNum].overrideJumpHeight_air = qtrue;
+        customPlayerState[clientNum].overrideJumpHeight_air = true;
         customPlayerState[clientNum].jumpHeight = jump_height->value * jump_height_airScale->value;
         
         if (Jump_Check())
@@ -1266,43 +1248,87 @@ void custom_PM_AirMove()
     hook_PM_AirMove->hook();
 }
 
-// See https://github.com/voron00/CoD2rev_Server/blob/b012c4b45a25f7f80dc3f9044fe9ead6463cb5c6/src/bgame/bg_weapons.cpp#L481
+/* See:
+- https://github.com/voron00/CoD2rev_Server/blob/b012c4b45a25f7f80dc3f9044fe9ead6463cb5c6/src/bgame/bg_weapons.cpp#L481
+- CoD4 1.7: 080570ae
+*/
 void PM_UpdateSprint()
 {
     int timerMsec;
     int clientNum;
     int sprint_time;
+    gentity_t *gentity;
+    client_t *client;
 
     clientNum = pm->ps->clientNum;
+    gentity = &g_entities[clientNum];
+    client = &svs.clients[clientNum];
     sprint_time = (int)(player_sprintTime->value * 1000.0);
+
+
+
+
     
     if (sprint_time > 0)
     {
         if (customPlayerState[clientNum].sprintRequestPending)
         {
-            if(!customPlayerState[clientNum].sprintTimer)
-                customPlayerState[clientNum].sprintActive = qtrue;
-            customPlayerState[clientNum].sprintRequestPending = qfalse;
+            // Player requested to sprint
+            if (/*PM_GetEffectiveStance(&gentity->client->ps) != 0*/(gentity->client->ps.eFlags & EF_CROUCHING) || (gentity->client->ps.eFlags & EF_PRONE)) // "pm->ps->eFlags" didn't work
+            {
+                // but he is not standing
+                // so raise him up
+                G_AddPredictableEvent(gentity, EV_STANCE_FORCE_STAND, 0);
+            }
+
+            if (client->lastUsercmd.forwardmove == KEY_MASK_FORWARD)
+            {
+                // he is moving forward
+                if(!customPlayerState[clientNum].sprintTimer)
+                {
+                    printf("#### sprintActive = true\n");
+                    customPlayerState[clientNum].sprintActive = true;
+                }
+            }
+            customPlayerState[clientNum].sprintRequestPending = false;
         }
         
-        if(customPlayerState[clientNum].sprintActive)
+        if (customPlayerState[clientNum].sprintActive)
+        {
+            // Player is sprinting
+            if (pm->ps->pm_flags & PMF_CROUCH || pm->ps->pm_flags & PMF_PRONE/*PM_GetEffectiveStance(&gentity->client->ps) != 0*//*((gentity->client->ps.eFlags & EF_CROUCHING) || (gentity->client->ps.eFlags & EF_PRONE))*//*&& raisedPlayer*/)
+            {
+                printf("#### but he crouched/proned\n");
+                // but he crouched/proned
+                // so stop his sprint
+                customPlayerState[clientNum].sprintActive = false;
+            }
+            else if (client->lastUsercmd.forwardmove != KEY_MASK_FORWARD)
+            {
+                // but he stopped moving forward
+                // so stop his sprint
+                customPlayerState[clientNum].sprintActive = false;                
+            }
+
             timerMsec = customPlayerState[clientNum].sprintTimer + pml->msec;
+        }
         else
+        {
             timerMsec = customPlayerState[clientNum].sprintTimer - pml->msec;
+        }
 
+        if(timerMsec < 0)
+            timerMsec = 0;
         customPlayerState[clientNum].sprintTimer = timerMsec;
-
-        if (customPlayerState[clientNum].sprintTimer < 0)
-            customPlayerState[clientNum].sprintTimer = 0;
         
         if (customPlayerState[clientNum].sprintActive && customPlayerState[clientNum].sprintTimer > sprint_time)
         {
-            customPlayerState[clientNum].sprintActive = qfalse;
+            customPlayerState[clientNum].sprintActive = false;
         }
     }
     else
     {
-        customPlayerState[clientNum].sprintActive = qfalse;
+        customPlayerState[clientNum].sprintActive = false;
         customPlayerState[clientNum].sprintTimer = 0;
     }
 }
@@ -1801,6 +1827,8 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Scr_ParamError = (Scr_ParamError_t)dlsym(libHandle, "Scr_ParamError");
     G_Say = (G_Say_t)dlsym(libHandle, "G_Say");
     G_RegisterCvars = (G_RegisterCvars_t)dlsym(libHandle, "G_RegisterCvars");
+    G_AddEvent = (G_AddEvent_t)dlsym(libHandle, "G_AddEvent");
+    G_AddPredictableEvent = (G_AddPredictableEvent_t)dlsym(libHandle, "G_AddPredictableEvent");
     trap_GetConfigstringConst = (trap_GetConfigstringConst_t)dlsym(libHandle, "trap_GetConfigstringConst");
     trap_GetConfigstring = (trap_GetConfigstring_t)dlsym(libHandle, "trap_GetConfigstring");
     BG_GetNumWeapons = (BG_GetNumWeapons_t)dlsym(libHandle, "BG_GetNumWeapons");
@@ -1829,6 +1857,7 @@ void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Q_strncpyz = (Q_strncpyz_t)dlsym(libHandle, "Q_strncpyz");
     Q_CleanStr = (Q_CleanStr_t)dlsym(libHandle, "Q_CleanStr");
     Jump_Check = (Jump_Check_t)((int)dlsym(libHandle, "_init") + 0x76F4);
+    PM_GetEffectiveStance = (PM_GetEffectiveStance_t)dlsym(libHandle, "PM_GetEffectiveStance");
 
     //// Patch codmsgboom
     /* See:

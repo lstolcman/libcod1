@@ -455,14 +455,14 @@ void gsc_player_setufo(scr_entref_t ref)
         return;
     }
 
-    if (state != qfalse && state != qtrue)
+    if (state != 0 && state != 0)
     {
         stackError("gsc_player_setufo() param must be 0 or 1");
         stackPushUndefined();
         return;
     }
 
-    customPlayerState[id].ufo = state ? qtrue : qfalse;
+    customPlayerState[id].ufo = state ? true : false;
 
     stackPushBool(qtrue);
 }
@@ -512,10 +512,10 @@ void gsc_player_setjumpheight(scr_entref_t ref)
     }
 
     if(jump_height < 0)
-        customPlayerState[id].overrideJumpHeight = qfalse;
+        customPlayerState[id].overrideJumpHeight = false;
     else
     {
-        customPlayerState[id].overrideJumpHeight = qtrue;
+        customPlayerState[id].overrideJumpHeight = true;
         customPlayerState[id].jumpHeight = jump_height;
     }
 

@@ -231,6 +231,10 @@ extern G_Say_t G_Say;
 
 typedef void (*G_RegisterCvars_t)(void);
 extern G_RegisterCvars_t G_RegisterCvars;
+
+typedef void (*G_AddEvent_t)(gentity_t *ent, int event, int eventParm);
+
+typedef void (*G_AddPredictableEvent_t)(gentity_t *ent, int event, int eventParm);
 //
 
 // MSG
@@ -419,5 +423,7 @@ typedef void (*Huff_Decompress_t)(msg_t *mbuf, int offset);
 static const Huff_Decompress_t Huff_Decompress = (Huff_Decompress_t)0x08071f7c;
 
 typedef int (*Jump_Check_t)();
+
+typedef int (*PM_GetEffectiveStance_t)(playerState_t *ps);
 
 #endif
