@@ -524,6 +524,13 @@ typedef struct usercmd_s
 
 typedef enum
 {
+    G_PRINT,
+    G_ERROR,
+    //...
+} gameImport_t;
+
+typedef enum
+{
     GAME_INIT,
     GAME_SHUTDOWN,
     GAME_CLIENT_CONNECT,
@@ -531,7 +538,20 @@ typedef enum
     GAME_CLIENT_USERINFO_CHANGED,
     GAME_CLIENT_DISCONNECT,
     GAME_CLIENT_COMMAND,
-    //...
+    GAME_CLIENT_THINK,
+    GAME_GET_FOLLOW_PLAYER_STATE,
+    GAME_UPDATE_CVARS,
+    GAME_RUN_FRAME,
+    GAME_CONSOLE_COMMAND,
+    GAME_SCR_FARHOOK,
+    GAME_D_OBJ_CALC_POSE,
+    GAME_BG_VALIDATE_WEAPON_NUMBER,
+    GAME_SET_SAVE_PERSIST,
+    GAME_GET_SAVE_PERSIST,
+    GAME_GET_CLIENT_SATE,
+    GAME_GET_CLIENT_ARCHIVE_TIME,
+    GAME_SET_CLIENT_ARCHIVE_TIME,
+    GAME_GET_CLIENT_SCORE
 } gameExport_t;
 
 typedef void netProfileInfo_t;
@@ -1003,4 +1023,5 @@ typedef struct callback_s
 {
     int *pos;
     const char *name;
+    bool custom;
 } callback_t;

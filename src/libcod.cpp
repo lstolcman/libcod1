@@ -42,6 +42,7 @@ cvar_t *jump_height;
 cvar_t *jump_height_airScale;
 cvar_t *sv_cracked;
 cvar_t *player_sprint;
+cvar_t *player_sprintMinTime;
 cvar_t *player_sprintSpeedScale;
 cvar_t *player_sprintTime;
 
@@ -72,15 +73,15 @@ int codecallback_playerairjump = 0;
 
 callback_t callbacks[] =
 {
-    { &codecallback_startgametype, "CodeCallback_StartGameType" }, // g_scr_data.gametype.startupgametype
-    { &codecallback_playerconnect, "CodeCallback_PlayerConnect" }, // g_scr_data.gametype.playerconnect
-    { &codecallback_playerdisconnect, "CodeCallback_PlayerDisconnect" }, // g_scr_data.gametype.playerdisconnect
-    { &codecallback_playerdamage, "CodeCallback_PlayerDamage" }, // g_scr_data.gametype.playerdamage
-    { &codecallback_playerkilled, "CodeCallback_PlayerKilled" }, // g_scr_data.gametype.playerkilled
+    {&codecallback_startgametype, "CodeCallback_StartGameType", false},
+    {&codecallback_playerconnect, "CodeCallback_PlayerConnect", false},
+    {&codecallback_playerdisconnect, "CodeCallback_PlayerDisconnect", false},
+    {&codecallback_playerdamage, "CodeCallback_PlayerDamage", false},
+    {&codecallback_playerkilled, "CodeCallback_PlayerKilled", false},
 
-    { &codecallback_client_spam, "CodeCallback_CLSpam"},
-    { &codecallback_playercommand, "CodeCallback_PlayerCommand"},
-    { &codecallback_playerairjump, "CodeCallback_PlayerAirJump"},
+    {&codecallback_client_spam, "CodeCallback_CLSpam", true},
+    {&codecallback_playercommand, "CodeCallback_PlayerCommand", true},
+    {&codecallback_playerairjump, "CodeCallback_PlayerAirJump", true}
 };
 
 void UCMD_custom_sprint(client_t *cl);
@@ -197,7 +198,7 @@ void custom_Com_Init(char *commandLine)
     Cvar_Get("sv_wwwBaseURL", "", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
     Cvar_Get("sv_wwwDownload", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
     
-    fs_callbacks = Cvar_Get("fs_callbacks", "", CVAR_ARCHIVE);
+    fs_callbacks = Cvar_Get("fs_callbacks", "maps/mp/gametypes/_callbacksetup", CVAR_ARCHIVE);
     fs_callbacks_additional = Cvar_Get("fs_callbacks_additional", "", CVAR_ARCHIVE);
     fs_svrPaks = Cvar_Get("fs_svrPaks", "", CVAR_ARCHIVE);
     g_deadChat = Cvar_Get("g_deadChat", "0", CVAR_ARCHIVE);
@@ -207,12 +208,14 @@ void custom_Com_Init(char *commandLine)
     jump_height = Cvar_Get("jump_height", "39.0", CVAR_ARCHIVE);
     jump_height_airScale = Cvar_Get("jump_height_airScaleScale", "1.5", CVAR_ARCHIVE);
     player_sprint = Cvar_Get("player_sprint", "0", CVAR_ARCHIVE);
+    player_sprintMinTime = Cvar_Get("player_sprintMinTime", "1.0", CVAR_ARCHIVE);
     player_sprintSpeedScale = Cvar_Get("player_sprintSpeedScale", "1.5", CVAR_ARCHIVE);
     player_sprintTime = Cvar_Get("player_sprintTime", "4.0", CVAR_ARCHIVE);
     sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
 
     /*
     Force cl_allowDownload on client, otherwise 1.1x can't download to join the server
+    See: https://github.com/xtnded/codextended-client/blob/45af251518a390ab08b1c8713a6a1544b70114a1/cl_main.cpp#L41
     TODO: Force only for 1.1x clients
     */
     Cvar_Get("cl_allowDownload", "1", CVAR_SYSTEMINFO);
@@ -315,31 +318,18 @@ void custom_GScr_LoadGameTypeScript()
     hook_GScr_LoadGameTypeScript->hook();
 
     unsigned int i;
-    char path_for_cb[512] = "maps/mp/gametypes/_callbacksetup";
-
-    if (*fs_callbacks_additional->string)
-    {
+    
+    if(*fs_callbacks_additional->string)
         if(!Scr_LoadScript(fs_callbacks_additional->string))
-            Com_DPrintf("custom_GScr_LoadGameTypeScript: Scr_LoadScript for fs_callbacks_additional cvar failed.\n");
-    }
-    else
-    {
-        Com_DPrintf("custom_GScr_LoadGameTypeScript: No custom callback file specified in fs_callbacks_additional cvar.\n");
-    }
+            Com_DPrintf("custom_GScr_LoadGameTypeScript: Scr_LoadScript for fs_callbacks_additional failed.\n");
 
-    if(*fs_callbacks->string)
-        strncpy(path_for_cb, fs_callbacks->string, sizeof(path_for_cb));
-        
-    for (i = 0; i < sizeof(callbacks)/sizeof(callbacks[0]); i++)
+    for (i = 0; i < sizeof(callbacks) / sizeof(callbacks[0]); i++)
     {
-        if (!strcmp(callbacks[i].name, "CodeCallback_PlayerCommand")
-            || !strcmp(callbacks[i].name, "CodeCallback_PlayerAirJump"))
-        {
+        if(callbacks[i].custom)
             *callbacks[i].pos = Scr_GetFunctionHandle(fs_callbacks_additional->string, callbacks[i].name);
-        }
         else
-            *callbacks[i].pos = Scr_GetFunctionHandle(path_for_cb, callbacks[i].name);
-        
+            *callbacks[i].pos = Scr_GetFunctionHandle(fs_callbacks->string, callbacks[i].name);
+
         /*if ( *callbacks[i].pos && g_debugCallbacks->integer )
             Com_Printf("%s found @ %p\n", callbacks[i].name, scrVarPub.programBuffer + *callbacks[i].pos);*/ //TODO: verify scrVarPub_t
     }
@@ -1256,75 +1246,60 @@ void PM_UpdateSprint()
 {
     int timerMsec;
     int clientNum;
-    int sprint_time;
+    float sprint_time;
+    float sprint_minTime;
     gentity_t *gentity;
     client_t *client;
 
     clientNum = pm->ps->clientNum;
     gentity = &g_entities[clientNum];
     client = &svs.clients[clientNum];
-    sprint_time = (int)(player_sprintTime->value * 1000.0);
-
-
-
-
+    sprint_time = player_sprintTime->value * 1000.0;
+    sprint_minTime = player_sprintMinTime->value * 1000.0;
     
     if (sprint_time > 0)
     {
         if (customPlayerState[clientNum].sprintRequestPending)
         {
-            // Player requested to sprint
-            if (/*PM_GetEffectiveStance(&gentity->client->ps) != 0*/(gentity->client->ps.eFlags & EF_CROUCHING) || (gentity->client->ps.eFlags & EF_PRONE)) // "pm->ps->eFlags" didn't work
+            if (client->lastUsercmd.forwardmove != KEY_MASK_FORWARD)
             {
-                // but he is not standing
-                // so raise him up
+                customPlayerState[clientNum].sprintRequestPending = false;
+                return;
+            }
+            
+            if ((gentity->client->ps.eFlags & EF_CROUCHING) || (gentity->client->ps.eFlags & EF_PRONE))
+            {
                 G_AddPredictableEvent(gentity, EV_STANCE_FORCE_STAND, 0);
+                return;
             }
-
-            if (client->lastUsercmd.forwardmove == KEY_MASK_FORWARD)
-            {
-                // he is moving forward
-                if(!customPlayerState[clientNum].sprintTimer)
-                {
-                    printf("#### sprintActive = true\n");
-                    customPlayerState[clientNum].sprintActive = true;
-                }
-            }
-            customPlayerState[clientNum].sprintRequestPending = false;
         }
         
         if (customPlayerState[clientNum].sprintActive)
         {
-            // Player is sprinting
-            if (pm->ps->pm_flags & PMF_CROUCH || pm->ps->pm_flags & PMF_PRONE/*PM_GetEffectiveStance(&gentity->client->ps) != 0*//*((gentity->client->ps.eFlags & EF_CROUCHING) || (gentity->client->ps.eFlags & EF_PRONE))*//*&& raisedPlayer*/)
-            {
-                printf("#### but he crouched/proned\n");
-                // but he crouched/proned
-                // so stop his sprint
-                customPlayerState[clientNum].sprintActive = false;
-            }
-            else if (client->lastUsercmd.forwardmove != KEY_MASK_FORWARD)
-            {
-                // but he stopped moving forward
-                // so stop his sprint
-                customPlayerState[clientNum].sprintActive = false;                
-            }
-
             timerMsec = customPlayerState[clientNum].sprintTimer + pml->msec;
+
+            if((gentity->client->ps.eFlags & EF_CROUCHING) || (gentity->client->ps.eFlags & EF_PRONE))
+                customPlayerState[clientNum].sprintActive = false;
+            if(client->lastUsercmd.forwardmove != KEY_MASK_FORWARD)
+                customPlayerState[clientNum].sprintActive = false;
         }
         else
-        {
             timerMsec = customPlayerState[clientNum].sprintTimer - pml->msec;
-        }
-
+        
         if(timerMsec < 0)
             timerMsec = 0;
         customPlayerState[clientNum].sprintTimer = timerMsec;
         
-        if (customPlayerState[clientNum].sprintActive && customPlayerState[clientNum].sprintTimer > sprint_time)
+        if (customPlayerState[clientNum].sprintRequestPending)
         {
-            customPlayerState[clientNum].sprintActive = false;
+            if(customPlayerState[clientNum].sprintTimer < (sprint_time - sprint_minTime))
+                customPlayerState[clientNum].sprintActive = true;
+            customPlayerState[clientNum].sprintRequestPending = false;
+            return;
         }
+        
+        if(customPlayerState[clientNum].sprintActive && customPlayerState[clientNum].sprintTimer > sprint_time)
+            customPlayerState[clientNum].sprintActive = false;
     }
     else
     {
@@ -1763,10 +1738,10 @@ void ServerCrash(int sig)
     exit(1);
 }
 
-void* custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...))
+void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...))
 {
     hook_Sys_LoadDll->unhook();
-    void*(*Sys_LoadDll)(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...));
+    void *(*Sys_LoadDll)(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...));
     *(int*)&Sys_LoadDll = hook_Sys_LoadDll->from;
     void* libHandle = Sys_LoadDll(name, fqpath, entryPoint, systemcalls);
     hook_Sys_LoadDll->hook();
