@@ -22,7 +22,7 @@ asm volatile (
 extern cvar_t *jump_height;
 
 // Game lib objects
-extern pmove_t *pm;
+extern pmove_t **pm;
 
 // Resume addresses
 extern uintptr_t resume_addr_Jump_Check;
@@ -32,7 +32,7 @@ extern customPlayerState_t customPlayerState[MAX_CLIENTS];
 
 float getJumpHeight()
 {
-    int clientNum = pm->ps->clientNum;
+    int clientNum = (*pm)->ps->clientNum;
 
     if(customPlayerState[clientNum].overrideJumpHeight || customPlayerState[clientNum].overrideJumpHeight_air)
         return customPlayerState[clientNum].jumpHeight;

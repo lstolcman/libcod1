@@ -104,12 +104,12 @@ static ucmd_t ucmds[] =
 customPlayerState_t customPlayerState[MAX_CLIENTS];
 
 // Game lib objects
-gentity_t* g_entities;
-gclient_t* g_clients;
-level_locals_t* level;
-pmove_t* pm;
-pml_t* pml;
-stringIndex_t* scr_const;
+gentity_t *g_entities;
+gclient_t *g_clients;
+level_locals_t *level;
+pmove_t **pm;
+pml_t *pml;
+stringIndex_t *scr_const;
 
 // Game lib functions
 G_Say_t G_Say;
@@ -1194,7 +1194,7 @@ void custom_ClientEndFrame(gentity_t *ent)
 
 void custom_PM_CrashLand()
 {
-    int clientNum = pm->ps->clientNum;
+    int clientNum = (*pm)->ps->clientNum;
     if (customPlayerState[clientNum].overrideJumpHeight_air)
     {
         // Player landed an airjump, disable overrideJumpHeight_air
@@ -1211,7 +1211,7 @@ void custom_PM_CrashLand()
 void custom_PM_AirMove()
 {
     // Player is in air
-    int clientNum = pm->ps->clientNum;
+    int clientNum = (*pm)->ps->clientNum;
     if (customPlayerState[clientNum].airJumpsAvailable > 0)
     {
         // Player is allowed to jump, enable overrideJumpHeight_air
@@ -1224,7 +1224,7 @@ void custom_PM_AirMove()
             customPlayerState[clientNum].airJumpsAvailable--;
             if (codecallback_playerairjump)
             {
-                gentity_t *gentity = &g_entities[pm->ps->clientNum];
+                gentity_t *gentity = &g_entities[(*pm)->ps->clientNum];
                 short ret = Scr_ExecEntThread(gentity, codecallback_playerairjump, 0);
                 Scr_FreeThread(ret);
             }
@@ -1242,7 +1242,7 @@ void custom_PM_AirMove()
 - https://github.com/voron00/CoD2rev_Server/blob/b012c4b45a25f7f80dc3f9044fe9ead6463cb5c6/src/bgame/bg_weapons.cpp#L481
 - CoD4 1.7: 080570ae
 */
-void PM_UpdateSprint()
+void PM_UpdateSprint(pmove_t *pmove)
 {
     int timerMsec;
     int clientNum;
@@ -1251,7 +1251,7 @@ void PM_UpdateSprint()
     gentity_t *gentity;
     client_t *client;
 
-    clientNum = pm->ps->clientNum;
+    clientNum = pmove->ps->clientNum;
     gentity = &g_entities[clientNum];
     client = &svs.clients[clientNum];
     sprint_time = player_sprintTime->value * 1000.0;
@@ -1316,7 +1316,7 @@ void custom_PmoveSingle(pmove_t *pmove)
     PmoveSingle(pmove);
     hook_PmoveSingle->hook();
 
-    PM_UpdateSprint();
+    PM_UpdateSprint(pmove);
 }
 
 // ioquake3 rate limit connectionless requests
@@ -1777,7 +1777,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     g_clients = (gclient_t*)dlsym(libHandle, "g_clients");
     g_entities = (gentity_t*)dlsym(libHandle, "g_entities");
     level = (level_locals_t*)dlsym(libHandle, "level");
-    pm = (pmove_t*)dlsym(libHandle, "pm");
+    pm = (pmove_t**)dlsym(libHandle, "pm");
     pml = (pml_t*)dlsym(libHandle, "pml");
     scr_const = (stringIndex_t*)dlsym(libHandle, "scr_const");
 
