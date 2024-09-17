@@ -22,6 +22,7 @@
 #include "cracking.hpp"
 #include "functions.hpp"
 
+#include "gsc_bots.hpp"
 #include "gsc_entity.hpp"
 #include "gsc_exec.hpp"
 #include "jump.hpp"

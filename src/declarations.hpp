@@ -28,6 +28,7 @@
 #define MAX_GENTITIES               ( 1 << GENTITYNUM_BITS )
 #define MAX_INFO_STRING             0x400
 #define MAX_MSGLEN                  0x4000
+#define MAX_NETNAME                 36
 #define MAX_OSPATH                  256
 #define MAX_QPATH                   64
 #define	MAX_NAME_LENGTH             32
@@ -42,17 +43,22 @@
 
 #define SVF_SINGLECLIENT        0x800
 
+#define KEY_MASK_NONE       0
 #define KEY_MASK_FORWARD    127
 #define KEY_MASK_BACK       -127
 #define KEY_MASK_MOVERIGHT  127
 #define KEY_MASK_MOVELEFT   -127
-#define KEY_MASK_MOVEUP     127
-#define KEY_MASK_MOVEDOWN   -127
+#define KEY_MASK_JUMP       127
 
+#define KEY_MASK_FIRE           0x1
 #define KEY_MASK_RELOAD         0x8
 #define KEY_MASK_LEANLEFT       0x10
-#define KEY_MASK_LEANRIGHT      0x20
 #define KEY_MASK_ADS_MODE       0x10
+#define KEY_MASK_LEANRIGHT      0x20
+#define KEY_MASK_MELEE          0x20
+#define KEY_MASK_USE            0x40
+#define KEY_MASK_PRONE          0x40
+#define KEY_MASK_CROUCH         0x80
 
 #define EF_CROUCHING    0x20
 #define EF_PRONE        0x40
@@ -541,7 +547,7 @@ typedef enum
     GAME_CLIENT_THINK,
     GAME_GET_FOLLOW_PLAYER_STATE,
     GAME_UPDATE_CVARS,
-    GAME_RUN_FRAME,
+    GAME_RUN_FRAME, // 10
     GAME_CONSOLE_COMMAND,
     GAME_SCR_FARHOOK,
     GAME_D_OBJ_CALC_POSE,
@@ -749,7 +755,13 @@ typedef struct
     int deaths;
     byte pad[4];
     clientConnected_t connected;
-    //...
+    usercmd_t cmd;
+    usercmd_t oldcmd;
+    qboolean localClient;
+    byte pad2[8];
+    char netname[MAX_NETNAME];
+    int maxHealth;
+    byte pad3[128];
 } clientSession_t;
 
 struct gclient_s
@@ -990,6 +1002,8 @@ static_assert((sizeof(client_t) == 370940), "ERROR: client_t size is invalid!");
 static_assert((sizeof(playerState_t) == 8400), "ERROR: playerState_t size is invalid!");
 static_assert((sizeof(entityShared_t) == 100), "ERROR: entityShared_t size is invalid!");
 static_assert((sizeof(gentity_t) == 788), "ERROR: gentity_t size is invalid!");
+static_assert((sizeof(usercmd_t) == 24), "ERROR: usercmd_t size is invalid!");
+static_assert((sizeof(clientSession_t) == 260), "ERROR: clientSession_t size is invalid!");
 #endif
 
 #endif
@@ -1009,7 +1023,6 @@ typedef struct customPlayerState_s
     int fps;
     int frames;
     uint64_t frameTime;
-    bool ufo;
     bool overrideJumpHeight;
     int jumpHeight;
     int airJumpsAvailable;
@@ -1017,6 +1030,10 @@ typedef struct customPlayerState_s
     bool sprintActive;
     bool sprintRequestPending;
     int sprintTimer;
+    int botButtons;
+    int botWeapon;
+    char botForwardMove;
+    char botRightMove;
 } customPlayerState_t;
 
 typedef struct callback_s

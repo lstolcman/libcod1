@@ -1143,7 +1143,59 @@ char *custom_va(const char *format, ...)
     return buf;
 }
 
-void custom_SV_ClientThink(int clientNum)
+
+
+
+
+
+
+
+
+
+void custom_SV_BotUserMove(client_t *client)
+{
+    int num;
+    usercmd_t ucmd = {0};
+
+    if ( client->gentity == NULL )
+        return;
+
+    num = client - svs.clients;
+    ucmd.serverTime = svs.time;
+
+    playerState_t *ps = SV_GameClientNum(num);
+    gentity_t *ent = &g_entities[num];
+
+    if ( customPlayerState[num].botWeapon )
+        ucmd.weapon = (byte)(customPlayerState[num].botWeapon & 0xFF);
+    else
+        ucmd.weapon = (byte)(ps->weapon & 0xFF);
+
+    if ( ent->client == NULL )
+        return;
+
+    if ( ent->client->sess.archiveTime == 0 )
+    {
+        ucmd.buttons = customPlayerState[num].botButtons;
+        ucmd.forwardmove = customPlayerState[num].botForwardMove;
+        ucmd.rightmove = customPlayerState[num].botRightMove;
+
+        VectorCopy(ent->client->sess.cmd.angles, ucmd.angles);
+    }
+
+    client->deltaMessage = client->netchan.outgoingSequence - 1;
+    SV_ClientThink(client, &ucmd);
+}
+
+
+
+
+
+
+
+
+
+void custom_ClientThink(int clientNum)
 {
     hook_ClientThink->unhook();
     void (*ClientThink)(int clientNum);
@@ -1182,9 +1234,6 @@ void custom_ClientEndFrame(gentity_t *ent)
         if(customPlayerState[clientNum].sprintActive)
             ent->client->ps.speed *= player_sprintSpeedScale->value;
         
-        if(customPlayerState[clientNum].ufo)
-            ent->client->ps.pm_type = PM_UFO;
-
         // Stop slide after fall damage
         if(g_resetSlide->integer)
             if(ent->client->ps.pm_flags & PMF_SLIDING)
@@ -1866,7 +1915,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     
     hook_GScr_LoadGameTypeScript = new cHook((int)dlsym(libHandle, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
     hook_GScr_LoadGameTypeScript->hook();
-    hook_ClientThink = new cHook((int)dlsym(libHandle, "ClientThink"), (int)custom_SV_ClientThink);
+    hook_ClientThink = new cHook((int)dlsym(libHandle, "ClientThink"), (int)custom_ClientThink);
     hook_ClientThink->hook();
     hook_ClientEndFrame = new cHook((int)dlsym(libHandle, "ClientEndFrame"), (int)custom_ClientEndFrame);
     hook_ClientEndFrame->hook();
@@ -1938,6 +1987,14 @@ class libcod
         hook_jmp(0x080716cc, (int)custom_FS_ReferencedPakNames);
         hook_jmp(0x080872ec, (int)custom_SV_ExecuteClientMessage);
         hook_jmp(0x08086d58, (int)custom_SV_ExecuteClientCommand);
+
+
+
+
+        hook_jmp(0x0808cccc, (int)custom_SV_BotUserMove);
+        
+
+
 
         hook_Sys_LoadDll = new cHook(0x080c5fe4, (int)custom_Sys_LoadDll);
         hook_Sys_LoadDll->hook();

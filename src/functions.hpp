@@ -199,6 +199,17 @@ static const SV_DoneDownload_f_t SV_DoneDownload_f = (SV_DoneDownload_f_t)0x0808
 
 typedef void (*SV_RetransmitDownload_f_t)(client_t *cl);
 static const SV_RetransmitDownload_f_t SV_RetransmitDownload_f = (SV_RetransmitDownload_f_t)0x08087a2c;
+
+
+
+
+
+typedef gentity_t * (*SV_ClientThink_t)(client_t *cl, usercmd_t *cmd);
+static const SV_ClientThink_t SV_ClientThink = (SV_ClientThink_t)0x0808789c;
+
+
+
+
 //
 
 // Info
@@ -387,6 +398,9 @@ typedef void (*Q_CleanStr_t)(char *string);
 
 typedef int (*Q_strncmp_t)(const char *s1, const char *s2, int n);
 static const Q_strncmp_t Q_strncmp = (Q_strncmp_t)0x0808315c;
+
+typedef int (*Q_stricmp_t)(const char *s1, const char *s2);
+static const Q_stricmp_t Q_stricmp = (Q_stricmp_t)0x080830e8;
 //
 
 typedef qboolean (*StuckInClient_t)(gentity_s *self);

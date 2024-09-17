@@ -176,36 +176,20 @@ void gsc_player_button_back(scr_entref_t ref)
     stackPushBool(client->lastUsercmd.forwardmove == KEY_MASK_BACK ? qtrue : qfalse);
 }
 
-void gsc_player_button_up(scr_entref_t ref)
+void gsc_player_button_jump(scr_entref_t ref)
 {
     int id = ref.entnum;
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
-        stackError("gsc_player_button_up() entity %i is not a player", id);
+        stackError("gsc_player_button_jump() entity %i is not a player", id);
         stackPushUndefined();
         return;
     }
 
     client_t *client = &svs.clients[id];
 
-    stackPushBool(client->lastUsercmd.upmove == KEY_MASK_MOVEUP ? qtrue : qfalse);
-}
-
-void gsc_player_button_down(scr_entref_t ref)
-{
-    int id = ref.entnum;
-
-    if ( id >= MAX_CLIENTS )
-    {
-        stackError("gsc_player_button_down() entity %i is not a player", id);
-        stackPushUndefined();
-        return;
-    }
-
-    client_t *client = &svs.clients[id];
-
-    stackPushBool(client->lastUsercmd.upmove == KEY_MASK_MOVEDOWN ? qtrue : qfalse);
+    stackPushBool(client->lastUsercmd.upmove == KEY_MASK_JUMP ? qtrue : qfalse);
 }
 
 void gsc_player_button_leanleft(scr_entref_t ref)
@@ -436,33 +420,76 @@ void gsc_player_isonladder(scr_entref_t ref)
     stackPushBool(ps->pm_flags & PMF_LADDER ? qtrue : qfalse);
 }
 
-void gsc_player_setufo(scr_entref_t ref)
+void gsc_player_noclip(scr_entref_t ref)
 {
     int id = ref.entnum;
-    int state;
+    char *noclip;
 
-    if (!stackGetParams("i", &state))
+    if ( !stackGetParams("s", &noclip) )
     {
-        stackError("gsc_player_setufo() argument is undefined or has a wrong type");
+        stackError("gsc_player_noclip() argument is undefined or has a wrong type");
         stackPushUndefined();
         return;
     }
 
-    if (id >= MAX_CLIENTS)
+    if ( id >= MAX_CLIENTS )
     {
-        stackError("gsc_player_setufo() entity %i is not a player", id);
+        stackError("gsc_player_noclip() entity %i is not a player", id);
         stackPushUndefined();
         return;
     }
 
-    if (state != 0 && state != 0)
+    gentity_t *entity = &g_entities[id];
+
+    if ( !Q_stricmp(noclip, "on") || atoi(noclip) )
     {
-        stackError("gsc_player_setufo() param must be 0 or 1");
+        entity->client->noclip = qtrue;
+    }
+    else if ( !Q_stricmp(noclip, "off") || !Q_stricmp(noclip, "0") )
+    {
+        entity->client->noclip = qfalse;
+    }
+    else
+    {
+        entity->client->noclip = !entity->client->noclip;
+    }
+
+    stackPushBool(qtrue);
+}
+
+void gsc_player_ufo(scr_entref_t ref)
+{
+    int id = ref.entnum;
+    char *ufo;
+
+    if ( !stackGetParams("s", &ufo) )
+    {
+        stackError("gsc_player_ufo() argument is undefined or has a wrong type");
         stackPushUndefined();
         return;
     }
 
-    customPlayerState[id].ufo = state ? true : false;
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_ufo() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    gentity_t *entity = &g_entities[id];
+
+    if ( !Q_stricmp(ufo, "on") || atoi(ufo) )
+    {
+        entity->client->ufo = qtrue;
+    }
+    else if ( !Q_stricmp(ufo, "off") || !Q_stricmp(ufo, "0") )
+    {
+        entity->client->ufo = qfalse;
+    }
+    else
+    {
+        entity->client->ufo = !entity->client->ufo;
+    }
 
     stackPushBool(qtrue);
 }

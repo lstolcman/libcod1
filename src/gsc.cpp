@@ -99,8 +99,7 @@ scr_method_t scriptMethods[] =
     {"rightButtonPressed", gsc_player_button_right, 0},
     {"forwardButtonPressed", gsc_player_button_forward, 0},
     {"backButtonPressed", gsc_player_button_back, 0},
-    {"moveUpButtonPressed", gsc_player_button_up, 0},
-    {"moveDownButtonPressed", gsc_player_button_down, 0},
+    {"jumpButtonPressed", gsc_player_button_jump, 0},
     {"leanleftButtonPressed", gsc_player_button_leanleft, 0},
     {"leanRightButtonPressed", gsc_player_button_leanright, 0},
     {"reloadButtonPressed", gsc_player_button_reload, 0},
@@ -118,8 +117,11 @@ scr_method_t scriptMethods[] =
     {"getAirJumps", gsc_player_getairjumps, 0},
     {"getFps", gsc_player_getfps, 0},
     {"isOnLadder", gsc_player_isonladder, 0},
-    {"setUfo", gsc_player_setufo, 0},
+    {"noClip", gsc_player_noclip, 0},
+    {"ufo", gsc_player_ufo, 0},
     {"connectionlessPacketToClient", gsc_player_connectionlesspackettoclient, 0},
+
+    {"setBotStance", gsc_bots_setbotstance, 0},
 
 #if COMPILE_SQLITE == 1
     {"async_sqlite_create_entity_query", gsc_async_sqlite_create_entity_query, 0},
@@ -442,9 +444,19 @@ void gsc_testmethod(scr_entref_t ref)
     }
     
     //client_t* client = &svs.clients[id];
-    //gentity_t* gentity = &g_entities[id];
-    //playerState_t *ps = SV_GameClientNum(id);
-    //gclient_t *gclient = gentity->client;
+    /*playerState_t *ps = SV_GameClientNum(id);
+    gentity_t *gentity = &g_entities[id];
+    gclient_t *g_client = gentity->client;*/
 
-    //printf("##### ps->gravity = %i\n", ps->gravity);
+
+    //printf("###### archiveTime = %i\n", g_client->sess.archiveTime);
+    
+    
+
+
+
+
+
+
+
 }

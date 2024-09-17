@@ -118,6 +118,9 @@ $cc $debug $options $constants -c cracking.cpp -o objects/cracking.opp
 echo "##### COMPILE GSC.CPP         #####"
 $cc $debug $options $constants -c gsc.cpp -o objects/gsc.opp
 
+echo "##### COMPILE GSC_BOTS.CPP    #####"
+$cc $debug $options $constants -c gsc_bots.cpp -o objects/gsc_bots.opp
+
 echo "##### COMPILE GSC_ENTITY.CPP  #####"
 $cc $debug $options $constants -c gsc_entity.cpp -o objects/gsc_entity.opp
 
