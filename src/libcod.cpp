@@ -1079,7 +1079,7 @@ void custom_SV_ExecuteClientCommand(client_t *cl, const char *s, qboolean client
 {
     ucmd_t *u;
 
-    ((void(*)(int))0x080bfea0)(1); // Unknown function
+    ((void(*)(int))0x080bfea0)(1); // Unknown function, seems related to scrAnimGlob
     Cmd_TokenizeString(s);
 
     for (u = ucmds; u->name; u++)
@@ -1143,21 +1143,12 @@ char *custom_va(const char *format, ...)
     return buf;
 }
 
-
-
-
-
-
-
-
-
-
 void custom_SV_BotUserMove(client_t *client)
 {
     int num;
     usercmd_t ucmd = {0};
 
-    if ( client->gentity == NULL )
+    if(client->gentity == NULL)
         return;
 
     num = client - svs.clients;
@@ -1166,19 +1157,21 @@ void custom_SV_BotUserMove(client_t *client)
     playerState_t *ps = SV_GameClientNum(num);
     gentity_t *ent = &g_entities[num];
 
-    if ( customPlayerState[num].botWeapon )
+    if(customPlayerState[num].botWeapon)
         ucmd.weapon = (byte)(customPlayerState[num].botWeapon & 0xFF);
     else
         ucmd.weapon = (byte)(ps->weapon & 0xFF);
 
-    if ( ent->client == NULL )
+    if(ent->client == NULL)
         return;
 
-    if ( ent->client->sess.archiveTime == 0 )
+    if (ent->client->sess.archiveTime == 0)
     {
         ucmd.buttons = customPlayerState[num].botButtons;
+        ucmd.wbuttons = customPlayerState[num].botWButtons;
         ucmd.forwardmove = customPlayerState[num].botForwardMove;
         ucmd.rightmove = customPlayerState[num].botRightMove;
+        ucmd.upmove = customPlayerState[num].botUpMove;
 
         VectorCopy(ent->client->sess.cmd.angles, ucmd.angles);
     }
@@ -1186,14 +1179,6 @@ void custom_SV_BotUserMove(client_t *client)
     client->deltaMessage = client->netchan.outgoingSequence - 1;
     SV_ClientThink(client, &ucmd);
 }
-
-
-
-
-
-
-
-
 
 void custom_ClientThink(int clientNum)
 {

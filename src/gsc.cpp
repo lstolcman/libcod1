@@ -90,10 +90,12 @@ xfunction_t Scr_GetCustomFunction(const char **fname, int *fdev)
 
 scr_method_t scriptMethods[] =
 {
+    //// Entity
     {"setBounds", gsc_entity_setbounds, 0},
     {"showToPlayer", gsc_entity_showtoplayer, 0},
-    {"setVelocity", gsc_player_setvelocity, 0},
-    {"getVelocity", gsc_player_getvelocity, 0},
+    ////
+
+    //// Player
     {"aimButtonPressed", gsc_player_button_ads, 0},
     {"leftButtonPressed", gsc_player_button_left, 0},
     {"rightButtonPressed", gsc_player_button_right, 0},
@@ -103,25 +105,40 @@ scr_method_t scriptMethods[] =
     {"leanleftButtonPressed", gsc_player_button_leanleft, 0},
     {"leanRightButtonPressed", gsc_player_button_leanright, 0},
     {"reloadButtonPressed", gsc_player_button_reload, 0},
-    {"getPlayerAngles", gsc_player_gettagangles, 0},
-    {"getStance", gsc_player_getstance, 0},
+
     {"getIp", gsc_player_getip, 0},
     {"getPing", gsc_player_getping, 0},
+    {"getFps", gsc_player_getfps, 0},
     {"getUserinfo", gsc_player_getuserinfo, 0},
     {"setUserinfo", gsc_player_setuserinfo, 0},
     {"processClientCommand", gsc_player_processclientcommand, 0},
+    {"connectionlessPacketToClient", gsc_player_connectionlesspackettoclient, 0},
     {"dropClient", gsc_player_dropclient, 0},
+
+    {"getVelocity", gsc_player_getvelocity, 0},
+    {"setVelocity", gsc_player_setvelocity, 0},
+    {"getPlayerAngles", gsc_player_gettagangles, 0},
+    {"getStance", gsc_player_getstance, 0},
+    {"isOnLadder", gsc_player_isonladder, 0},
     {"setSpeed", gsc_player_setspeed, 0},
     {"setJumpHeight", gsc_player_setjumpheight, 0},
-    {"setAirJumps", gsc_player_setairjumps, 0},
     {"getAirJumps", gsc_player_getairjumps, 0},
-    {"getFps", gsc_player_getfps, 0},
-    {"isOnLadder", gsc_player_isonladder, 0},
+    {"setAirJumps", gsc_player_setairjumps, 0},
     {"noClip", gsc_player_noclip, 0},
     {"ufo", gsc_player_ufo, 0},
-    {"connectionlessPacketToClient", gsc_player_connectionlesspackettoclient, 0},
+    ////
 
+    //// Bot
+    {"setWalkValues", gsc_bots_setwalkvalues, 0},
+    {"setWalkDir", gsc_bots_setwalkdir, 0},
     {"setBotStance", gsc_bots_setbotstance, 0},
+    {"setLean", gsc_bots_setlean, 0},
+    {"setAim", gsc_bots_setaim, 0},
+    {"fireWeapon", gsc_bots_fireweapon, 0},
+    {"meleeWeapon", gsc_bots_meleeweapon, 0},
+    {"reloadWeapon", gsc_bots_reloadweapon, 0},
+    {"switchToWeaponId", gsc_bots_switchtoweaponid, 0},
+    ////
 
 #if COMPILE_SQLITE == 1
     {"async_sqlite_create_entity_query", gsc_async_sqlite_create_entity_query, 0},
@@ -444,19 +461,19 @@ void gsc_testmethod(scr_entref_t ref)
     }
     
     //client_t* client = &svs.clients[id];
-    /*playerState_t *ps = SV_GameClientNum(id);
-    gentity_t *gentity = &g_entities[id];
-    gclient_t *g_client = gentity->client;*/
+    //playerState_t *ps = SV_GameClientNum(id);
+    //gentity_t *gentity = &g_entities[id];
+    //gclient_t *g_client = gentity->client;
 
 
-    //printf("###### archiveTime = %i\n", g_client->sess.archiveTime);
+    /*printf("###### viewangles[0] = %f\n", ps->viewangles[0]);
+    printf("###### viewangles[1] = %f\n", ps->viewangles[1]);
+    printf("###### viewangles[2] = %f\n", ps->viewangles[2]);
+
+    printf("###### origin[0] = %f\n", ps->origin[0]);
+    printf("###### origin[1] = %f\n", ps->origin[1]);
+    printf("###### origin[2] = %f\n", ps->origin[2]);*/
     
-    
-
-
-
-
-
 
 
 }

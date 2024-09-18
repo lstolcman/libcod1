@@ -14,7 +14,7 @@ void gsc_player_setvelocity(scr_entref_t ref)
         return;
     }
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_setvelocity() entity %i is not a player", id);
         stackPushUndefined();
@@ -31,7 +31,7 @@ void gsc_player_getvelocity(scr_entref_t ref)
 {
     int id = ref.entnum;
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_getvelocity() entity %i is not a player", id);
         stackPushUndefined();
@@ -55,7 +55,7 @@ void gsc_player_getuserinfo(scr_entref_t ref)
         return;
     }
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_getuserinfo() entity %i is not a player", id);
         stackPushUndefined();
@@ -83,7 +83,7 @@ void gsc_player_setuserinfo(scr_entref_t ref)
         return;
     }
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_setuserinfo() entity %i is not a player", id);
         stackPushUndefined();
@@ -100,7 +100,7 @@ void gsc_player_button_ads(scr_entref_t ref)
 {
     int id = ref.entnum;
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_button_ads() entity %i is not a player", id);
         stackPushUndefined();
@@ -116,7 +116,7 @@ void gsc_player_button_left(scr_entref_t ref)
 {
     int id = ref.entnum;
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_button_left() entity %i is not a player", id);
         stackPushUndefined();
@@ -132,7 +132,7 @@ void gsc_player_button_right(scr_entref_t ref)
 {
     int id = ref.entnum;
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_button_right() entity %i is not a player", id);
         stackPushUndefined();
@@ -148,7 +148,7 @@ void gsc_player_button_forward(scr_entref_t ref)
 {
     int id = ref.entnum;
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_button_forward() entity %i is not a player", id);
         stackPushUndefined();
@@ -164,7 +164,7 @@ void gsc_player_button_back(scr_entref_t ref)
 {
     int id = ref.entnum;
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_button_back() entity %i is not a player", id);
         stackPushUndefined();
@@ -196,7 +196,7 @@ void gsc_player_button_leanleft(scr_entref_t ref)
 {
     int id = ref.entnum;
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_button_leanleft() entity %i is not a player", id);
         stackPushUndefined();
@@ -212,7 +212,7 @@ void gsc_player_button_leanright(scr_entref_t ref)
 {
     int id = ref.entnum;
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_button_leanright() entity %i is not a player", id);
         stackPushUndefined();
@@ -228,7 +228,7 @@ void gsc_player_button_reload(scr_entref_t ref)
 {
     int id = ref.entnum;
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_button_reload() entity %i is not a player", id);
         stackPushUndefined();
@@ -244,7 +244,7 @@ void gsc_player_gettagangles(scr_entref_t ref)
 {
     int id = ref.entnum;
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_gettagangles() entity %i is not a player", id);
         stackPushUndefined();
@@ -303,7 +303,7 @@ void gsc_player_getping(scr_entref_t ref)
 {
     int id = ref.entnum;
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_getping() entity %i is not a player", id);
         stackPushUndefined();
@@ -318,7 +318,7 @@ void gsc_player_processclientcommand(scr_entref_t ref)
 {
     int id = ref.entnum;
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_processclientcommand() entity %i is not a player", id);
         stackPushUndefined();
@@ -342,7 +342,7 @@ void gsc_player_dropclient(scr_entref_t ref)
         return;
     }
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_dropclient() entity %i is not a player", id);
         stackPushUndefined();
@@ -371,7 +371,7 @@ void gsc_player_setspeed(scr_entref_t ref)
         return;
     }
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_setspeed() entity %i is not a player", id);
         stackPushUndefined();
@@ -394,7 +394,7 @@ void gsc_player_getfps(scr_entref_t ref)
 {
     int id = ref.entnum;
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_getfps() entity %i is not a player", id);
         stackPushUndefined();
@@ -408,7 +408,7 @@ void gsc_player_isonladder(scr_entref_t ref)
 {
     int id = ref.entnum;
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_isonladder() entity %i is not a player", id);
         stackPushUndefined();
@@ -432,7 +432,7 @@ void gsc_player_noclip(scr_entref_t ref)
         return;
     }
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_noclip() entity %i is not a player", id);
         stackPushUndefined();
@@ -469,7 +469,7 @@ void gsc_player_ufo(scr_entref_t ref)
         return;
     }
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_ufo() entity %i is not a player", id);
         stackPushUndefined();
@@ -577,7 +577,7 @@ void gsc_player_getairjumps(scr_entref_t ref)
 {
     int id = ref.entnum;
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_getairjumps() entity %i is not a player", id);
         stackPushUndefined();

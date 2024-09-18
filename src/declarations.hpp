@@ -43,12 +43,12 @@
 
 #define SVF_SINGLECLIENT        0x800
 
-#define KEY_MASK_NONE       0
-#define KEY_MASK_FORWARD    127
-#define KEY_MASK_BACK       -127
-#define KEY_MASK_MOVERIGHT  127
-#define KEY_MASK_MOVELEFT   -127
-#define KEY_MASK_JUMP       127
+#define KEY_MASK_NONE           0
+#define KEY_MASK_FORWARD        127
+#define KEY_MASK_BACK           -127
+#define KEY_MASK_MOVERIGHT      127
+#define KEY_MASK_MOVELEFT       -127
+#define KEY_MASK_JUMP           127 // upmove. prone and jump = -KEY_MASK_JUMP
 
 #define KEY_MASK_FIRE           0x1
 #define KEY_MASK_RELOAD         0x8
@@ -57,16 +57,16 @@
 #define KEY_MASK_LEANRIGHT      0x20
 #define KEY_MASK_MELEE          0x20
 #define KEY_MASK_USE            0x40
-#define KEY_MASK_PRONE          0x40
-#define KEY_MASK_CROUCH         0x80
+#define KEY_MASK_PRONE          0x40 // wbuttons
+#define KEY_MASK_CROUCH         0x80 // wbuttons
 
 #define EF_CROUCHING    0x20
 #define EF_PRONE        0x40
 
-#define PMF_PRONE           0x1
-#define PMF_CROUCH          0x2
-#define PMF_LADDER          0x10
-#define PMF_SLIDING         0x100
+#define PMF_PRONE       0x1
+#define PMF_CROUCH      0x2
+#define PMF_LADDER      0x10
+#define PMF_SLIDING     0x100
 
 typedef void (*xcommand_t)(void);
 
@@ -524,7 +524,9 @@ typedef struct usercmd_s
     byte weapon;
     byte flags;
     int angles[3];
-    signed char forwardmove, rightmove, upmove;
+    signed char forwardmove;
+    signed char rightmove;
+    signed char upmove;
     byte unknown;
 } usercmd_t;
 
@@ -1031,9 +1033,11 @@ typedef struct customPlayerState_s
     bool sprintRequestPending;
     int sprintTimer;
     int botButtons;
+    int botWButtons;
     int botWeapon;
     char botForwardMove;
     char botRightMove;
+    char botUpMove;
 } customPlayerState_t;
 
 typedef struct callback_s
