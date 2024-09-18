@@ -1779,7 +1779,9 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     *(int*)&Sys_LoadDll = hook_Sys_LoadDll->from;
     void* libHandle = Sys_LoadDll(name, fqpath, entryPoint, systemcalls);
     hook_Sys_LoadDll->hook();
-    
+
+    //// Unprotect game.mp.i386.so
+    // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/librarymodule.c#L55
     char libPath[512];
     char buf[512];
     char flags[4];
@@ -1791,11 +1793,10 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     else
         sprintf(libPath, "main/game.mp.i386.so");
     
-    //// Unprotect game.mp.i386.so
-    // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/librarymodule.c#L55
     fp = fopen("/proc/self/maps", "r");
     if(!fp)
         return 0;
+
     while (fgets(buf, sizeof(buf), fp))
     {
         if(!strstr(buf, libPath))
@@ -1807,15 +1808,16 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     fclose(fp);
     ////
     
-    // Objects
+    //// Objects
     g_clients = (gclient_t*)dlsym(libHandle, "g_clients");
     g_entities = (gentity_t*)dlsym(libHandle, "g_entities");
     level = (level_locals_t*)dlsym(libHandle, "level");
     pm = (pmove_t**)dlsym(libHandle, "pm");
     pml = (pml_t*)dlsym(libHandle, "pml");
     scr_const = (stringIndex_t*)dlsym(libHandle, "scr_const");
+    ////
 
-    // Functions
+    //// Functions
     Scr_GetFunctionHandle = (Scr_GetFunctionHandle_t)dlsym(libHandle, "Scr_GetFunctionHandle");
     Scr_GetNumParam = (Scr_GetNumParam_t)dlsym(libHandle, "Scr_GetNumParam");
     trap_Argv = (trap_Argv_t)dlsym(libHandle, "trap_Argv");
@@ -1867,6 +1869,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Q_CleanStr = (Q_CleanStr_t)dlsym(libHandle, "Q_CleanStr");
     Jump_Check = (Jump_Check_t)((int)dlsym(libHandle, "_init") + 0x76F4);
     PM_GetEffectiveStance = (PM_GetEffectiveStance_t)dlsym(libHandle, "PM_GetEffectiveStance");
+    ////
 
     //// Patch codmsgboom
     /* See:
@@ -1879,24 +1882,36 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
 
     //// 1.1 deadchat support
     // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/librarymodule.c#L161
-
     *(byte*)((int)dlsym(libHandle, "G_Say") + 0x2B3) = 0xeb;
     *(byte*)((int)dlsym(libHandle, "G_Say") + 0x3B6) = 0xeb;
     hook_call((int)dlsym(libHandle, "G_Say") + 0x5EA, (int)hook_G_Say);
     hook_call((int)dlsym(libHandle, "G_Say") + 0x77D, (int)hook_G_Say);
     hook_call((int)dlsym(libHandle, "G_Say") + 0x791, (int)hook_G_Say);
     ////
+
+    //// Jump height override
+    hook_jmp((int)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x88C, (int)hook_Jump_Check_Naked);
+    resume_addr_Jump_Check = (uintptr_t)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x892;
+    hook_jmp((int)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x899, (int)hook_Jump_Check_Naked_2);
+    resume_addr_Jump_Check_2 = (uintptr_t)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x8A4;
+    ////
+
+    //// Air jumping
+    hook_PM_AirMove = new cHook((int)dlsym(libHandle, "_init") + 0x7B98, (int)custom_PM_AirMove);
+    hook_PM_AirMove->hook();
+    hook_PM_CrashLand = new cHook((int)dlsym(libHandle, "_init") + 0x88C4, (int)custom_PM_CrashLand);
+    hook_PM_CrashLand->hook();
+    hook_PmoveSingle = new cHook((int)dlsym(libHandle, "PmoveSingle"), (int)custom_PmoveSingle);
+    hook_PmoveSingle->hook();
+    // TODO: Ignore the JLE only for players allowed to air jump
+    int addr_Jump_Check_JLE = (int)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x7FD; // if ( pm->cmd.serverTime - pm->ps->jumpTime <= 499 )
+    hook_nop(addr_Jump_Check_JLE, addr_Jump_Check_JLE + 2);
+    ////
     
     hook_call((int)dlsym(libHandle, "vmMain") + 0xB0, (int)hook_ClientCommand);
     hook_call((int)dlsym(libHandle, "ClientEndFrame") + 0x311, (int)hook_StuckInClient);
 
     hook_jmp((int)dlsym(libHandle, "G_LocalizedStringIndex"), (int)custom_G_LocalizedStringIndex);
-
-    // Jump height override
-    hook_jmp((int)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x88C, (int)hook_Jump_Check_Naked);
-    resume_addr_Jump_Check = (uintptr_t)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x892;
-    hook_jmp((int)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x899, (int)hook_Jump_Check_Naked_2);
-    resume_addr_Jump_Check_2 = (uintptr_t)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x8A4;
     
     hook_GScr_LoadGameTypeScript = new cHook((int)dlsym(libHandle, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
     hook_GScr_LoadGameTypeScript->hook();
@@ -1905,19 +1920,6 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_ClientEndFrame = new cHook((int)dlsym(libHandle, "ClientEndFrame"), (int)custom_ClientEndFrame);
     hook_ClientEndFrame->hook();
 
-    hook_PmoveSingle = new cHook((int)dlsym(libHandle, "PmoveSingle"), (int)custom_PmoveSingle);
-    hook_PmoveSingle->hook();
-    
-    //// Air jumping
-    hook_PM_AirMove = new cHook((int)dlsym(libHandle, "_init") + 0x7B98, (int)custom_PM_AirMove);
-    hook_PM_AirMove->hook();
-    hook_PM_CrashLand = new cHook((int)dlsym(libHandle, "_init") + 0x88C4, (int)custom_PM_CrashLand);
-    hook_PM_CrashLand->hook();
-    // TODO: Ignore the JLE only for players allowed to air jump
-    int addr_Jump_Check_JLE = (int)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x7FD; // if ( pm->cmd.serverTime - pm->ps->jumpTime <= 499 )
-    hook_nop(addr_Jump_Check_JLE, addr_Jump_Check_JLE + 2);
-    ////
-    
     return libHandle;
 }
 
@@ -1972,15 +1974,8 @@ class libcod
         hook_jmp(0x080716cc, (int)custom_FS_ReferencedPakNames);
         hook_jmp(0x080872ec, (int)custom_SV_ExecuteClientMessage);
         hook_jmp(0x08086d58, (int)custom_SV_ExecuteClientCommand);
-
-
-
-
         hook_jmp(0x0808cccc, (int)custom_SV_BotUserMove);
         
-
-
-
         hook_Sys_LoadDll = new cHook(0x080c5fe4, (int)custom_Sys_LoadDll);
         hook_Sys_LoadDll->hook();
         hook_Com_Init = new cHook(0x0806c654, (int)custom_Com_Init);

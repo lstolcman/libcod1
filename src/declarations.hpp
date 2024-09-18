@@ -727,12 +727,12 @@ typedef struct playerState_s
     int jumpTime;           // 0x64
     float jumpOriginZ;      // 0x68
     int legsTimer;          // 0x6C
-    int legsAnim;
-    int torsoTimer;
-    int torsoAnim;
-    int movementDir;
-    int eFlags;
-    int eventSequence;
+    int legsAnim;           // 0x70
+    int torsoTimer;         // 0x74
+    int torsoAnim;          // 0x78
+    int movementDir;        // 0x7C
+    int eFlags;             // 0x80
+    int eventSequence;      // 0x84
     int events[4];
     unsigned int eventParms[4];
     int oldEventSequence;
