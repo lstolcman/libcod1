@@ -1,5 +1,7 @@
 #include "gsc_player.hpp"
 
+extern cvar_t *player_sprintTime;
+
 extern customPlayerState_t customPlayerState[MAX_CLIENTS];
 
 void gsc_player_setvelocity(scr_entref_t ref)
@@ -585,4 +587,56 @@ void gsc_player_getairjumps(scr_entref_t ref)
     }
 
     stackPushInt(customPlayerState[id].airJumpsAvailable);
+}
+
+void gsc_player_disableitempickup(scr_entref_t ref)
+{
+    int id = ref.entnum;
+
+    if (id >= MAX_CLIENTS)
+    {
+        stackError("gsc_player_disableitempickup() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    int old_setting = !customPlayerState[id].noPickup;
+    customPlayerState[id].noPickup = true;
+
+    stackPushInt(old_setting);
+}
+
+void gsc_player_enableitempickup(scr_entref_t ref)
+{
+    int id = ref.entnum;
+
+    if (id >= MAX_CLIENTS)
+    {
+        stackError("gsc_player_enableitempickup() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    int old_setting = !customPlayerState[id].noPickup;
+    customPlayerState[id].noPickup = false;
+
+    stackPushInt(old_setting);
+}
+
+void gsc_player_getsprintremaining(scr_entref_t ref)
+{
+    int id = ref.entnum;
+
+    if (id >= MAX_CLIENTS)
+    {
+        stackError("gsc_player_getsprintremaining() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+    
+    float sprint_time = player_sprintTime->value * 1000.0;
+    int timeUsed = customPlayerState[id].sprintTimer;
+    int timeRemaining = sprint_time - timeUsed;
+    
+    stackPushInt(timeRemaining);
 }

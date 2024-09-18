@@ -126,6 +126,9 @@ scr_method_t scriptMethods[] =
     {"setAirJumps", gsc_player_setairjumps, 0},
     {"noClip", gsc_player_noclip, 0},
     {"ufo", gsc_player_ufo, 0},
+    {"disableItemPickup", gsc_player_disableitempickup, 0},
+    {"enableItemPickup", gsc_player_enableitempickup, 0},
+    {"getSprintRemaining", gsc_player_getsprintremaining, 0},
     ////
 
     //// Bot

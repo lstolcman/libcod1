@@ -58,6 +58,20 @@ cHook *hook_SV_BeginDownload_f;
 cHook *hook_SV_SendClientGameState;
 cHook *hook_SV_SpawnServer;
 cHook *hook_Sys_LoadDll;
+cHook *hook_Touch_Item_Auto;
+
+
+
+cHook *hook_DeathmatchScoreboardMessage;
+
+
+
+
+
+
+
+
+
 
 // Stock callbacks
 int codecallback_startgametype = 0;
@@ -415,6 +429,108 @@ const char* hook_AuthorizeState(int arg)
     if(sv_cracked->integer && !strcmp(s, "deny"))
         return "accept";
     return s;
+}
+
+
+
+
+
+
+
+
+
+/*
+void custom_DeathmatchScoreboardMessage(gentity_t *ent)
+{
+    int ping;
+    int clientNum;
+    int numSorted;
+    gclient_t *client;
+    int len;
+    int i;
+    int stringlength;
+    char string[1400];
+    char entry[1024];
+
+    string[0] = 0;
+    stringlength = 0;
+
+    numSorted = (*level).numConnectedClients;
+
+    if ((*level).numConnectedClients > MAX_CLIENTS)
+        numSorted = MAX_CLIENTS;
+
+    for (i = 0; i < numSorted; i++)
+    {
+        clientNum = (*level).sortedClients[i];
+        client = &(*level).clients[clientNum];
+        
+
+
+
+        printf("###### i = %i\n", i);
+        printf("###### clientNum = %i\n", clientNum);
+        printf("###### LOOP in %s\n", client->sess.netname);
+
+
+        if ( client->sess.connected == CON_CONNECTING )
+        {
+            Com_sprintf(
+                entry,
+                0x400u,
+                " %i %i %i %i %i",
+                (*level).sortedClients[i],
+                client->sess.score,
+                -1,
+                client->sess.deaths,
+                client->sess.statusIcon);
+        }
+        else
+        {
+            ping = svs.clients[clientNum].ping;
+
+            Com_sprintf(
+                entry,
+                0x400u,
+                " %i %i %i %i %i",
+                (*level).sortedClients[i],
+                client->sess.score,
+                ping,
+                client->sess.deaths,
+                client->sess.statusIcon);
+        }
+
+        len = strlen(entry);
+
+        if ( stringlength + len > 1024 )
+            break;
+
+        strcpy(&string[stringlength], entry);
+        stringlength += len;
+    }
+    
+    trap_SendServerCommand(ent - g_entities, SV_CMD_RELIABLE, custom_va("b %i %i %i%s", i, (*level).teamScores[1], (*level).teamScores[2], string));
+}
+*/
+
+
+
+
+
+
+
+
+
+void custom_Touch_Item_Auto(gentity_t * item, gentity_t * entity, int touch)
+{
+    if(customPlayerState[entity->client->ps.clientNum].noPickup)
+        return;
+
+    hook_Touch_Item_Auto->unhook();
+    void (*Touch_Item_Auto)(gentity_t * item, gentity_t * entity, int touch);
+    *(int*)&Touch_Item_Auto = hook_Touch_Item_Auto->from;
+    Touch_Item_Auto(item, entity, touch);
+    hook_Touch_Item_Auto->hook();
 }
 
 void custom_SV_SpawnServer(char *server)
@@ -1919,6 +2035,26 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_ClientThink->hook();
     hook_ClientEndFrame = new cHook((int)dlsym(libHandle, "ClientEndFrame"), (int)custom_ClientEndFrame);
     hook_ClientEndFrame->hook();
+    hook_Touch_Item_Auto = new cHook((int)dlsym(libHandle, "Touch_Item_Auto"), (int)custom_Touch_Item_Auto);
+    hook_Touch_Item_Auto->hook();
+
+
+    //hook_DeathmatchScoreboardMessage = new cHook((int)dlsym(libHandle, "DeathmatchScoreboardMessage"), (int)custom_DeathmatchScoreboardMessage);
+    //hook_DeathmatchScoreboardMessage->hook();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     return libHandle;
 }

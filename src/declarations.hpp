@@ -1032,12 +1032,15 @@ typedef struct customPlayerState_s
     bool sprintActive;
     bool sprintRequestPending;
     int sprintTimer;
+    //// Bots
     int botButtons;
     int botWButtons;
     int botWeapon;
     char botForwardMove;
     char botRightMove;
     char botUpMove;
+    ////
+    bool noPickup;
 } customPlayerState_t;
 
 typedef struct callback_s

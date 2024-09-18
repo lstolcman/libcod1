@@ -31,5 +31,8 @@ void gsc_player_isonladder(scr_entref_t ref);
 void gsc_player_noclip(scr_entref_t ref);
 void gsc_player_ufo(scr_entref_t ref);
 void gsc_player_connectionlesspackettoclient(scr_entref_t ref);
+void gsc_player_disableitempickup(scr_entref_t ref);
+void gsc_player_enableitempickup(scr_entref_t ref);
+void gsc_player_getsprintremaining(scr_entref_t ref);
 
 #endif
