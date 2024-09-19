@@ -383,10 +383,53 @@ void gsc_utils_fclose()
     stackPushInt(fclose(file));
 }
 
+static int starttime = time(NULL);
+void gsc_utils_getserverstarttime()
+{
+    stackPushInt(starttime);
+}
+
 void gsc_utils_getsystemtime()
 {
     time_t timer;
     stackPushInt(time(&timer));
+}
+
+void gsc_utils_strftime()
+{
+    int timestamp;
+    char *timezone;
+    char *format;
+    
+    if (!stackGetParams("iss", &timestamp, &timezone, &format))
+    {
+        stackError("gsc_utils_strftime() one or more arguments is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    time_t rawTime = timestamp;
+    struct tm *timeInfo;
+
+    if(!strcmp(timezone, "utc"))
+        timeInfo = gmtime(&rawTime);
+    else if(!strcmp(timezone, "local"))
+        timeInfo = localtime(&rawTime);
+    else
+    {
+        stackError("gsc_utils_strftime() invalid argument '%s'. Valid arguments are: 'utc' 'local'", timezone);
+        stackPushUndefined();
+        return;
+    }
+
+    char buffer[100];
+    if(strftime(buffer, sizeof(buffer), format, timeInfo))
+        stackPushString(buffer);
+    else
+    {
+        stackError("gsc_utils_strftime() failed to format time");
+        stackPushUndefined();
+    }
 }
 
 void gsc_utils_getconfigstring()
