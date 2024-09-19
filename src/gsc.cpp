@@ -469,7 +469,6 @@ void gsc_testmethod(scr_entref_t ref)
     //client_t* client = &svs.clients[id];
     //playerState_t *ps = SV_GameClientNum(id);
     //gentity_t *gentity = &g_entities[id];
-    //gclient_t *g_client = gentity->client;
 
 
     /*printf("###### viewangles[0] = %f\n", ps->viewangles[0]);

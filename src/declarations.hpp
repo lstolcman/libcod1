@@ -773,7 +773,7 @@ struct gclient_s
     int spectatorClient;
     qboolean noclip;
     qboolean ufo;
-    //...
+    byte pad2[228];
 };
 
 struct gentity_s
@@ -781,7 +781,7 @@ struct gentity_s
   entityState_t s;
   entityShared_t r;
   byte pad[4];
-  struct gclient_s *client;
+  gclient_t *client;
   byte pad2[440];
 };
 
@@ -861,8 +861,15 @@ typedef struct
 
 typedef struct
 {
-    struct gclient_s *clients;
-    byte pad[0x1DC];
+    gclient_t *clients;
+    gentity_t *gentities;
+    int gentitySize;
+    int num_entities;
+    gentity_t *firstFreeEnt;
+    gentity_t *lastFreeEnt;
+    fileHandle_t logFile;
+    int initializing;
+    byte pad[0x1C0];
     int maxclients;
     int framenum;
     int time;
@@ -875,6 +882,7 @@ typedef struct
     int manualNameChange;
     int numConnectedClients;
     int sortedClients[MAX_CLIENTS];
+    char voteString[1024];
     // ...
 } level_locals_t;
 
@@ -1000,7 +1008,6 @@ typedef struct
 } stringIndex_t;
 
 extern gentity_t *g_entities;
-extern gclient_t *g_clients;
 extern stringIndex_t *scr_const;
 
 static const int com_frameTime_offset = 0x0833df1c;
@@ -1031,6 +1038,7 @@ static_assert((sizeof(entityShared_t) == 100), "ERROR: entityShared_t size is in
 static_assert((sizeof(gentity_t) == 788), "ERROR: gentity_t size is invalid!");
 static_assert((sizeof(usercmd_t) == 24), "ERROR: usercmd_t size is invalid!");
 static_assert((sizeof(clientSession_t) == 260), "ERROR: clientSession_t size is invalid!");
+static_assert((sizeof(gclient_t) == 8900), "ERROR: gclient_t size is invalid!");
 #endif
 
 #endif

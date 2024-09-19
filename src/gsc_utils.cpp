@@ -490,7 +490,7 @@ void gsc_utils_ban()
             std::string param = Scr_GetString(i);
             command.append(param);
         }
-        Cbuf_ExecuteText(EXEC_APPEND, custom_va(command.c_str()));
+        Cbuf_ExecuteText(EXEC_APPEND, va(command.c_str()));
     }
 }
 
@@ -506,7 +506,7 @@ void gsc_utils_unban()
             std::string param = Scr_GetString(i);
             command.append(param);
         }
-        Cbuf_ExecuteText(EXEC_APPEND, custom_va(command.c_str()));
+        Cbuf_ExecuteText(EXEC_APPEND, va(command.c_str()));
     }
 }
 

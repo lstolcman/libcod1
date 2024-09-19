@@ -433,4 +433,6 @@ typedef int (*Jump_Check_t)();
 
 typedef int (*PM_GetEffectiveStance_t)(playerState_t *ps);
 
+typedef char * (*va_t)(const char *format, ...);
+extern va_t va;
 #endif

@@ -49,6 +49,7 @@ cvar_t *player_sprintTime;
 cHook *hook_ClientEndFrame;
 cHook *hook_ClientThink;
 cHook *hook_Com_Init;
+cHook *hook_DeathmatchScoreboardMessage;
 cHook *hook_GScr_LoadGameTypeScript;
 cHook *hook_PM_AirMove;
 cHook *hook_PM_CrashLand;
@@ -59,19 +60,6 @@ cHook *hook_SV_SendClientGameState;
 cHook *hook_SV_SpawnServer;
 cHook *hook_Sys_LoadDll;
 cHook *hook_Touch_Item_Auto;
-
-
-
-cHook *hook_DeathmatchScoreboardMessage;
-
-
-
-
-
-
-
-
-
 
 // Stock callbacks
 int codecallback_startgametype = 0;
@@ -178,6 +166,7 @@ Com_ParseRestOfLine_t Com_ParseRestOfLine;
 Com_ParseInt_t Com_ParseInt;
 Jump_Check_t Jump_Check;
 PM_GetEffectiveStance_t PM_GetEffectiveStance;
+va_t va;
 
 // Resume addresses
 uintptr_t resume_addr_Jump_Check;
@@ -318,7 +307,7 @@ const char* custom_FS_ReferencedPakChecksums(void)
         if(FS_svrPak(search->pak->pakBasename))
             continue;
         
-        Q_strcat(info, sizeof( info ), custom_va("%i ", search->pak->checksum));
+        Q_strcat(info, sizeof( info ), va("%i ", search->pak->checksum));
     }
 
     return info;
@@ -432,15 +421,6 @@ const char* hook_AuthorizeState(int arg)
     return s;
 }
 
-
-
-
-
-
-
-
-
-/*
 void custom_DeathmatchScoreboardMessage(gentity_t *ent)
 {
     int ping;
@@ -456,31 +436,23 @@ void custom_DeathmatchScoreboardMessage(gentity_t *ent)
     string[0] = 0;
     stringlength = 0;
 
-    numSorted = (*level).numConnectedClients;
+    numSorted = level->numConnectedClients;
 
-    if ((*level).numConnectedClients > MAX_CLIENTS)
+    if(level->numConnectedClients > MAX_CLIENTS)
         numSorted = MAX_CLIENTS;
 
     for (i = 0; i < numSorted; i++)
     {
-        clientNum = (*level).sortedClients[i];
-        client = &(*level).clients[clientNum];
+        clientNum = level->sortedClients[i];
+        client = &level->clients[clientNum];
         
-
-
-
-        printf("###### i = %i\n", i);
-        printf("###### clientNum = %i\n", clientNum);
-        printf("###### LOOP in %s\n", client->sess.netname);
-
-
-        if ( client->sess.connected == CON_CONNECTING )
+        if (client->sess.connected == CON_CONNECTING)
         {
             Com_sprintf(
                 entry,
                 0x400u,
                 " %i %i %i %i %i",
-                (*level).sortedClients[i],
+                level->sortedClients[i],
                 client->sess.score,
                 -1,
                 client->sess.deaths,
@@ -494,7 +466,7 @@ void custom_DeathmatchScoreboardMessage(gentity_t *ent)
                 entry,
                 0x400u,
                 " %i %i %i %i %i",
-                (*level).sortedClients[i],
+                level->sortedClients[i],
                 client->sess.score,
                 ping,
                 client->sess.deaths,
@@ -503,24 +475,15 @@ void custom_DeathmatchScoreboardMessage(gentity_t *ent)
 
         len = strlen(entry);
 
-        if ( stringlength + len > 1024 )
+        if(stringlength + len > 1024)
             break;
 
         strcpy(&string[stringlength], entry);
         stringlength += len;
     }
     
-    trap_SendServerCommand(ent - g_entities, SV_CMD_RELIABLE, custom_va("b %i %i %i%s", i, (*level).teamScores[1], (*level).teamScores[2], string));
+    trap_SendServerCommand(ent - g_entities, SV_CMD_RELIABLE, va("b %i %i %i%s", i, level->teamScores[1], level->teamScores[2], string));
 }
-*/
-
-
-
-
-
-
-
-
 
 void custom_Touch_Item_Auto(gentity_t * item, gentity_t * entity, int touch)
 {
@@ -1718,7 +1681,7 @@ void hook_SV_DirectConnect(netadr_t from)
             int remaining_seconds = std::get<1>(banInfo) - elapsed_seconds;
             if (remaining_seconds <= 0)
             {
-                Cbuf_ExecuteText(EXEC_APPEND, custom_va("unban %s\n", ip));
+                Cbuf_ExecuteText(EXEC_APPEND, va("unban %s\n", ip));
                 unbanned = true;
             }
             else
@@ -1987,6 +1950,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Q_CleanStr = (Q_CleanStr_t)dlsym(libHandle, "Q_CleanStr");
     Jump_Check = (Jump_Check_t)((int)dlsym(libHandle, "_init") + 0x76F4);
     PM_GetEffectiveStance = (PM_GetEffectiveStance_t)dlsym(libHandle, "PM_GetEffectiveStance");
+    va = (va_t)dlsym(libHandle, "va");
     ////
 
     //// Patch codmsgboom
@@ -2030,6 +1994,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_call((int)dlsym(libHandle, "ClientEndFrame") + 0x311, (int)hook_StuckInClient);
 
     hook_jmp((int)dlsym(libHandle, "G_LocalizedStringIndex"), (int)custom_G_LocalizedStringIndex);
+    hook_jmp((int)dlsym(libHandle, "va"), (int)custom_va);
     
     hook_GScr_LoadGameTypeScript = new cHook((int)dlsym(libHandle, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
     hook_GScr_LoadGameTypeScript->hook();
@@ -2039,24 +2004,8 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_ClientEndFrame->hook();
     hook_Touch_Item_Auto = new cHook((int)dlsym(libHandle, "Touch_Item_Auto"), (int)custom_Touch_Item_Auto);
     hook_Touch_Item_Auto->hook();
-
-
-    //hook_DeathmatchScoreboardMessage = new cHook((int)dlsym(libHandle, "DeathmatchScoreboardMessage"), (int)custom_DeathmatchScoreboardMessage);
-    //hook_DeathmatchScoreboardMessage->hook();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    hook_DeathmatchScoreboardMessage = new cHook((int)dlsym(libHandle, "DeathmatchScoreboardMessage"), (int)custom_DeathmatchScoreboardMessage);
+    hook_DeathmatchScoreboardMessage->hook();
 
     return libHandle;
 }
