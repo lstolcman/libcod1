@@ -640,3 +640,36 @@ void gsc_player_getsprintremaining(scr_entref_t ref)
     
     stackPushInt(timeRemaining);
 }
+
+void gsc_player_playscriptanimation(scr_entref_t ref)
+{
+    int id = ref.entnum;
+    int scriptAnimEventType;
+    int isContinue;
+    int force;
+
+    if ( !stackGetParams("iii", &scriptAnimEventType, &isContinue, &force) )
+    {
+        stackError("gsc_player_playscriptanimation() argument is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    if ( id >= MAX_CLIENTS )
+    {
+        stackError("gsc_player_playscriptanimation() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    if ( scriptAnimEventType < 0 || scriptAnimEventType >= NUM_ANIM_EVENTTYPES )
+    {
+        stackError("gsc_player_playscriptanimation() argument is not a valid scriptAnimEventType");
+        stackPushUndefined();
+        return;
+    }
+    
+    gentity_t *entity = &g_entities[id];
+
+    stackPushInt(BG_AnimScriptEvent(&entity->client->ps, (scriptAnimEventTypes_t)scriptAnimEventType, isContinue, force));
+}

@@ -131,6 +131,7 @@ scr_method_t scriptMethods[] =
     {"disableItemPickup", gsc_player_disableitempickup, 0},
     {"enableItemPickup", gsc_player_enableitempickup, 0},
     {"getSprintRemaining", gsc_player_getsprintremaining, 0},
+    {"playScriptAnimation", gsc_player_playscriptanimation, 0},
     ////
 
     //// Bot

@@ -137,6 +137,7 @@ BG_GetNumWeapons_t BG_GetNumWeapons;
 BG_GetInfoForWeapon_t BG_GetInfoForWeapon;
 BG_GetWeaponIndexForName_t BG_GetWeaponIndexForName;
 BG_AnimationIndexForString_t BG_AnimationIndexForString;
+BG_AnimScriptEvent_t BG_AnimScriptEvent;
 Scr_GetFunctionHandle_t Scr_GetFunctionHandle;
 Scr_GetNumParam_t Scr_GetNumParam;
 Scr_IsSystemActive_t Scr_IsSystemActive;
@@ -1962,6 +1963,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     BG_GetInfoForWeapon = (BG_GetInfoForWeapon_t)dlsym(libHandle, "BG_GetInfoForWeapon");
     BG_GetWeaponIndexForName = (BG_GetWeaponIndexForName_t)dlsym(libHandle, "BG_GetWeaponIndexForName");
     BG_AnimationIndexForString = (BG_AnimationIndexForString_t)dlsym(libHandle, "BG_AnimationIndexForString");
+    BG_AnimScriptEvent = (BG_AnimScriptEvent_t)dlsym(libHandle, "BG_AnimScriptEvent");
     Scr_IsSystemActive = (Scr_IsSystemActive_t)dlsym(libHandle, "Scr_IsSystemActive");
     Scr_GetInt = (Scr_GetInt_t)dlsym(libHandle, "Scr_GetInt");
     Scr_GetString = (Scr_GetString_t)dlsym(libHandle, "Scr_GetString");

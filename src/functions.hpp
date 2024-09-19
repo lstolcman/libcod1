@@ -1,7 +1,7 @@
 #ifndef _FUNCTIONS_HPP_
 #define _FUNCTIONS_HPP_
 
-// trap
+//// trap
 typedef void (*trap_Argv_t)(int arg, char *buffer, int bufferLength);
 
 typedef void (*trap_SendServerCommand_t)(int clientnum, svscmd_type type, const char *text);
@@ -12,9 +12,9 @@ extern trap_GetConfigstringConst_t trap_GetConfigstringConst;
 
 typedef void (*trap_GetConfigstring_t)( int index, char *buffer, int bufferSize );
 extern trap_GetConfigstring_t trap_GetConfigstring;
-//
+////
 
-// Cmd
+//// Cmd
 typedef char * (*Cmd_Argv_t)(int arg);
 static const Cmd_Argv_t Cmd_Argv = (Cmd_Argv_t)0x0805b258;
 
@@ -29,9 +29,9 @@ static const Cmd_ArgvBuffer_t Cmd_ArgvBuffer = (Cmd_ArgvBuffer_t)0x0805b27c;
 
 typedef void (*Cmd_TokenizeString_t)(const char *text_in);
 static const Cmd_TokenizeString_t Cmd_TokenizeString = (Cmd_TokenizeString_t)0x0805b398;
-//
+////
 
-// Com
+//// Com
 typedef void (*Com_Printf_t)(const char *format, ...);
 static const Com_Printf_t Com_Printf = (Com_Printf_t)0x0806b760;
 
@@ -55,9 +55,9 @@ typedef void (*Com_SkipRestOfLine_t)(const char **data);
 typedef char * (*Com_ParseRestOfLine_t)(const char **data);
 
 typedef int (*Com_ParseInt_t)(const char **data);
-//
+////
 
-// FS
+//// FS
 typedef void (*FS_ConvertPath_t)(char *s);
 static const FS_ConvertPath_t FS_ConvertPath = (FS_ConvertPath_t)0x08062f4c;
 
@@ -87,9 +87,9 @@ static const FS_FCloseFile_t FS_FCloseFile = (FS_FCloseFile_t)0x0805c114;
 
 typedef void (*FS_WriteFile_t)(const char* filename, const void* buffer, int size);
 static const FS_WriteFile_t FS_WriteFile = (FS_WriteFile_t)0x08062a2c;
-//
+////
 
-// Cvar
+//// Cvar
 typedef cvar_t * (*Cvar_Set_t)(const char *var_name, const char *value);
 static const Cvar_Set_t Cvar_Set = (Cvar_Set_t)0x0806f0b0;
 
@@ -101,7 +101,7 @@ static const Cvar_FindVar_t Cvar_FindVar = (Cvar_FindVar_t)0x0806e9b4;
 
 typedef char * (*Cvar_VariableString_t)(const char *cvarName);
 static const Cvar_VariableString_t Cvar_VariableString = (Cvar_VariableString_t)0x0806f8ec;
-//
+////
 
 // SV
 typedef void (*SV_ClientEnterWorld_t)(client_t *cl, usercmd_t *cmd);
@@ -200,43 +200,35 @@ static const SV_DoneDownload_f_t SV_DoneDownload_f = (SV_DoneDownload_f_t)0x0808
 typedef void (*SV_RetransmitDownload_f_t)(client_t *cl);
 static const SV_RetransmitDownload_f_t SV_RetransmitDownload_f = (SV_RetransmitDownload_f_t)0x08087a2c;
 
-
-
-
-
 typedef gentity_t * (*SV_ClientThink_t)(client_t *cl, usercmd_t *cmd);
 static const SV_ClientThink_t SV_ClientThink = (SV_ClientThink_t)0x0808789c;
+////
 
-
-
-
-//
-
-// Info
+//// Info
 typedef void (*Info_SetValueForKey_t)(char *s, const char *key, const char *value);
 static const Info_SetValueForKey_t Info_SetValueForKey = (Info_SetValueForKey_t)0x080827d4;
 
 typedef char * (*Info_ValueForKey_t)(const char *s, const char *key);
 static const Info_ValueForKey_t Info_ValueForKey = (Info_ValueForKey_t)0x08082460;
-//
+////
 
-// SVC
+//// SVC
 typedef void (*SVC_Info_t)(netadr_t from);
 static const SVC_Info_t SVC_Info = (SVC_Info_t)0x0808c1ac;
 
 typedef void (*SVC_Status_t)(netadr_t from);
 static const SVC_Status_t SVC_Status = (SVC_Status_t)0x0808bd58;
-//
+////
 
-// NET
+//// NET
 typedef const char * (*NET_AdrToString_t)(netadr_t a);
 static const NET_AdrToString_t NET_AdrToString = (NET_AdrToString_t)0x08080ef4;
 
 typedef void (*NET_OutOfBandPrint_t)(netsrc_t net_socket, netadr_t adr, const char *format, ...);
 static const NET_OutOfBandPrint_t NET_OutOfBandPrint = (NET_OutOfBandPrint_t)0x08080920;
-//
+////
 
-// G
+//// G
 typedef void (*G_Say_t)(gentity_s *ent, gentity_s *target, int mode, const char *chatText);
 extern G_Say_t G_Say;
 
@@ -246,9 +238,9 @@ extern G_RegisterCvars_t G_RegisterCvars;
 typedef void (*G_AddEvent_t)(gentity_t *ent, int event, int eventParm);
 
 typedef void (*G_AddPredictableEvent_t)(gentity_t *ent, int event, int eventParm);
-//
+////
 
-// MSG
+//// MSG
 typedef int (*MSG_ReadBits_t)(msg_t *msg, int numBits);
 static const MSG_ReadBits_t MSG_ReadBits = (MSG_ReadBits_t)0x0807f18c;
 
@@ -284,9 +276,9 @@ static const MSG_ReadLong_t MSG_ReadLong = (MSG_ReadLong_t)0x0807f2f0;
 
 typedef char * (*MSG_ReadStringLine_t)(msg_t *msg);
 static const MSG_ReadStringLine_t MSG_ReadStringLine = (MSG_ReadStringLine_t)0x0807f3fc;
-//
+////
 
-// Weapon
+//// BG
 typedef int (*BG_GetNumWeapons_t)(void);
 extern BG_GetNumWeapons_t BG_GetNumWeapons;
 
@@ -295,12 +287,13 @@ extern BG_GetInfoForWeapon_t BG_GetInfoForWeapon;
 
 typedef int (*BG_GetWeaponIndexForName_t)(const char *name);
 extern BG_GetWeaponIndexForName_t BG_GetWeaponIndexForName;
-//
 
-// Anim
 typedef int (*BG_AnimationIndexForString_t)(char *src);
 extern BG_AnimationIndexForString_t BG_AnimationIndexForString;
-//
+
+typedef int (*BG_AnimScriptEvent_t)(playerState_t *ps, scriptAnimEventTypes_t event, int isContinue, int force);
+extern BG_AnimScriptEvent_t BG_AnimScriptEvent;
+////
 
 // Scr
 typedef xfunction_t (*Scr_GetFunction_t)(const char** v_functionName, qboolean *v_developer);

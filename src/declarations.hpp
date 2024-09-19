@@ -942,6 +942,31 @@ typedef struct WeaponDef_t
     //...
 } WeaponDef_t;
 
+typedef enum
+{
+    ANIM_ET_PAIN,
+    ANIM_ET_DEATH,
+    ANIM_ET_FIREWEAPON,
+    UNKNOWN,                    // Does nothing
+    UNKNOWN_2,                  // Does nothing
+    ANIM_ET_LAND,       
+    ANIM_ET_DROPWEAPON,         // Change weapon
+    UNKNOWN_3,                  // Does nothing
+    UNKNOWN_4,                  // Does nothing
+    UNKNOWN_5,                  // Does nothing
+    ANIM_ET_RELOAD, // 10
+    UNKNOWN_6,                  // Does nothing
+    UNKNOWN_7,                  // Does nothing
+    ANIM_ET_MELEEATTACK,
+    ANIM_ET_CROUCH_TO_STAND,    // CRASH
+    UNKNOWN_8,
+    UNKNOWN_9,
+    UNKNOWN_10,
+    ANIM_ET_SHELLSHOCK,         // CRASH
+
+    NUM_ANIM_EVENTTYPES         // CRASH
+} scriptAnimEventTypes_t;
+
 struct pmove_t
 {
     playerState_t *ps;
