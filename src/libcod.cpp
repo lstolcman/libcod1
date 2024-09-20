@@ -1201,6 +1201,8 @@ void UCMD_custom_sprint(client_t *cl)
     
     if(customPlayerState[clientNum].sprintActive)
         customPlayerState[clientNum].sprintActive = false;
+    else if(customPlayerState[clientNum].sprintRequestPending)
+        customPlayerState[clientNum].sprintRequestPending = false;
     else
         customPlayerState[clientNum].sprintRequestPending = true;
 }
@@ -1413,6 +1415,9 @@ void PM_UpdateSprint(pmove_t *pmove)
                 G_AddPredictableEvent(gentity, EV_STANCE_FORCE_STAND, 0);
                 return;
             }
+
+            if(gentity->s.groundEntityNum == 1023) // Player is in air, wait for landing.
+                return;
         }
         
         if (customPlayerState[clientNum].sprintActive)
