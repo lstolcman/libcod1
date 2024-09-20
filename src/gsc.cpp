@@ -108,9 +108,9 @@ scr_method_t scriptMethods[] =
     {"leanRightButtonPressed", gsc_player_button_leanright, 0},
     {"reloadButtonPressed", gsc_player_button_reload, 0},
 
-    {"getIp", gsc_player_getip, 0},
+    {"getIP", gsc_player_getip, 0},
     {"getPing", gsc_player_getping, 0},
-    {"getFps", gsc_player_getfps, 0},
+    {"getFPS", gsc_player_getfps, 0},
     {"getUserinfo", gsc_player_getuserinfo, 0},
     {"setUserinfo", gsc_player_setuserinfo, 0},
     {"processClientCommand", gsc_player_processclientcommand, 0},
