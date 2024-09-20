@@ -7,7 +7,7 @@ typedef void (*trap_Argv_t)(int arg, char *buffer, int bufferLength);
 typedef void (*trap_SendServerCommand_t)(int clientnum, svscmd_type type, const char *text);
 extern trap_SendServerCommand_t trap_SendServerCommand;
 
-typedef const char * (*trap_GetConfigstringConst_t)(int index);
+typedef const char* (*trap_GetConfigstringConst_t)(int index);
 extern trap_GetConfigstringConst_t trap_GetConfigstringConst;
 
 typedef void (*trap_GetConfigstring_t)(int index, char *buffer, int bufferSize);
@@ -15,7 +15,7 @@ extern trap_GetConfigstring_t trap_GetConfigstring;
 ////
 
 //// Cmd
-typedef char * (*Cmd_Argv_t)(int arg);
+typedef char* (*Cmd_Argv_t)(int arg);
 static const Cmd_Argv_t Cmd_Argv = (Cmd_Argv_t)0x0805b258;
 
 typedef int (*Cmd_Argc_t)();
@@ -47,12 +47,12 @@ static const Com_PrintMessage_t Com_PrintMessage = (Com_PrintMessage_t)0x0806b53
 typedef void (*Com_Error_t)(errorParm_t code, const char *format, ...);
 static const Com_Error_t Com_Error = (Com_Error_t)0x0806b93c;
 
-typedef char * (*Com_Parse_t)(const char **data_p);
+typedef char* (*Com_Parse_t)(const char **data_p);
 static const Com_Parse_t Com_Parse = (Com_Parse_t)0x08081d1c;
 
 typedef void (*Com_SkipRestOfLine_t)(const char **data);
 
-typedef char * (*Com_ParseRestOfLine_t)(const char **data);
+typedef char* (*Com_ParseRestOfLine_t)(const char **data);
 
 typedef int (*Com_ParseInt_t)(const char **data);
 ////
@@ -90,16 +90,16 @@ static const FS_WriteFile_t FS_WriteFile = (FS_WriteFile_t)0x08062a2c;
 ////
 
 //// Cvar
-typedef cvar_t * (*Cvar_Set_t)(const char *var_name, const char *value);
+typedef cvar_t* (*Cvar_Set_t)(const char *var_name, const char *value);
 static const Cvar_Set_t Cvar_Set = (Cvar_Set_t)0x0806f0b0;
 
-typedef cvar_t * (*Cvar_Get_t)(const char *var_name, const char *var_value, unsigned short flags);
+typedef cvar_t* (*Cvar_Get_t)(const char *var_name, const char *var_value, unsigned short flags);
 static const Cvar_Get_t Cvar_Get = (Cvar_Get_t)0x0806ea34;
 
-typedef cvar_t * (*Cvar_FindVar_t)(const char *var_name);
+typedef cvar_t* (*Cvar_FindVar_t)(const char *var_name);
 static const Cvar_FindVar_t Cvar_FindVar = (Cvar_FindVar_t)0x0806e9b4;
 
-typedef char * (*Cvar_VariableString_t)(const char *cvarName);
+typedef char* (*Cvar_VariableString_t)(const char *cvarName);
 static const Cvar_VariableString_t Cvar_VariableString = (Cvar_VariableString_t)0x0806f8ec;
 ////
 
@@ -155,13 +155,13 @@ static const SV_DirectConnect_t SV_DirectConnect = (SV_DirectConnect_t)0x0808549
 typedef void (*SV_SetConfigstring_t)(int index, const char *val);
 static const SV_SetConfigstring_t SV_SetConfigstring = (SV_SetConfigstring_t)0x08089bf0;
 
-typedef playerState_t * (*SV_GameClientNum_t)(int num);
+typedef playerState_t* (*SV_GameClientNum_t)(int num);
 static const SV_GameClientNum_t SV_GameClientNum = (SV_GameClientNum_t)0x08089270;
 
 typedef void (*SV_AuthorizeIpPacket_t)(netadr_t from);
 static const SV_AuthorizeIpPacket_t SV_AuthorizeIpPacket = (SV_AuthorizeIpPacket_t)0x0808514c;
 
-typedef client_t * (*SV_GetPlayerByNum_t)(void);
+typedef client_t* (*SV_GetPlayerByNum_t)(void);
 static const SV_GetPlayerByNum_t SV_GetPlayerByNum = (SV_GetPlayerByNum_t)0x08083b9c;
 
 typedef void (*SV_MapRestart_f_t)(void);
@@ -200,7 +200,7 @@ static const SV_DoneDownload_f_t SV_DoneDownload_f = (SV_DoneDownload_f_t)0x0808
 typedef void (*SV_RetransmitDownload_f_t)(client_t *cl);
 static const SV_RetransmitDownload_f_t SV_RetransmitDownload_f = (SV_RetransmitDownload_f_t)0x08087a2c;
 
-typedef gentity_t * (*SV_ClientThink_t)(client_t *cl, usercmd_t *cmd);
+typedef gentity_t* (*SV_ClientThink_t)(client_t *cl, usercmd_t *cmd);
 static const SV_ClientThink_t SV_ClientThink = (SV_ClientThink_t)0x0808789c;
 ////
 
@@ -208,7 +208,7 @@ static const SV_ClientThink_t SV_ClientThink = (SV_ClientThink_t)0x0808789c;
 typedef void (*Info_SetValueForKey_t)(char *s, const char *key, const char *value);
 static const Info_SetValueForKey_t Info_SetValueForKey = (Info_SetValueForKey_t)0x080827d4;
 
-typedef char * (*Info_ValueForKey_t)(const char *s, const char *key);
+typedef char* (*Info_ValueForKey_t)(const char *s, const char *key);
 static const Info_ValueForKey_t Info_ValueForKey = (Info_ValueForKey_t)0x08082460;
 ////
 
@@ -221,7 +221,7 @@ static const SVC_Status_t SVC_Status = (SVC_Status_t)0x0808bd58;
 ////
 
 //// NET
-typedef const char * (*NET_AdrToString_t)(netadr_t a);
+typedef const char* (*NET_AdrToString_t)(netadr_t a);
 static const NET_AdrToString_t NET_AdrToString = (NET_AdrToString_t)0x08080ef4;
 
 typedef void (*NET_OutOfBandPrint_t)(netsrc_t net_socket, netadr_t adr, const char *format, ...);
@@ -265,7 +265,7 @@ static const MSG_WriteString_t MSG_WriteString = (MSG_WriteString_t)0x0807a620;
 typedef void (*MSG_WriteData_t)(msg_t *msg, const void *data, int length);
 static const MSG_WriteData_t MSG_WriteData = (MSG_WriteData_t)0x0807eef0;
 
-typedef char * (*MSG_ReadString_t)(msg_t *msg);
+typedef char* (*MSG_ReadString_t)(msg_t *msg);
 static const MSG_ReadString_t MSG_ReadString = (MSG_ReadString_t)0x0807f320;
 
 typedef void (*MSG_BeginReading_t)(msg_t *buf);
@@ -274,7 +274,7 @@ static const MSG_BeginReading_t MSG_BeginReading = (MSG_BeginReading_t)0x0807f17
 typedef int (*MSG_ReadLong_t)(msg_t *msg);
 static const MSG_ReadLong_t MSG_ReadLong = (MSG_ReadLong_t)0x0807f2f0;
 
-typedef char * (*MSG_ReadStringLine_t)(msg_t *msg);
+typedef char* (*MSG_ReadStringLine_t)(msg_t *msg);
 static const MSG_ReadStringLine_t MSG_ReadStringLine = (MSG_ReadStringLine_t)0x0807f3fc;
 ////
 
@@ -282,7 +282,7 @@ static const MSG_ReadStringLine_t MSG_ReadStringLine = (MSG_ReadStringLine_t)0x0
 typedef int (*BG_GetNumWeapons_t)(void);
 extern BG_GetNumWeapons_t BG_GetNumWeapons;
 
-typedef WeaponDef_t * (*BG_GetInfoForWeapon_t)(unsigned int weaponIndex);
+typedef WeaponDef_t* (*BG_GetInfoForWeapon_t)(unsigned int weaponIndex);
 extern BG_GetInfoForWeapon_t BG_GetInfoForWeapon;
 
 typedef int (*BG_GetWeaponIndexForName_t)(const char *name);
@@ -328,13 +328,13 @@ extern Scr_IsSystemActive_t Scr_IsSystemActive;
 typedef int (*Scr_GetInt_t)(unsigned int param);
 extern Scr_GetInt_t Scr_GetInt;
 
-typedef const char * (*Scr_GetString_t)(unsigned int param);
+typedef const char* (*Scr_GetString_t)(unsigned int param);
 extern Scr_GetString_t Scr_GetString;
 
 typedef int (*Scr_GetType_t)(unsigned int param);
 extern Scr_GetType_t Scr_GetType;
 
-typedef gentity_t * (*Scr_GetEntity_t)(unsigned int index);
+typedef gentity_t* (*Scr_GetEntity_t)(unsigned int index);
 extern Scr_GetEntity_t Scr_GetEntity;
 
 typedef void (*Scr_AddBool_t)(qboolean value);
@@ -377,10 +377,10 @@ extern Scr_ParamError_t Scr_ParamError;
 //
 
 // Q
-typedef char * (*Q_strlwr_t)(char *s1);
+typedef char* (*Q_strlwr_t)(char *s1);
 extern Q_strlwr_t Q_strlwr;
 
-typedef char * (*Q_strupr_t)(char *s1);
+typedef char* (*Q_strupr_t)(char *s1);
 extern Q_strupr_t Q_strupr;
 
 typedef void (*Q_strcat_t)(char *dest, int size, const char *src);
@@ -433,6 +433,6 @@ typedef int (*Jump_Check_t)();
 
 typedef int (*PM_GetEffectiveStance_t)(playerState_t *ps);
 
-typedef char * (*va_t)(const char *format, ...);
+typedef char* (*va_t)(const char *format, ...);
 extern va_t va;
 #endif

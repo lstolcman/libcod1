@@ -493,7 +493,7 @@ void custom_DeathmatchScoreboardMessage(gentity_t *ent)
     trap_SendServerCommand(ent - g_entities, SV_CMD_RELIABLE, va("b %i %i %i%s", i, level->teamScores[1], level->teamScores[2], string));
 }
 
-void custom_Touch_Item_Auto(gentity_t * item, gentity_t * entity, int touch)
+void custom_Touch_Item_Auto(gentity_t *item, gentity_t *entity, int touch)
 {
     int clientNum = entity->client->ps.clientNum;
     client_t *client = &svs.clients[clientNum];
