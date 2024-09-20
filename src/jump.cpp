@@ -51,7 +51,7 @@ __attribute__ ((naked)) void hook_Jump_Check_Naked()
         :
         : "r"(resume_addr_Jump_Check)
         :
-    );
+   );
 }
 extern "C" void setJumpHeight()
 {
@@ -61,7 +61,7 @@ extern "C" void setJumpHeight()
         :
         : "m"(height)
         :
-    );
+   );
 }
 
 // Update ps->jumpTime
@@ -85,7 +85,7 @@ __attribute__ ((naked)) void hook_Jump_Check_Naked_2()
         :
         : "r"(resume_addr_Jump_Check_2)
         : "%eax"
-    );
+   );
 }
 extern "C" void setJumpHeight_2()
 {
@@ -95,6 +95,6 @@ extern "C" void setJumpHeight_2()
         :
         : "m"(height)
         :
-    );
+   );
 }
 ////

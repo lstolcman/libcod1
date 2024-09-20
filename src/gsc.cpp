@@ -200,9 +200,9 @@ int stackGetParams(const char *params, ...)
 
     int errors = 0;
 
-    for ( size_t i = 0; i < strlen(params); i++ )
+    for (size_t i = 0; i < strlen(params); i++)
     {
-        switch ( params[i] )
+        switch (params[i])
         {
         case ' ': // Ignore param
             break;
@@ -210,7 +210,7 @@ int stackGetParams(const char *params, ...)
         case 'i':
         {
             int *tmp = va_arg(args, int *);
-            if ( !stackGetParamInt(i, tmp) )
+            if (!stackGetParamInt(i, tmp))
             {
                 Com_DPrintf("\nstackGetParams() Param %i is not an int\n", i);
                 errors++;
@@ -221,7 +221,7 @@ int stackGetParams(const char *params, ...)
         case 'v':
         {
             float *tmp = va_arg(args, float *);
-            if ( !stackGetParamVector(i, tmp) )
+            if (!stackGetParamVector(i, tmp))
             {
                 Com_DPrintf("\nstackGetParams() Param %i is not a vector\n", i);
                 errors++;
@@ -232,7 +232,7 @@ int stackGetParams(const char *params, ...)
         case 'f':
         {
             float *tmp = va_arg(args, float *);
-            if ( ! stackGetParamFloat(i, tmp) )
+            if (! stackGetParamFloat(i, tmp))
             {
                 Com_DPrintf("\nstackGetParams() Param %i is not a float\n", i);
                 errors++;
@@ -243,7 +243,7 @@ int stackGetParams(const char *params, ...)
         case 's':
         {
             char **tmp = va_arg(args, char **);
-            if ( !stackGetParamString(i, tmp) )
+            if (!stackGetParamString(i, tmp))
             {
                 Com_DPrintf("\nstackGetParams() Param %i is not a string\n", i);
                 errors++;
@@ -254,7 +254,7 @@ int stackGetParams(const char *params, ...)
         case 'c':
         {
             unsigned int *tmp = va_arg(args, unsigned int *);
-            if ( !stackGetParamConstString(i, tmp) )
+            if (!stackGetParamConstString(i, tmp))
             {
                 Com_DPrintf("\nstackGetParams() Param %i is not a const string\n", i);
                 errors++;
@@ -265,7 +265,7 @@ int stackGetParams(const char *params, ...)
         case 'l':
         {
             char **tmp = va_arg(args, char **);
-            if ( !stackGetParamLocalizedString(i, tmp) )
+            if (!stackGetParamLocalizedString(i, tmp))
             {
                 Com_DPrintf("\nstackGetParams() Param %i is not a localized string\n", i);
                 errors++;
@@ -286,19 +286,19 @@ int stackGetParams(const char *params, ...)
 
 int stackGetParamInt(int param, int *value)
 {
-    if ( param >= Scr_GetNumParam() )
+    if (param >= Scr_GetNumParam())
         return 0;
 
     VariableValue *var;
     var = &scrVmPub.top[-param];
 
-    if ( var->type == STACK_FLOAT )
+    if (var->type == STACK_FLOAT)
     {
         *value = var->u.floatValue;
         return 1;
     }
 
-    if ( var->type != STACK_INT )
+    if (var->type != STACK_INT)
         return 0;
 
     *value = var->u.intValue;
@@ -311,13 +311,13 @@ int stackGetParamFunction(int param, int *value)
     printf("####### stackGetParamFunction\n");
     
 
-    if ( param >= Scr_GetNumParam() )
+    if (param >= Scr_GetNumParam())
         return 0;
 
     VariableValue *var;
     var = &scrVmPub.top[-param];
 
-    if ( var->type != STACK_FUNCTION )
+    if (var->type != STACK_FUNCTION)
         return 0;
 
     *value = var->u.codePosValue - scrVarPub.programBuffer;
@@ -327,13 +327,13 @@ int stackGetParamFunction(int param, int *value)
 
 int stackGetParamString(int param, char **value)
 {
-    if ( param >= Scr_GetNumParam() )
+    if (param >= Scr_GetNumParam())
         return 0;
 
     VariableValue *var;
     var = &scrVmPub.top[-param];
 
-    if ( var->type != STACK_STRING )
+    if (var->type != STACK_STRING)
         return 0;
 
     *value = SL_ConvertToString(var->u.stringValue);
@@ -343,13 +343,13 @@ int stackGetParamString(int param, char **value)
 
 int stackGetParamConstString(int param, unsigned int *value)
 {
-    if ( param >= Scr_GetNumParam() )
+    if (param >= Scr_GetNumParam())
         return 0;
 
     VariableValue *var;
     var = &scrVmPub.top[-param];
 
-    if ( var->type != STACK_STRING )
+    if (var->type != STACK_STRING)
         return 0;
 
     *value = var->u.stringValue;
@@ -359,13 +359,13 @@ int stackGetParamConstString(int param, unsigned int *value)
 
 int stackGetParamLocalizedString(int param, char **value)
 {
-    if ( param >= Scr_GetNumParam() )
+    if (param >= Scr_GetNumParam())
         return 0;
 
     VariableValue *var;
     var = &scrVmPub.top[-param];
 
-    if ( var->type != STACK_LOCALIZED_STRING )
+    if (var->type != STACK_LOCALIZED_STRING)
         return 0;
 
     *value = SL_ConvertToString(var->u.stringValue);
@@ -375,13 +375,13 @@ int stackGetParamLocalizedString(int param, char **value)
 
 int stackGetParamVector(int param, vec3_t value)
 {
-    if ( param >= Scr_GetNumParam() )
+    if (param >= Scr_GetNumParam())
         return 0;
 
     VariableValue *var;
     var = &scrVmPub.top[-param];
 
-    if ( var->type != STACK_VECTOR )
+    if (var->type != STACK_VECTOR)
         return 0;
 
     VectorCopy(var->u.vectorValue, value);
@@ -391,19 +391,19 @@ int stackGetParamVector(int param, vec3_t value)
 
 int stackGetParamFloat(int param, float *value)
 {
-    if ( param >= Scr_GetNumParam() )
+    if (param >= Scr_GetNumParam())
         return 0;
 
     VariableValue *var;
     var = &scrVmPub.top[-param];
 
-    if ( var->type == STACK_INT )
+    if (var->type == STACK_INT)
     {
         *value = var->u.intValue;
         return 1;
     }
 
-    if ( var->type != STACK_FLOAT )
+    if (var->type != STACK_FLOAT)
         return 0;
 
     *value = var->u.floatValue;
@@ -413,13 +413,13 @@ int stackGetParamFloat(int param, float *value)
 
 int stackGetParamObject(int param, unsigned int *value)
 {
-    if ( param >= Scr_GetNumParam() )
+    if (param >= Scr_GetNumParam())
         return 0;
 
     VariableValue *var;
     var = &scrVmPub.top[-param];
 
-    if ( var->type != STACK_OBJECT )
+    if (var->type != STACK_OBJECT)
         return 0;
 
     *value = var->u.pointerValue;
@@ -441,7 +441,7 @@ uint64_t Sys_Milliseconds64(void)
 
     gettimeofday(&tp, NULL);
 
-    if ( !sys_timeBase )
+    if (!sys_timeBase)
     {
         sys_timeBase = tp.tv_sec;
         return tp.tv_usec / 1000;

@@ -4,7 +4,7 @@ qboolean isValidWeaponId(int id)
 {
     int weps = BG_GetNumWeapons();
 
-    if ( id > weps || id <= 0 || weps == 0 )
+    if (id > weps || id <= 0 || weps == 0)
         return qfalse;
 
     return qtrue;
@@ -16,18 +16,18 @@ void gsc_weapons_setweaponcookable()
     char *name;
     int cookable;
 
-    if ( stackGetParams("si", &name, &cookable) ) 
+    if (stackGetParams("si", &name, &cookable)) 
     {
         id = BG_GetWeaponIndexForName(name);
     }
-    else if ( !stackGetParams("ii", &id, &cookable) )
+    else if (!stackGetParams("ii", &id, &cookable))
     {
         stackError("gsc_weapons_setweaponcookable() one or more arguments is undefined or has a wrong type");
         stackPushUndefined();
         return;
     }
 
-    if ( !isValidWeaponId(id) )
+    if (!isValidWeaponId(id))
     {
         stackPushUndefined();
         return;
@@ -45,18 +45,18 @@ void gsc_weapons_setweaponfusetime()
     char *name;
     int time;
 
-    if ( stackGetParams("si", &name, &time) ) 
+    if (stackGetParams("si", &name, &time)) 
     {
         id = BG_GetWeaponIndexForName(name);
     }
-    else if ( !stackGetParams("ii", &id, &time) )
+    else if (!stackGetParams("ii", &id, &time))
     {
         stackError("gsc_weapons_setweaponfusetime() one or more arguments is undefined or has a wrong type");
         stackPushUndefined();
         return;
     }
 
-    if ( !isValidWeaponId(id) )
+    if (!isValidWeaponId(id))
     {
         stackPushUndefined();
         return;

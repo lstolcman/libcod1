@@ -5,7 +5,7 @@ void gsc_entity_setbounds(scr_entref_t ref)
 	int id = ref.entnum;
 	float width, height;
 
-	if ( !stackGetParams("ff", &width, &height) )
+	if (!stackGetParams("ff", &width, &height))
 	{
 		stackError("gsc_entity_setbounds() one or more arguments is undefined or has a wrong type");
 		stackPushUndefined();
@@ -39,7 +39,7 @@ void gsc_entity_showtoplayer(scr_entref_t ref) //TODO: try like cod2rev instead
     }
     
     clientEnt = Scr_GetEntity(0);
-    if ( clientEnt->s.number >= MAX_CLIENTS )
+    if (clientEnt->s.number >= MAX_CLIENTS)
     {
         stackError("gsc_entity_showtoplayer() param must be a client entity");
         return;

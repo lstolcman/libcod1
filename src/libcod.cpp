@@ -287,10 +287,10 @@ const char* custom_FS_ReferencedPakNames(void)
             continue;
 
         if(*info)
-            Q_strcat(info, sizeof( info ), " ");
-        Q_strcat(info, sizeof( info ), search->pak->pakGamename);
-        Q_strcat(info, sizeof( info ), "/");
-        Q_strcat(info, sizeof( info ), search->pak->pakBasename);
+            Q_strcat(info, sizeof(info), " ");
+        Q_strcat(info, sizeof(info), search->pak->pakGamename);
+        Q_strcat(info, sizeof(info), "/");
+        Q_strcat(info, sizeof(info), search->pak->pakBasename);
     }
 
     return info;
@@ -310,7 +310,7 @@ const char* custom_FS_ReferencedPakChecksums(void)
         if(FS_svrPak(search->pak->pakBasename))
             continue;
         
-        Q_strcat(info, sizeof( info ), va("%i ", search->pak->checksum));
+        Q_strcat(info, sizeof(info), va("%i ", search->pak->checksum));
     }
 
     return info;
@@ -337,7 +337,7 @@ void custom_GScr_LoadGameTypeScript()
         else
             *callbacks[i].pos = Scr_GetFunctionHandle(fs_callbacks->string, callbacks[i].name);
 
-        /*if ( *callbacks[i].pos && g_debugCallbacks->integer )
+        /*if (*callbacks[i].pos && g_debugCallbacks->integer)
             Com_Printf("%s found @ %p\n", callbacks[i].name, scrVarPub.programBuffer + *callbacks[i].pos);*/ //TODO: verify scrVarPub_t
     }
 }
@@ -1211,18 +1211,18 @@ char *custom_va(const char *format, ...)
     char *buf;
     int len;
 
-    va_start( argptr, format );
-    vsprintf( temp_buffer, format, argptr );
-    va_end( argptr );
+    va_start(argptr, format);
+    vsprintf(temp_buffer, format, argptr);
+    va_end(argptr);
 
-    if ( ( len = strlen( temp_buffer ) ) >= MAX_VA_STRING )
-        Com_Error( ERR_DROP, "Attempted to overrun string in call to va()\n" );
+    if ((len = strlen(temp_buffer)) >= MAX_VA_STRING)
+        Com_Error(ERR_DROP, "Attempted to overrun string in call to va()\n");
 
-    if ( len + index >= MAX_VA_STRING - 1 )
+    if (len + index >= MAX_VA_STRING - 1)
         index = 0;
 
     buf = &string[index];
-    memcpy( buf, temp_buffer, len + 1 );
+    memcpy(buf, temp_buffer, len + 1);
 
     index += len + 1;
 
@@ -1472,13 +1472,13 @@ static long SVC_HashForAddress(netadr_t address)
     int	i;
     long hash = 0;
 
-    for ( i = 0; i < 4; i++ )
+    for (i = 0; i < 4; i++)
     {
-        hash += (long)( ip[i] ) * ( i + 119 );
+        hash += (long)(ip[i]) * (i + 119);
     }
 
-    hash = ( hash ^ ( hash >> 10 ) ^ ( hash >> 20 ) );
-    hash &= ( MAX_HASHES - 1 );
+    hash = (hash ^ (hash >> 10) ^ (hash >> 20));
+    hash &= (MAX_HASHES - 1);
 
     return hash;
 }
@@ -1490,13 +1490,13 @@ static leakyBucket_t * SVC_BucketForAddress(netadr_t address, int burst, int per
     long hash = SVC_HashForAddress(address);
     uint64_t now = Sys_Milliseconds64();
 
-    for ( bucket = bucketHashes[hash]; bucket; bucket = bucket->next )
+    for (bucket = bucketHashes[hash]; bucket; bucket = bucket->next)
     {
-        if ( memcmp(bucket->adr, address.ip, 4) == 0 )
+        if (memcmp(bucket->adr, address.ip, 4) == 0)
             return bucket;
     }
 
-    for ( i = 0; i < MAX_BUCKETS; i++ )
+    for (i = 0; i < MAX_BUCKETS; i++)
     {
         int interval;
 
@@ -1504,21 +1504,21 @@ static leakyBucket_t * SVC_BucketForAddress(netadr_t address, int burst, int per
         interval = now - bucket->lastTime;
 
         // Reclaim expired buckets
-        if ( bucket->lastTime > 0 && ( interval > ( burst * period ) ||
-                                       interval < 0 ) )
+        if (bucket->lastTime > 0 && (interval > (burst * period) ||
+                                       interval < 0))
         {
-            if ( bucket->prev != NULL )
+            if (bucket->prev != NULL)
                 bucket->prev->next = bucket->next;
             else
                 bucketHashes[bucket->hash] = bucket->next;
 
-            if ( bucket->next != NULL )
+            if (bucket->next != NULL)
                 bucket->next->prev = bucket->prev;
 
             memset(bucket, 0, sizeof(leakyBucket_t));
         }
 
-        if ( bucket->type == 0 )
+        if (bucket->type == 0)
         {
             bucket->type = address.type;
             memcpy(bucket->adr, address.ip, 4);
@@ -1529,7 +1529,7 @@ static leakyBucket_t * SVC_BucketForAddress(netadr_t address, int burst, int per
 
             // Add to the head of the relevant hash chain
             bucket->next = bucketHashes[hash];
-            if ( bucketHashes[hash] != NULL )
+            if (bucketHashes[hash] != NULL)
                 bucketHashes[hash]->prev = bucket;
 
             bucket->prev = NULL;
@@ -1552,7 +1552,7 @@ bool SVC_RateLimit(leakyBucket_t *bucket, int burst, int period)
         int expired = interval / period;
         int expiredRemainder = interval % period;
 
-        if ( expired > bucket->burst || interval < 0 )
+        if (expired > bucket->burst || interval < 0)
         {
             bucket->burst = 0;
             bucket->lastTime = now;
@@ -1563,7 +1563,7 @@ bool SVC_RateLimit(leakyBucket_t *bucket, int burst, int period)
             bucket->lastTime = now - expiredRemainder;
         }
 
-        if ( bucket->burst < burst )
+        if (bucket->burst < burst)
         {
             bucket->burst++;
             return false;
@@ -2008,7 +2008,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_PmoveSingle = new cHook((int)dlsym(libHandle, "PmoveSingle"), (int)custom_PmoveSingle);
     hook_PmoveSingle->hook();
     // TODO: Ignore the JLE only for players allowed to air jump
-    int addr_Jump_Check_JLE = (int)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x7FD; // if ( pm->cmd.serverTime - pm->ps->jumpTime <= 499 )
+    int addr_Jump_Check_JLE = (int)dlsym(libHandle, "BG_PlayerTouchesItem") + 0x7FD; // if (pm->cmd.serverTime - pm->ps->jumpTime <= 499)
     hook_nop(addr_Jump_Check_JLE, addr_Jump_Check_JLE + 2);
     ////
     

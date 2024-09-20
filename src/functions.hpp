@@ -10,7 +10,7 @@ extern trap_SendServerCommand_t trap_SendServerCommand;
 typedef const char * (*trap_GetConfigstringConst_t)(int index);
 extern trap_GetConfigstringConst_t trap_GetConfigstringConst;
 
-typedef void (*trap_GetConfigstring_t)( int index, char *buffer, int bufferSize );
+typedef void (*trap_GetConfigstring_t)(int index, char *buffer, int bufferSize);
 extern trap_GetConfigstring_t trap_GetConfigstring;
 ////
 
@@ -414,7 +414,7 @@ static const GetNextVariable_t GetNextVariable = (GetNextVariable_t)0x080a3028;
 typedef char* (*SL_ConvertToString_t)(unsigned int index);
 static const SL_ConvertToString_t SL_ConvertToString = (SL_ConvertToString_t)0x0809cac4;
 
-typedef int (*VM_Call_t)(vm_t *vm, int callnum, ... );
+typedef int (*VM_Call_t)(vm_t *vm, int callnum, ...);
 static const VM_Call_t VM_Call = (VM_Call_t)0x08092158;
 
 typedef void (*ClientCommand_t)(int clientNum);

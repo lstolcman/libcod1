@@ -9,7 +9,7 @@ void gsc_player_setvelocity(scr_entref_t ref)
     int id = ref.entnum;
     vec3_t velocity;
 
-    if ( !stackGetParams("v", &velocity) )
+    if (!stackGetParams("v", &velocity))
     {
         stackError("gsc_player_setvelocity() argument is undefined or has a wrong type");
         stackPushUndefined();
@@ -50,7 +50,7 @@ void gsc_player_getuserinfo(scr_entref_t ref)
     int id = ref.entnum;
     char *key;
 
-    if ( !stackGetParams("s", &key) )
+    if (!stackGetParams("s", &key))
     {
         stackError("gsc_player_getuserinfo() argument is undefined or has a wrong type");
         stackPushUndefined();
@@ -67,7 +67,7 @@ void gsc_player_getuserinfo(scr_entref_t ref)
     client_t *client = &svs.clients[id];
     char *val = Info_ValueForKey(client->userinfo, key);
 
-    if ( strlen(val) )
+    if (strlen(val))
         stackPushString(val);
     else
         stackPushString("");
@@ -78,7 +78,7 @@ void gsc_player_setuserinfo(scr_entref_t ref)
     int id = ref.entnum;
     char *key, *value;
 
-    if ( !stackGetParams("ss", &key, &value) )
+    if (!stackGetParams("ss", &key, &value))
     {
         stackError("gsc_player_setuserinfo() one or more arguments is undefined or has a wrong type");
         stackPushUndefined();
@@ -337,7 +337,7 @@ void gsc_player_dropclient(scr_entref_t ref)
     int id = ref.entnum;
     char *reason;
 
-    if ( Scr_GetNumParam() > 0 && !stackGetParams("s", &reason) )
+    if (Scr_GetNumParam() > 0 && !stackGetParams("s", &reason))
     {
         stackError("gsc_player_dropclient() argument has a wrong type");
         stackPushUndefined();
@@ -366,7 +366,7 @@ void gsc_player_setspeed(scr_entref_t ref)
     int id = ref.entnum;
     int speed;
 
-    if ( !stackGetParams("i", &speed) )
+    if (!stackGetParams("i", &speed))
     {
         stackError("gsc_player_setspeed() argument is undefined or has a wrong type");
         stackPushUndefined();
@@ -380,7 +380,7 @@ void gsc_player_setspeed(scr_entref_t ref)
         return;
     }
 
-    if ( speed < 0 )
+    if (speed < 0)
     {
         stackError("gsc_player_setspeed() param must be equal or above zero");
         stackPushUndefined();
@@ -427,7 +427,7 @@ void gsc_player_noclip(scr_entref_t ref)
     int id = ref.entnum;
     char *noclip;
 
-    if ( !stackGetParams("s", &noclip) )
+    if (!stackGetParams("s", &noclip))
     {
         stackError("gsc_player_noclip() argument is undefined or has a wrong type");
         stackPushUndefined();
@@ -443,11 +443,11 @@ void gsc_player_noclip(scr_entref_t ref)
 
     gentity_t *entity = &g_entities[id];
 
-    if ( !Q_stricmp(noclip, "on") || atoi(noclip) )
+    if (!Q_stricmp(noclip, "on") || atoi(noclip))
     {
         entity->client->noclip = qtrue;
     }
-    else if ( !Q_stricmp(noclip, "off") || !Q_stricmp(noclip, "0") )
+    else if (!Q_stricmp(noclip, "off") || !Q_stricmp(noclip, "0"))
     {
         entity->client->noclip = qfalse;
     }
@@ -464,7 +464,7 @@ void gsc_player_ufo(scr_entref_t ref)
     int id = ref.entnum;
     char *ufo;
 
-    if ( !stackGetParams("s", &ufo) )
+    if (!stackGetParams("s", &ufo))
     {
         stackError("gsc_player_ufo() argument is undefined or has a wrong type");
         stackPushUndefined();
@@ -480,11 +480,11 @@ void gsc_player_ufo(scr_entref_t ref)
 
     gentity_t *entity = &g_entities[id];
 
-    if ( !Q_stricmp(ufo, "on") || atoi(ufo) )
+    if (!Q_stricmp(ufo, "on") || atoi(ufo))
     {
         entity->client->ufo = qtrue;
     }
-    else if ( !Q_stricmp(ufo, "off") || !Q_stricmp(ufo, "0") )
+    else if (!Q_stricmp(ufo, "off") || !Q_stricmp(ufo, "0"))
     {
         entity->client->ufo = qfalse;
     }

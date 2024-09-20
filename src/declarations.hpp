@@ -8,8 +8,8 @@
 #define qfalse 0
 
 // 3D vectors
-#define VectorCopy( a, b )          ( ( b )[0] = ( a )[0],( b )[1] = ( a )[1],( b )[2] = ( a )[2] )
-#define VectorScale( v, s, o )      ( ( o )[0] = ( v )[0] * ( s ),( o )[1] = ( v )[1] * ( s ),( o )[2] = ( v )[2] * ( s ) )
+#define VectorCopy(a, b)          ((b)[0] = (a)[0],(b)[1] = (a)[1],(b)[2] = (a)[2])
+#define VectorScale(v, s, o)      ((o)[0] = (v)[0] * (s),(o)[1] = (v)[1] * (s),(o)[2] = (v)[2] * (s))
 
 #define BIG_INFO_STRING             0x2000
 #define GENTITYNUM_BITS             10
@@ -25,7 +25,7 @@
 #define MAX_CONFIGSTRINGS           2048
 #define MAX_DOWNLOAD_BLKSIZE        2048
 #define MAX_DOWNLOAD_WINDOW         8
-#define MAX_GENTITIES               ( 1 << GENTITYNUM_BITS )
+#define MAX_GENTITIES               (1 << GENTITYNUM_BITS)
 #define MAX_INFO_STRING             0x400
 #define MAX_MSGLEN                  0x4000
 #define MAX_NETNAME                 36
@@ -1019,13 +1019,13 @@ static const int varpub_offset = 0x082f17d8;
 static const int vmpub_offset = 0x082f57e0;
 static const int gvm_offset = 0x080e30c4;
 
-#define com_frameTime (*((int*)( com_frameTime_offset )))
-#define fs_searchpaths (*((searchpath_t**)( fs_searchpaths_offset )))
-#define scrVarPub (*((scrVarPub_t*)( varpub_offset )))
-#define scrVmPub (*((scrVmPub_t*)( vmpub_offset )))
-#define sv (*((server_t*)( sv_offset )))
-#define sv_serverId_value (*((int*)( sv_serverId_value_offset )))
-#define svs (*((serverStatic_t*)( svs_offset )))
+#define com_frameTime (*((int*)(com_frameTime_offset)))
+#define fs_searchpaths (*((searchpath_t**)(fs_searchpaths_offset)))
+#define scrVarPub (*((scrVarPub_t*)(varpub_offset)))
+#define scrVmPub (*((scrVmPub_t*)(vmpub_offset)))
+#define sv (*((server_t*)(sv_offset)))
+#define sv_serverId_value (*((int*)(sv_serverId_value_offset)))
+#define svs (*((serverStatic_t*)(svs_offset)))
 #define gvm (*(vm_t**)(gvm_offset))
 
 // Check for critical structure sizes and fail if not match

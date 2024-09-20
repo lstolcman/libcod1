@@ -11,7 +11,7 @@ void gsc_utils_sendcommandtoclient()
     int clientNum;
     char *message;
 
-    if ( !stackGetParams("is", &clientNum, &message) )
+    if (!stackGetParams("is", &clientNum, &message))
     {
         stackError("gsc_utils_sendcommandtoclient() one or more arguments is undefined or has a wrong type");
         stackPushUndefined();
@@ -26,14 +26,14 @@ void gsc_utils_logprintconsole()
 {
     char *str;
 
-    if ( !stackGetParams("s", &str) )
+    if (!stackGetParams("s", &str))
     {
         stackError("gsc_utils_logprintconsole() argument is undefined or has a wrong type");
         stackPushUndefined();
         return;
     }
 
-    if ( !strlen(str) || strlen(str) > MAX_STRINGLENGTH )
+    if (!strlen(str) || strlen(str) > MAX_STRINGLENGTH)
     {
         stackError("gsc_utils_logprintconsole() invalid string length");
         stackPushUndefined();
@@ -58,21 +58,21 @@ void gsc_utils_getsubstr()
     string = Scr_GetString(0);
     start = Scr_GetInt(1u);
 
-    if ( Scr_GetNumParam() <= 2 )
+    if (Scr_GetNumParam() <= 2)
         end = 0x7FFFFFFF;
     else
         end = Scr_GetInt(2u);
 
     source = start;
 
-    for ( i = 0; source < end; ++i )
+    for (i = 0; source < end; ++i)
     {
-        if ( i > 1023 )
+        if (i > 1023)
             stackError("gsc_utils_getsubstr() string too long");
 
         c = string[source];
 
-        if ( !c )
+        if (!c)
             break;
 
         tempString[i] = c;
@@ -87,14 +87,14 @@ void gsc_utils_getascii()
 {
     char *str;
 
-    if ( !stackGetParams("s", &str) )
+    if (!stackGetParams("s", &str))
     {
         stackError("gsc_utils_getascii() argument is undefined or has a wrong type");
         stackPushUndefined();
         return;
     }
 
-    if ( !strlen(str) )
+    if (!strlen(str))
     {
         stackError("gsc_utils_getascii() string length is 0");
         stackPushUndefined();
@@ -108,14 +108,14 @@ void gsc_utils_toupper()
 {
     char *str;
 
-    if ( !stackGetParams("s", &str) )
+    if (!stackGetParams("s", &str))
     {
         stackError("gsc_utils_toupper() argument is undefined or has a wrong type");
         stackPushUndefined();
         return;
     }
 
-    if ( !strlen(str) )
+    if (!strlen(str))
     {
         stackError("gsc_utils_toupper() string length is 0");
         stackPushUndefined();
@@ -132,19 +132,19 @@ void gsc_utils_tolower() // From cod2rev
     const char *string;
     char tempString[MAX_STRINGLENGTH];
 
-    if ( !stackGetParams("s", &string) )
+    if (!stackGetParams("s", &string))
     {
         stackError("gsc_utils_tolower() argument is undefined or has a wrong type");
         stackPushUndefined();
         return;
     }
 
-    for ( i = 0; i < MAX_STRINGLENGTH; ++i )
+    for (i = 0; i < MAX_STRINGLENGTH; ++i)
     {
         c = tolower(*string);
         tempString[i] = c;
 
-        if ( !c )
+        if (!c)
         {
             stackPushString(tempString);
             return;
@@ -174,18 +174,18 @@ void gsc_utils_strtok() // From cod2rev
 
     Scr_MakeArray();
 
-    for ( i = 0; ; ++i )
+    for (i = 0; ; ++i)
     {
         c = delim[i];
 
-        if ( !c )
+        if (!c)
             break;
 
-        for ( j = 0; j < len; ++j )
+        for (j = 0; j < len; ++j)
         {
-            if ( c == tok[j] )
+            if (c == tok[j])
             {
-                if ( dest )
+                if (dest)
                 {
                     tempString[dest] = 0;
                     Scr_AddString(tempString);
@@ -199,13 +199,13 @@ void gsc_utils_strtok() // From cod2rev
 
         tempString[dest] = c;
 
-        if ( ++dest > 1023 )
+        if (++dest > 1023)
             stackError("gsc_utils_strtok() string too long");
 skip:
         ;
     }
 
-    if ( dest )
+    if (dest)
     {
         tempString[dest] = 0;
         Scr_AddString(tempString);
@@ -219,7 +219,7 @@ void gsc_utils_replace() //TODO: check if needs improvements
     char* rep;
     char* with;
 
-    if ( !stackGetParams("sss", &orig, &rep, &with) )
+    if (!stackGetParams("sss", &orig, &rep, &with))
     {
         stackError("gsc_utils_replace() one or more arguments is undefined or has a wrong type");
         stackPushUndefined();
@@ -274,7 +274,7 @@ void gsc_utils_file_exists()
 {
     char *filename;
 
-    if ( !stackGetParams("s", &filename) )
+    if (!stackGetParams("s", &filename))
     {
         stackError("gsc_utils_file_exists() argument is undefined or has a wrong type");
         stackPushUndefined();
@@ -290,7 +290,7 @@ void gsc_utils_fopen()
     FILE *file;
     char *filename, *mode;
 
-    if ( !stackGetParams("ss", &filename, &mode) )
+    if (!stackGetParams("ss", &filename, &mode))
     {
         stackError("gsc_utils_fopen() one or more arguments is undefined or has a wrong type");
         stackPushUndefined();
@@ -299,7 +299,7 @@ void gsc_utils_fopen()
 
     file = fopen(filename, mode);
 
-    if ( !file )
+    if (!file)
     {
         stackError("gsc_utils_fopen() returned an error");
         stackPushUndefined();
@@ -313,14 +313,14 @@ void gsc_utils_fread()
 {
     FILE *file;
 
-    if ( !stackGetParams("i", &file) )
+    if (!stackGetParams("i", &file))
     {
         stackError("gsc_utils_fread() argument is undefined or has a wrong type");
         stackPushUndefined();
         return;
     }
 
-    if ( !file )
+    if (!file)
     {
         stackError("gsc_utils_fread() returned an error");
         stackPushUndefined();
@@ -330,7 +330,7 @@ void gsc_utils_fread()
     char buffer[256];
     int ret = fread(buffer, 1, 255, file);
 
-    if ( !ret )
+    if (!ret)
     {
         stackPushUndefined();
         return;
@@ -345,14 +345,14 @@ void gsc_utils_fwrite()
     FILE *file;
     char *buffer;
 
-    if ( !stackGetParams("is", &file, &buffer) )
+    if (!stackGetParams("is", &file, &buffer))
     {
         stackError("gsc_utils_fwrite() one or more arguments is undefined or has a wrong type");
         stackPushUndefined();
         return;
     }
 
-    if ( !file )
+    if (!file)
     {
         stackError("gsc_utils_fwrite() returned an error");
         stackPushUndefined();
@@ -366,14 +366,14 @@ void gsc_utils_fclose()
 {
     FILE *file;
 
-    if ( !stackGetParams("i", &file) )
+    if (!stackGetParams("i", &file))
     {
         stackError("gsc_utils_fclose() argument is undefined or has a wrong type");
         stackPushUndefined();
         return;
     }
 
-    if ( !file )
+    if (!file)
     {
         stackError("gsc_utils_fclose() returned an error");
         stackPushUndefined();
@@ -436,14 +436,14 @@ void gsc_utils_getconfigstring()
 {
     int index;
 
-    if ( !stackGetParams("i", &index) )
+    if (!stackGetParams("i", &index))
     {
         stackError("gsc_utils_getconfigstring() argument is undefined or has a wrong type");
         stackPushUndefined();
         return;
     }
     
-    if ( index < 0 || index >= MAX_CONFIGSTRINGS )
+    if (index < 0 || index >= MAX_CONFIGSTRINGS)
     {
         stackError("gsc_utils_getconfigstring() configstring index is out of range");
         stackPushUndefined();
@@ -452,7 +452,7 @@ void gsc_utils_getconfigstring()
 
     const char *string = trap_GetConfigstringConst(index);
 
-    if ( !*string )
+    if (!*string)
         stackPushUndefined();
     else
         stackPushString(string);
@@ -462,7 +462,7 @@ void gsc_utils_makelocalizedstring()
 {
     char *str;
 
-    if ( !stackGetParams("s", &str) )
+    if (!stackGetParams("s", &str))
     {
         stackError("gsc_utils_makelocalizedstring() argument is undefined or has a wrong type");
         stackPushUndefined();
