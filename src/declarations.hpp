@@ -1073,7 +1073,7 @@ typedef struct customPlayerState_s
     char botRightMove;
     char botUpMove;
     ////
-    bool noPickup;
+    bool noAutoPickup;
 } customPlayerState_t;
 
 typedef struct callback_s

@@ -589,7 +589,7 @@ void gsc_player_getairjumps(scr_entref_t ref)
     stackPushInt(customPlayerState[id].airJumpsAvailable);
 }
 
-void gsc_player_disableitempickup(scr_entref_t ref)
+void gsc_player_disableitemautopickup(scr_entref_t ref)
 {
     int id = ref.entnum;
 
@@ -600,13 +600,13 @@ void gsc_player_disableitempickup(scr_entref_t ref)
         return;
     }
 
-    int old_setting = !customPlayerState[id].noPickup;
-    customPlayerState[id].noPickup = true;
+    int old_setting = !customPlayerState[id].noAutoPickup;
+    customPlayerState[id].noAutoPickup = true;
 
     stackPushInt(old_setting);
 }
 
-void gsc_player_enableitempickup(scr_entref_t ref)
+void gsc_player_enableitemautopickup(scr_entref_t ref)
 {
     int id = ref.entnum;
 
@@ -617,8 +617,8 @@ void gsc_player_enableitempickup(scr_entref_t ref)
         return;
     }
 
-    int old_setting = !customPlayerState[id].noPickup;
-    customPlayerState[id].noPickup = false;
+    int old_setting = !customPlayerState[id].noAutoPickup;
+    customPlayerState[id].noAutoPickup = false;
 
     stackPushInt(old_setting);
 }
@@ -648,21 +648,21 @@ void gsc_player_playscriptanimation(scr_entref_t ref)
     int isContinue;
     int force;
 
-    if ( !stackGetParams("iii", &scriptAnimEventType, &isContinue, &force) )
+    if (!stackGetParams("iii", &scriptAnimEventType, &isContinue, &force))
     {
         stackError("gsc_player_playscriptanimation() argument is undefined or has a wrong type");
         stackPushUndefined();
         return;
     }
 
-    if ( id >= MAX_CLIENTS )
+    if (id >= MAX_CLIENTS)
     {
         stackError("gsc_player_playscriptanimation() entity %i is not a player", id);
         stackPushUndefined();
         return;
     }
 
-    if ( scriptAnimEventType < 0 || scriptAnimEventType >= NUM_ANIM_EVENTTYPES )
+    if (scriptAnimEventType < 0 || scriptAnimEventType >= NUM_ANIM_EVENTTYPES)
     {
         stackError("gsc_player_playscriptanimation() argument is not a valid scriptAnimEventType");
         stackPushUndefined();
@@ -672,4 +672,20 @@ void gsc_player_playscriptanimation(scr_entref_t ref)
     gentity_t *entity = &g_entities[id];
 
     stackPushInt(BG_AnimScriptEvent(&entity->client->ps, (scriptAnimEventTypes_t)scriptAnimEventType, isContinue, force));
+}
+
+void gsc_player_isbot(scr_entref_t ref)
+{
+    int id = ref.entnum;
+
+    if (id >= MAX_CLIENTS)
+    {
+        stackError("gsc_player_isbot() entity %i is not a player", id);
+        stackPushUndefined();
+        return;
+    }
+
+    client_t *client = &svs.clients[id];
+
+    stackPushBool(client->bIsTestClient);
 }

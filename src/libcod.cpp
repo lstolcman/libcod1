@@ -40,6 +40,7 @@ cvar_t *g_playerEject;
 cvar_t *g_resetSlide;
 cvar_t *jump_height;
 cvar_t *jump_height_airScale;
+cvar_t *sv_botReconnectMode;
 cvar_t *sv_cracked;
 cvar_t *player_sprint;
 cvar_t *player_sprintMinTime;
@@ -47,6 +48,7 @@ cvar_t *player_sprintSpeedScale;
 cvar_t *player_sprintTime;
 
 cHook *hook_ClientEndFrame;
+cHook *hook_ClientSpawn;
 cHook *hook_ClientThink;
 cHook *hook_Com_Init;
 cHook *hook_DeathmatchScoreboardMessage;
@@ -215,6 +217,7 @@ void custom_Com_Init(char *commandLine)
     player_sprintMinTime = Cvar_Get("player_sprintMinTime", "1.0", CVAR_ARCHIVE);
     player_sprintSpeedScale = Cvar_Get("player_sprintSpeedScale", "1.5", CVAR_ARCHIVE);
     player_sprintTime = Cvar_Get("player_sprintTime", "4.0", CVAR_ARCHIVE);
+    sv_botReconnectMode = Cvar_Get("sv_botReconnectMode", "0", CVAR_ARCHIVE);
     sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
 
     /*
@@ -487,7 +490,10 @@ void custom_DeathmatchScoreboardMessage(gentity_t *ent)
 
 void custom_Touch_Item_Auto(gentity_t * item, gentity_t * entity, int touch)
 {
-    if(customPlayerState[entity->client->ps.clientNum].noPickup)
+    int clientNum = entity->client->ps.clientNum;
+    client_t *client = &svs.clients[clientNum];
+
+    if(customPlayerState[clientNum].noAutoPickup && !(client->lastUsercmd.buttons & KEY_MASK_USE))
         return;
 
     hook_Touch_Item_Auto->unhook();
@@ -1306,6 +1312,22 @@ void custom_ClientEndFrame(gentity_t *ent)
     }
 }
 
+void custom_ClientSpawn(gentity_t *ent, const float *spawn_origin, const float *spawn_angles)
+{
+    hook_ClientSpawn->unhook();
+    void (*ClientSpawn)(gentity_t *ent, const float *spawn_origin, const float *spawn_angles);
+    *(int*)&ClientSpawn = hook_ClientSpawn->from;
+    ClientSpawn(ent, spawn_origin, spawn_angles);
+    hook_ClientSpawn->hook();
+
+    int clientNum = ent - g_entities;
+
+    // Reset sprint
+    customPlayerState[clientNum].sprintActive = false;
+    customPlayerState[clientNum].sprintRequestPending = false;
+    customPlayerState[clientNum].sprintTimer = 0;
+}
+
 void custom_PM_CrashLand()
 {
     int clientNum = (*pm)->ps->clientNum;
@@ -1998,10 +2020,12 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     
     hook_GScr_LoadGameTypeScript = new cHook((int)dlsym(libHandle, "GScr_LoadGameTypeScript"), (int)custom_GScr_LoadGameTypeScript);
     hook_GScr_LoadGameTypeScript->hook();
-    hook_ClientThink = new cHook((int)dlsym(libHandle, "ClientThink"), (int)custom_ClientThink);
-    hook_ClientThink->hook();
     hook_ClientEndFrame = new cHook((int)dlsym(libHandle, "ClientEndFrame"), (int)custom_ClientEndFrame);
     hook_ClientEndFrame->hook();
+    hook_ClientSpawn = new cHook((int)dlsym(libHandle, "ClientSpawn"), (int)custom_ClientSpawn);
+    hook_ClientSpawn->hook();
+    hook_ClientThink = new cHook((int)dlsym(libHandle, "ClientThink"), (int)custom_ClientThink);
+    hook_ClientThink->hook();
     hook_Touch_Item_Auto = new cHook((int)dlsym(libHandle, "Touch_Item_Auto"), (int)custom_Touch_Item_Auto);
     hook_Touch_Item_Auto->hook();
     hook_DeathmatchScoreboardMessage = new cHook((int)dlsym(libHandle, "DeathmatchScoreboardMessage"), (int)custom_DeathmatchScoreboardMessage);
