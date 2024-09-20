@@ -1415,9 +1415,6 @@ void PM_UpdateSprint(pmove_t *pmove)
                 G_AddPredictableEvent(gentity, EV_STANCE_FORCE_STAND, 0);
                 return;
             }
-
-            if(gentity->s.groundEntityNum == 1023) // Player is in air, wait for landing.
-                return;
         }
         
         if (customPlayerState[clientNum].sprintActive)
@@ -1438,14 +1435,14 @@ void PM_UpdateSprint(pmove_t *pmove)
         
         if (customPlayerState[clientNum].sprintRequestPending)
         {
-            if(customPlayerState[clientNum].sprintTimer < (sprint_time - sprint_minTime))
-                customPlayerState[clientNum].sprintActive = true;
+            if(gentity->s.groundEntityNum == 1023)
+                return; // Player is in air, wait for landing
+            else if(customPlayerState[clientNum].sprintTimer < (sprint_time - sprint_minTime))
+                customPlayerState[clientNum].sprintActive = true; // Allow sprint
             customPlayerState[clientNum].sprintRequestPending = false;
-            return;
         }
-        
-        if(customPlayerState[clientNum].sprintActive && customPlayerState[clientNum].sprintTimer > sprint_time)
-            customPlayerState[clientNum].sprintActive = false;
+        else if(customPlayerState[clientNum].sprintActive && customPlayerState[clientNum].sprintTimer > sprint_time)
+            customPlayerState[clientNum].sprintActive = false; // Reached max time, disable sprint
     }
     else
     {
