@@ -424,6 +424,11 @@ const char* hook_AuthorizeState(int arg)
     return s;
 }
 
+/*
+Fix the scoreboard showing the ping of players as being the ping of their spectators.
+The cause of the issue is that CoD1.1 sends cl->ps.ping instead of cl->ping.
+This is based on the CoD2 function.
+*/
 void custom_DeathmatchScoreboardMessage(gentity_t *ent)
 {
     int ping;
