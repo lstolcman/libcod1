@@ -232,7 +232,7 @@ int stackGetParams(const char *params, ...)
         case 'f':
         {
             float *tmp = va_arg(args, float *);
-            if (! stackGetParamFloat(i, tmp))
+            if (!stackGetParamFloat(i, tmp))
             {
                 Com_DPrintf("\nstackGetParams() Param %i is not a float\n", i);
                 errors++;
