@@ -1,6 +1,4 @@
-#include "gsc_bots.hpp"
-
-extern customPlayerState_t customPlayerState[MAX_CLIENTS];
+#include "shared.hpp"
 
 void gsc_bots_setbotstance(scr_entref_t ref)
 {

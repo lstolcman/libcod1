@@ -1,9 +1,8 @@
-#include "gsc_sqlite.hpp"
+#include "shared.hpp"
 
 #if COMPILE_SQLITE == 1
 
 #include <sqlite3.h>
-#include <pthread.h>
 
 #define MAX_SQLITE_FIELDS 128
 #define MAX_SQLITE_ROWS 128

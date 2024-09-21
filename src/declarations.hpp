@@ -1,29 +1,26 @@
-#ifndef _DECLARATIONS_HPP_
-#define _DECLARATIONS_HPP_
-
-#include <setjmp.h>
-
 #define qboolean int
-#define qtrue 1
-#define qfalse 0
+#define qtrue   1
+#define qfalse  0
 
 // 3D vectors
-#define VectorCopy(a, b)          ((b)[0] = (a)[0],(b)[1] = (a)[1],(b)[2] = (a)[2])
-#define VectorScale(v, s, o)      ((o)[0] = (v)[0] * (s),(o)[1] = (v)[1] * (s),(o)[2] = (v)[2] * (s))
+#define VectorCopy(a, b)        ((b)[0] = (a)[0],(b)[1] = (a)[1],(b)[2] = (a)[2])
+#define VectorScale(v, s, o)    ((o)[0] = (v)[0] * (s),(o)[1] = (v)[1] * (s),(o)[2] = (v)[2] * (s))
 
-#define BIG_INFO_STRING             0x2000
-#define GENTITYNUM_BITS             10
-#define PACKET_BACKUP               32
+#define BIG_INFO_STRING 0x2000
+#define GENTITYNUM_BITS 10
+#define PACKET_BACKUP 32
+#define PACKET_MASK (PACKET_BACKUP - 1)
+#define HEADER_RATE_BYTES 48
+#define SNAPFLAG_SERVERCOUNT 4
+#define GAME_INIT_FRAMES 3
+#define FRAMETIME 100
 
-#define SNAPFLAG_SERVERCOUNT        4
-
-#define GAME_INIT_FRAMES            3
-#define FRAMETIME                   100
-
+#define MAX_BPS_WINDOW              20
 #define MAX_CHALLENGES              1024
 #define MAX_CLIENTS                 64
 #define MAX_CONFIGSTRINGS           2048
 #define MAX_DOWNLOAD_BLKSIZE        2048
+#define MAX_DOWNLOAD_BLKSIZE_FAST   0x2000 // See https://github.com/ibuddieat/zk_libcod/blob/dff123fad25d7b46d65685e9bca2111c8946a36e/code/declarations.hpp#L60
 #define MAX_DOWNLOAD_WINDOW         8
 #define MAX_GENTITIES               (1 << GENTITYNUM_BITS)
 #define MAX_INFO_STRING             0x400
@@ -35,13 +32,13 @@
 #define MAX_RELIABLE_COMMANDS       64
 #define MAX_STRINGLENGTH            1024
 
-#define CVAR_NOFLAG             0               // 0x0000
-#define CVAR_ARCHIVE            (1 << 0)        // 0x0001
-#define CVAR_SERVERINFO         (1 << 2)        // 0x0004
-#define CVAR_SYSTEMINFO         (1 << 3)        // 0x0008
-#define CVAR_CHEAT              (1 << 9)        // 0x0200
+#define CVAR_NOFLAG         0               // 0x0000
+#define CVAR_ARCHIVE        (1 << 0)        // 0x0001
+#define CVAR_SERVERINFO     (1 << 2)        // 0x0004
+#define CVAR_SYSTEMINFO     (1 << 3)        // 0x0008
+#define CVAR_CHEAT          (1 << 9)        // 0x0200
 
-#define SVF_SINGLECLIENT        0x800
+#define SVF_SINGLECLIENT 0x800
 
 #define KEY_MASK_NONE           0
 #define KEY_MASK_FORWARD        127
@@ -49,7 +46,6 @@
 #define KEY_MASK_MOVERIGHT      127
 #define KEY_MASK_MOVELEFT       -127
 #define KEY_MASK_JUMP           127 // upmove. prone and jump = -KEY_MASK_JUMP
-
 #define KEY_MASK_FIRE           0x1
 #define KEY_MASK_RELOAD         0x8
 #define KEY_MASK_LEANLEFT       0x10
@@ -71,7 +67,6 @@
 typedef void (*xcommand_t)(void);
 
 typedef unsigned char byte;
-typedef signed char sbyte;
 typedef struct gclient_s gclient_t;
 typedef struct gentity_s gentity_t;
 
@@ -901,7 +896,16 @@ typedef struct
     byte pad[0x6141C];
     playerState_t *gameClients;
     int gameClientSize;
-    // ...
+    byte pad2[0x4];
+    int	bpsWindow[MAX_BPS_WINDOW];
+    int	bpsWindowSteps;
+    int	bpsTotalBytes;
+    int	bpsMaxBytes;
+    int	ubpsWindow[MAX_BPS_WINDOW];
+    int	ubpsTotalBytes;
+    int	ubpsMaxBytes;
+    float ucompAve;
+    int	ucompNum;
 } server_t;
 
 enum clc_ops_e
@@ -1028,7 +1032,7 @@ static const int gvm_offset = 0x080e30c4;
 #define svs (*((serverStatic_t*)(svs_offset)))
 #define gvm (*(vm_t**)(gvm_offset))
 
-// Check for critical structure sizes and fail if not match
+// Require structure sizes to match
 #if __GNUC__ >= 6
 static_assert((sizeof(netchan_t) == 32832), "ERROR: netchan_t size is invalid!");
 static_assert((sizeof(entityState_t) == 240), "ERROR: entityState_t size is invalid!");
@@ -1041,9 +1045,8 @@ static_assert((sizeof(clientSession_t) == 260), "ERROR: clientSession_t size is 
 static_assert((sizeof(gclient_t) == 8900), "ERROR: gclient_t size is invalid!");
 #endif
 
-#endif
 
-// Custom data types
+//// Custom
 #define MAX_ERROR_BUFFER 64
 
 typedef struct src_error_s
@@ -1065,15 +1068,14 @@ typedef struct customPlayerState_s
     bool sprintActive;
     bool sprintRequestPending;
     int sprintTimer;
-    //// Bots
+    bool noAutoPickup;
+    // Bots
     int botButtons;
     int botWButtons;
     int botWeapon;
     char botForwardMove;
     char botRightMove;
     char botUpMove;
-    ////
-    bool noAutoPickup;
 } customPlayerState_t;
 
 typedef struct callback_s
@@ -1082,3 +1084,4 @@ typedef struct callback_s
     const char *name;
     bool custom;
 } callback_t;
+////

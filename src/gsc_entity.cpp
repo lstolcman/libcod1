@@ -1,26 +1,26 @@
-#include "gsc_entity.hpp"
+#include "shared.hpp"
 
 void gsc_entity_setbounds(scr_entref_t ref)
 {
-	int id = ref.entnum;
-	float width, height;
+    int id = ref.entnum;
+    float width, height;
 
-	if (!stackGetParams("ff", &width, &height))
-	{
-		stackError("gsc_entity_setbounds() one or more arguments is undefined or has a wrong type");
-		stackPushUndefined();
-		return;
-	}
+    if (!stackGetParams("ff", &width, &height))
+    {
+        stackError("gsc_entity_setbounds() one or more arguments is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
 
-	gentity_t *entity = &g_entities[id];
+    gentity_t *entity = &g_entities[id];
 
-	vec3_t mins = {-height, -width, -width};
-	vec3_t maxs = {width, width, height};
+    vec3_t mins = {-height, -width, -width};
+    vec3_t maxs = {width, width, height};
 
-	VectorCopy(mins, entity->r.mins);
-	VectorCopy(maxs, entity->r.maxs);
+    VectorCopy(mins, entity->r.mins);
+    VectorCopy(maxs, entity->r.maxs);
 
-	stackPushBool(qtrue);
+    stackPushBool(qtrue);
 }
 
 void gsc_entity_showtoplayer(scr_entref_t ref) //TODO: try like cod2rev instead

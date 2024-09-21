@@ -5,7 +5,9 @@
 cc="g++"
 options="-I. -m32 -fPIC -Wall -fvisibility=hidden"
 
-separator="---------------------"
+separator="-----------------"
+list_item=" - "
+wait_indicator="..."
 
 while [[ $# -gt 0 ]]; do
     arg="$1"
@@ -46,16 +48,6 @@ if [ -v debug ]; then
 else
     echo "OFF"
     debug=""
-fi
-
-echo -n "EVP HASH: "
-if [ -v evp ]; then
-    echo "ON"
-    constants+=" -D COMPILE_EVPHASH=1"
-    evp_link="-lssl -lcrypto"
-else
-    echo "OFF"
-    constants+=" -D COMPILE_EVPHASH=0"
 fi
 
 echo -n "Unsafe:   "
@@ -107,55 +99,95 @@ else
     constants+=" -D COMPILE_LIBCURL=0"
 fi
 
+echo -n "EVP Hash: "
+if [ -v evp ]; then
+    echo "ON"
+    constants+=" -D COMPILE_EVPHASH=1"
+    evp_link="-lssl -lcrypto"
+else
+    echo "OFF"
+    constants+=" -D COMPILE_EVPHASH=0"
+fi
+
 echo $separator
 
 mkdir -p ../bin
 mkdir -p objects
 
-echo "##### COMPILE CRACKING.CPP    #####"
+echo "Compiling"
+
+echo -n "$list_item"
+echo -n "cracking.cpp"
+echo $wait_indicator
 $cc $debug $options $constants -c cracking.cpp -o objects/cracking.opp
 
-echo "##### COMPILE GSC.CPP         #####"
+echo -n "$list_item"
+echo -n "libcod.cpp"
+echo $wait_indicator
+$cc $debug $options $constants -c libcod.cpp -o objects/libcod.opp
+
+echo -n "$list_item"
+echo -n "qvsnprintf.c"
+echo $wait_indicator
+$cc $debug $options $constants -c vendor/qvsnprintf.c -o objects/qvsnprintf.opp
+
+echo -n "$list_item"
+echo -n "gsc.cpp"
+echo $wait_indicator
 $cc $debug $options $constants -c gsc.cpp -o objects/gsc.opp
 
-echo "##### COMPILE GSC_BOTS.CPP    #####"
-$cc $debug $options $constants -c gsc_bots.cpp -o objects/gsc_bots.opp
-
-echo "##### COMPILE GSC_ENTITY.CPP  #####"
+echo -n "$list_item"
+echo -n "gsc_entity.cpp"
+echo $wait_indicator
 $cc $debug $options $constants -c gsc_entity.cpp -o objects/gsc_entity.opp
 
-echo "##### COMPILE GSC_EXEC.CPP    #####"
+echo -n "$list_item"
+echo -n "gsc_player.cpp"
+echo $wait_indicator
+$cc $debug $options $constants -c gsc_player.cpp -o objects/gsc_player.opp
+
+echo -n "$list_item"
+echo -n "gsc_bots.cpp"
+echo $wait_indicator
+$cc $debug $options $constants -c gsc_bots.cpp -o objects/gsc_bots.opp
+
+echo -n "$list_item"
+echo -n "gsc_weapons.cpp"
+echo $wait_indicator
+$cc $debug $options $constants -c gsc_weapons.cpp -o objects/gsc_weapons.opp
+
+echo -n "$list_item"
+echo -n "gsc_exec.cpp"
+echo $wait_indicator
 $cc $debug $options $constants -c gsc_exec.cpp -o objects/gsc_exec.opp
 
+echo -n "$list_item"
+echo -n "gsc_utils.cpp"
+echo $wait_indicator
+$cc $debug $options $constants -c gsc_utils.cpp -o objects/gsc_utils.opp
+
+echo -n "$list_item"
+echo -n "jump.cpp"
+echo $wait_indicator
+$cc $debug $options $constants -c jump.cpp -o objects/jump.opp
+
 if [ $sqlite_found == 1 ]; then
-    echo "##### COMPILE GSC_SQLITE.CPP #####"
+    echo -n "$list_item"
+    echo -n "gsc_sqlite.cpp"
+    echo $wait_indicator
     $cc $debug $options $constants -c gsc_sqlite.cpp -o objects/gsc_sqlite.opp
 fi
 
-echo "##### COMPILE GSC_PLAYER.CPP  #####"
-$cc $debug $options $constants -c gsc_player.cpp -o objects/gsc_player.opp
-
-echo "##### COMPILE GSC_UTILS.CPP   #####"
-$cc $debug $options $constants -c gsc_utils.cpp -o objects/gsc_utils.opp
-
-echo "##### COMPILE JUMP.CPP        #####"
-$cc $debug $options $constants -c jump.cpp -o objects/jump.opp
-
-echo "##### COMPILE GSC_WEAPONS.CPP #####"
-$cc $debug $options $constants -c gsc_weapons.cpp -o objects/gsc_weapons.opp
-
-echo "##### COMPILE LIBCOD.CPP      #####"
-$cc $debug $options $constants -c libcod.cpp -o objects/libcod.opp
-
-echo "##### COMPILE QVSNPRINTF.C    #####"
-$cc $debug $options $constants -c vendor/qvsnprintf.c -o objects/qvsnprintf.opp
-
 if [ $libcurl_found == 1 ]; then
-    echo "##### COMPILE GSC_CURL.CPP    #####"
+    echo -n "$list_item"
+    echo -n "gsc_curl.cpp"
+    echo $wait_indicator
     $cc $debug $options $constants -c gsc_curl.cpp -o objects/gsc_curl.opp
 fi
 
-echo "##### LINK    libcod1.so      #####"
+echo -n "Linking libcod1.so"
+echo $wait_indicator
 objects="$(ls objects/*.opp)"
 $cc -m32 -shared -L/lib32 -o ../bin/libcod1.so -ldl $objects -lpthread $sqlite_link $libcurl_link $evp_link
+
 rm objects -r

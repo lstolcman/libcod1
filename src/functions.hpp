@@ -1,5 +1,36 @@
-#ifndef _FUNCTIONS_HPP_
-#define _FUNCTIONS_HPP_
+typedef int (*VM_Call_t)(vm_t *vm, int callnum, ...);
+static const VM_Call_t VM_Call = (VM_Call_t)0x08092158;
+
+typedef char* (*va_t)(const char *format, ...);
+extern va_t va;
+
+typedef void (*Cbuf_ExecuteText_t)(cbufExec_t exec_when, const char* text);
+static const Cbuf_ExecuteText_t Cbuf_ExecuteText = (Cbuf_ExecuteText_t)0x0805a8a0;
+
+typedef void* (*Z_MallocInternal_t)(int size);
+static const Z_MallocInternal_t Z_MallocInternal = (Z_MallocInternal_t)0x080681e8;
+
+typedef void (*Huff_Decompress_t)(msg_t *mbuf, int offset);
+static const Huff_Decompress_t Huff_Decompress = (Huff_Decompress_t)0x08071f7c;
+
+typedef qboolean (*Sys_IsLANAddress_t)(netadr_t adr);
+static const Sys_IsLANAddress_t Sys_IsLANAddress = (Sys_IsLANAddress_t)0x080c72f8;
+
+typedef char* (*SL_ConvertToString_t)(unsigned int index);
+static const SL_ConvertToString_t SL_ConvertToString = (SL_ConvertToString_t)0x0809cac4;
+
+typedef char* (*UI_GetMapRotationToken_t)(void);
+static const UI_GetMapRotationToken_t UI_GetMapRotationToken = (UI_GetMapRotationToken_t)0x08084014;
+
+typedef void (*ClientCommand_t)(int clientNum);
+extern ClientCommand_t ClientCommand;
+
+typedef qboolean (*StuckInClient_t)(gentity_s *self);
+extern StuckInClient_t StuckInClient;
+
+typedef int (*Jump_Check_t)();
+
+typedef int (*PM_GetEffectiveStance_t)(playerState_t *ps);
 
 //// trap
 typedef void (*trap_Argv_t)(int arg, char *buffer, int bufferLength);
@@ -67,8 +98,8 @@ static const FS_Read_t FS_Read = (FS_Read_t)0x080628f4;
 typedef long (*FS_SV_FOpenFileRead_t)(const char *filename, fileHandle_t *fp);
 static const FS_SV_FOpenFileRead_t FS_SV_FOpenFileRead = (FS_SV_FOpenFileRead_t)0x0806ffb8;
 
-typedef int (*FS_idPak_t)(const char *a1, const char *a2);
-static const FS_idPak_t FS_idPak = (FS_idPak_t)0x080709c0;
+typedef int (*FS_iwPak_t)(char *pak, const char *base);
+static const FS_iwPak_t FS_iwPak = (FS_iwPak_t)0x080709c0;
 
 typedef int (*FS_ReadFile_t)(const char* qpath, void** buffer);
 static const FS_ReadFile_t FS_ReadFile = (FS_ReadFile_t)0x0805e9dc;
@@ -202,6 +233,12 @@ static const SV_RetransmitDownload_f_t SV_RetransmitDownload_f = (SV_RetransmitD
 
 typedef gentity_t* (*SV_ClientThink_t)(client_t *cl, usercmd_t *cmd);
 static const SV_ClientThink_t SV_ClientThink = (SV_ClientThink_t)0x0808789c;
+
+typedef void (*SV_Netchan_TransmitNextFragment_t)(netchan_t *chan);
+static const SV_Netchan_TransmitNextFragment_t SV_Netchan_TransmitNextFragment = (SV_Netchan_TransmitNextFragment_t)0x0808dcf8;
+
+typedef qboolean (*SV_Netchan_Transmit_t)(client_t *client, byte *data, int length);
+static const SV_Netchan_Transmit_t SV_Netchan_Transmit = (SV_Netchan_Transmit_t)0x0808dc74;
 ////
 
 //// Info
@@ -276,6 +313,9 @@ static const MSG_ReadLong_t MSG_ReadLong = (MSG_ReadLong_t)0x0807f2f0;
 
 typedef char* (*MSG_ReadStringLine_t)(msg_t *msg);
 static const MSG_ReadStringLine_t MSG_ReadStringLine = (MSG_ReadStringLine_t)0x0807f3fc;
+
+typedef int (*MSG_WriteBitsCompress_t)(const byte *datasrc, byte *buffdest, int bytecount);
+static const MSG_WriteBitsCompress_t MSG_WriteBitsCompress = (MSG_WriteBitsCompress_t)0x0807f03c;
 ////
 
 //// BG
@@ -295,7 +335,7 @@ typedef int (*BG_AnimScriptEvent_t)(playerState_t *ps, scriptAnimEventTypes_t ev
 extern BG_AnimScriptEvent_t BG_AnimScriptEvent;
 ////
 
-// Scr
+//// Scr
 typedef xfunction_t (*Scr_GetFunction_t)(const char** v_functionName, qboolean *v_developer);
 extern Scr_GetFunction_t Scr_GetFunction;
 
@@ -374,9 +414,9 @@ extern Scr_GetConstString_t Scr_GetConstString;
 
 typedef void (*Scr_ParamError_t)(int paramNum, const char *error);
 extern Scr_ParamError_t Scr_ParamError;
-//
+////
 
-// Q
+//// Q
 typedef char* (*Q_strlwr_t)(char *s1);
 extern Q_strlwr_t Q_strlwr;
 
@@ -394,45 +434,12 @@ static const Q_strncmp_t Q_strncmp = (Q_strncmp_t)0x0808315c;
 
 typedef int (*Q_stricmp_t)(const char *s1, const char *s2);
 static const Q_stricmp_t Q_stricmp = (Q_stricmp_t)0x080830e8;
-//
+////
 
-typedef qboolean (*StuckInClient_t)(gentity_s *self);
-extern StuckInClient_t StuckInClient;
-
-typedef qboolean (*Sys_IsLANAddress_t)(netadr_t adr);
-static const Sys_IsLANAddress_t Sys_IsLANAddress = (Sys_IsLANAddress_t)0x080c72f8;
-
-typedef void* (*Z_MallocInternal_t)(int size);
-static const Z_MallocInternal_t Z_MallocInternal = (Z_MallocInternal_t)0x080681e8;
-
+//// Get
 typedef unsigned int (*GetVariableName_t)(unsigned int a1);
 static const GetVariableName_t GetVariableName = (GetVariableName_t)0x080a3060;
 
 typedef unsigned int (*GetNextVariable_t)(unsigned int a1);
 static const GetNextVariable_t GetNextVariable = (GetNextVariable_t)0x080a3028;
-
-typedef char* (*SL_ConvertToString_t)(unsigned int index);
-static const SL_ConvertToString_t SL_ConvertToString = (SL_ConvertToString_t)0x0809cac4;
-
-typedef int (*VM_Call_t)(vm_t *vm, int callnum, ...);
-static const VM_Call_t VM_Call = (VM_Call_t)0x08092158;
-
-typedef void (*ClientCommand_t)(int clientNum);
-extern ClientCommand_t ClientCommand;
-
-typedef char* (*UI_GetMapRotationToken_t)(void);
-static const UI_GetMapRotationToken_t UI_GetMapRotationToken = (UI_GetMapRotationToken_t)0x08084014;
-
-typedef void (*Cbuf_ExecuteText_t)(cbufExec_t exec_when, const char* text);
-static const Cbuf_ExecuteText_t Cbuf_ExecuteText = (Cbuf_ExecuteText_t)0x0805a8a0;
-
-typedef void (*Huff_Decompress_t)(msg_t *mbuf, int offset);
-static const Huff_Decompress_t Huff_Decompress = (Huff_Decompress_t)0x08071f7c;
-
-typedef int (*Jump_Check_t)();
-
-typedef int (*PM_GetEffectiveStance_t)(playerState_t *ps);
-
-typedef char* (*va_t)(const char *format, ...);
-extern va_t va;
-#endif
+////

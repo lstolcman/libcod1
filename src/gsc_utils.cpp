@@ -1,6 +1,4 @@
-#include <string>
-
-#include "gsc_utils.hpp"
+#include "shared.hpp"
 
 #if COMPILE_EVPHASH == 1
 #include <openssl/evp.h>

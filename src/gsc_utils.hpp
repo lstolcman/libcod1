@@ -1,8 +1,3 @@
-#ifndef _GSC_UTILS_HPP_
-#define _GSC_UTILS_HPP_
-
-#include "gsc.hpp"
-
 void gsc_utils_file_exists();
 void gsc_utils_fopen();
 void gsc_utils_fread();
@@ -30,6 +25,4 @@ void gsc_utils_monotone();
 
 #if COMPILE_EVPHASH == 1
 void gsc_utils_hash();
-#endif
-
 #endif

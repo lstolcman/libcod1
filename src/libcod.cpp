@@ -1,17 +1,17 @@
-#include <signal.h>
-#include <arpa/inet.h>
-
-#include <memory>
-#include <tuple>
-#include <array>
-#include <map>
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <cstring>
+#include <map> // make_tuple, get, array, 
+#include <sstream> // ostringstream
 #include <vector>
 
-#include "gsc.hpp"
+#include <signal.h>
+#include <arpa/inet.h> // sockaddr_in, inet_pton
+#include <execinfo.h> // backtrace
+#include <dlfcn.h> // dlsym
+#include <sys/time.h> // gettimeofday
+
+#include "libcod.hpp"
+
+#include "cracking.hpp"
+#include "shared.hpp"
 
 // Stock cvars
 cvar_t *com_cl_running;
@@ -21,13 +21,16 @@ cvar_t *com_sv_running;
 cvar_t *fs_game;
 cvar_t *sv_allowDownload;
 cvar_t *sv_floodProtect;
+cvar_t *sv_fps;
 cvar_t *sv_gametype;
-cvar_t *sv_maxclients;
 cvar_t *sv_mapRotation;
 cvar_t *sv_mapRotationCurrent;
+cvar_t *sv_maxclients;
+cvar_t *sv_maxRate;
 cvar_t *sv_pure;
 cvar_t *sv_rconPassword;
 cvar_t *sv_serverid;
+cvar_t *sv_showAverageBPS;
 cvar_t *sv_showCommands;
 
 // Custom cvars
@@ -42,70 +45,12 @@ cvar_t *jump_height;
 cvar_t *jump_height_airScale;
 cvar_t *sv_botReconnectMode;
 cvar_t *sv_cracked;
+cvar_t *sv_downloadNotifications;
+cvar_t *sv_fastDownload;
 cvar_t *player_sprint;
 cvar_t *player_sprintMinTime;
 cvar_t *player_sprintSpeedScale;
 cvar_t *player_sprintTime;
-
-cHook *hook_ClientEndFrame;
-cHook *hook_ClientSpawn;
-cHook *hook_ClientThink;
-cHook *hook_Com_Init;
-cHook *hook_DeathmatchScoreboardMessage;
-cHook *hook_GScr_LoadGameTypeScript;
-cHook *hook_PM_AirMove;
-cHook *hook_PM_CrashLand;
-cHook *hook_PmoveSingle;
-cHook *hook_SV_AddOperatorCommands;
-cHook *hook_SV_BeginDownload_f;
-cHook *hook_SV_SendClientGameState;
-cHook *hook_SV_SpawnServer;
-cHook *hook_Sys_LoadDll;
-cHook *hook_Touch_Item_Auto;
-
-// Stock callbacks
-int codecallback_startgametype = 0;
-int codecallback_playerconnect = 0;
-int codecallback_playerdisconnect = 0;
-int codecallback_playerdamage = 0;
-int codecallback_playerkilled = 0;
-
-// Custom callbacks
-int codecallback_client_spam = 0;
-int codecallback_playercommand = 0;
-int codecallback_playerairjump = 0;
-
-callback_t callbacks[] =
-{
-    {&codecallback_startgametype, "CodeCallback_StartGameType", false},
-    {&codecallback_playerconnect, "CodeCallback_PlayerConnect", false},
-    {&codecallback_playerdisconnect, "CodeCallback_PlayerDisconnect", false},
-    {&codecallback_playerdamage, "CodeCallback_PlayerDamage", false},
-    {&codecallback_playerkilled, "CodeCallback_PlayerKilled", false},
-
-    {&codecallback_client_spam, "CodeCallback_CLSpam", true},
-    {&codecallback_playercommand, "CodeCallback_PlayerCommand", true},
-    {&codecallback_playerairjump, "CodeCallback_PlayerAirJump", true}
-};
-
-void UCMD_custom_sprint(client_t *cl);
-// See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/sv_client.c#L98
-static ucmd_t ucmds[] =
-{
-    {"userinfo",        SV_UpdateUserinfo_f,     },
-    {"disconnect",      SV_Disconnect_f,         },
-    {"cp",              SV_VerifyPaks_f,         },
-    {"vdr",             SV_ResetPureClient_f,    },
-    {"download",        SV_BeginDownload_f,      },
-    {"nextdl",          SV_NextDownload_f,       },
-    {"stopdl",          SV_StopDownload_f,       },
-    {"donedl",          SV_DoneDownload_f,       },
-    {"retransdl",       SV_RetransmitDownload_f, },
-    {"sprint",          UCMD_custom_sprint, },
-    {NULL, NULL}
-};
-
-customPlayerState_t customPlayerState[MAX_CLIENTS];
 
 // Game lib objects
 gentity_t *g_entities;
@@ -170,73 +115,133 @@ Jump_Check_t Jump_Check;
 PM_GetEffectiveStance_t PM_GetEffectiveStance;
 va_t va;
 
+// Stock callbacks
+int codecallback_startgametype = 0;
+int codecallback_playerconnect = 0;
+int codecallback_playerdisconnect = 0;
+int codecallback_playerdamage = 0;
+int codecallback_playerkilled = 0;
+
+// Custom callbacks
+int codecallback_client_spam = 0;
+int codecallback_playercommand = 0;
+int codecallback_playerairjump = 0;
+
+callback_t callbacks[] =
+{
+    {&codecallback_startgametype, "CodeCallback_StartGameType", false},
+    {&codecallback_playerconnect, "CodeCallback_PlayerConnect", false},
+    {&codecallback_playerdisconnect, "CodeCallback_PlayerDisconnect", false},
+    {&codecallback_playerdamage, "CodeCallback_PlayerDamage", false},
+    {&codecallback_playerkilled, "CodeCallback_PlayerKilled", false},
+
+    {&codecallback_client_spam, "CodeCallback_CLSpam", true},
+    {&codecallback_playercommand, "CodeCallback_PlayerCommand", true},
+    {&codecallback_playerairjump, "CodeCallback_PlayerAirJump", true}
+};
+
+void UCMD_custom_sprint(client_t *cl);
+// See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/sv_client.c#L98
+static ucmd_t ucmds[] =
+{
+    {"userinfo",        SV_UpdateUserinfo_f,     },
+    {"disconnect",      SV_Disconnect_f,         },
+    {"cp",              SV_VerifyPaks_f,         },
+    {"vdr",             SV_ResetPureClient_f,    },
+    {"download",        SV_BeginDownload_f,      },
+    {"nextdl",          SV_NextDownload_f,       },
+    {"stopdl",          SV_StopDownload_f,       },
+    {"donedl",          SV_DoneDownload_f,       },
+    {"retransdl",       SV_RetransmitDownload_f, },
+    {"sprint",          UCMD_custom_sprint, },
+    {NULL, NULL}
+};
+
+customPlayerState_t customPlayerState[MAX_CLIENTS];
+
+cHook *hook_ClientEndFrame;
+cHook *hook_ClientSpawn;
+cHook *hook_ClientThink;
+cHook *hook_Com_Init;
+cHook *hook_DeathmatchScoreboardMessage;
+cHook *hook_GScr_LoadGameTypeScript;
+cHook *hook_PM_AirMove;
+cHook *hook_PM_CrashLand;
+cHook *hook_PmoveSingle;
+cHook *hook_SV_AddOperatorCommands;
+cHook *hook_SV_BeginDownload_f;
+cHook *hook_SV_SendClientGameState;
+cHook *hook_SV_SpawnServer;
+cHook *hook_Sys_LoadDll;
+cHook *hook_Touch_Item_Auto;
+
 // Resume addresses
 uintptr_t resume_addr_Jump_Check;
 uintptr_t resume_addr_Jump_Check_2;
 
-void custom_Com_Init(char *commandLine)
+// Base time in seconds
+time_t sys_timeBase = 0;
+// Current time in ms, using sys_timeBase as origin
+uint64_t Sys_Milliseconds64(void)
 {
-    hook_Com_Init->unhook();
-    void (*Com_Init)(char *commandLine);
-    *(int*)&Com_Init = hook_Com_Init->from;
-    Com_Init(commandLine);
-    hook_Com_Init->hook();
-    
-    // Get references to stock cvars
-    com_cl_running = Cvar_FindVar("cl_running");
-    com_dedicated = Cvar_FindVar("dedicated");
-    com_logfile = Cvar_FindVar("logfile");
-    com_sv_running = Cvar_FindVar("sv_running");
-    fs_game = Cvar_FindVar("fs_game");
-    sv_allowDownload = Cvar_FindVar("sv_allowDownload");
-    sv_floodProtect = Cvar_FindVar("sv_floodProtect");
-    sv_gametype = Cvar_FindVar("g_gametype");
-    sv_maxclients = Cvar_FindVar("sv_maxclients");
-    sv_mapRotation = Cvar_FindVar("sv_mapRotation");
-    sv_mapRotationCurrent = Cvar_FindVar("sv_mapRotationCurrent");
-    sv_pure = Cvar_FindVar("sv_pure");
-    sv_rconPassword = Cvar_FindVar("rconpassword");
-    sv_serverid = Cvar_FindVar("sv_serverid");
-    sv_showCommands = Cvar_FindVar("sv_showCommands");
+    struct timeval tp;
 
-    // Register custom cvars
-    Cvar_Get("libcod", "1", CVAR_SERVERINFO);
-    Cvar_Get("sv_wwwBaseURL", "", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
-    Cvar_Get("sv_wwwDownload", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
-    
-    fs_callbacks = Cvar_Get("fs_callbacks", "maps/mp/gametypes/_callbacksetup", CVAR_ARCHIVE);
-    fs_callbacks_additional = Cvar_Get("fs_callbacks_additional", "", CVAR_ARCHIVE);
-    fs_svrPaks = Cvar_Get("fs_svrPaks", "", CVAR_ARCHIVE);
-    g_deadChat = Cvar_Get("g_deadChat", "0", CVAR_ARCHIVE);
-    g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
-    g_playerEject = Cvar_Get("g_playerEject", "1", CVAR_ARCHIVE);
-    g_resetSlide = Cvar_Get("g_resetSlide", "0", CVAR_ARCHIVE);
-    jump_height = Cvar_Get("jump_height", "39.0", CVAR_ARCHIVE);
-    jump_height_airScale = Cvar_Get("jump_height_airScaleScale", "1.5", CVAR_ARCHIVE);
-    player_sprint = Cvar_Get("player_sprint", "0", CVAR_ARCHIVE);
-    player_sprintMinTime = Cvar_Get("player_sprintMinTime", "1.0", CVAR_ARCHIVE);
-    player_sprintSpeedScale = Cvar_Get("player_sprintSpeedScale", "1.5", CVAR_ARCHIVE);
-    player_sprintTime = Cvar_Get("player_sprintTime", "4.0", CVAR_ARCHIVE);
-    sv_botReconnectMode = Cvar_Get("sv_botReconnectMode", "0", CVAR_ARCHIVE);
-    sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
+    gettimeofday(&tp, NULL);
 
-    /*
-    Force cl_allowDownload on client, otherwise 1.1x can't download to join the server
-    See: https://github.com/xtnded/codextended-client/blob/45af251518a390ab08b1c8713a6a1544b70114a1/cl_main.cpp#L41
-    TODO: Force only for 1.1x clients
-    */
-    Cvar_Get("cl_allowDownload", "1", CVAR_SYSTEMINFO);
+    if (!sys_timeBase)
+    {
+        sys_timeBase = tp.tv_sec;
+        return tp.tv_usec / 1000;
+    }
+
+    return (tp.tv_sec - sys_timeBase) * 1000 + tp.tv_usec / 1000;
 }
 
-// 1.1 deadchat support
-// See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/sv_client.c#L940
-void hook_G_Say(gentity_s *ent, gentity_s *target, int mode, const char *chatText)
+// See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/shared.c#L632
+#define MAX_VA_STRING 32000
+char *custom_va(const char *format, ...)
 {
-    int unknown_var = *(int*)((int)ent->client + 8400);
-    if(unknown_var && !g_deadChat->integer)
-        return;
+    va_list argptr;
+    static char temp_buffer[MAX_VA_STRING];
+    static char string[MAX_VA_STRING];
+    static int index = 0;
+    char *buf;
+    int len;
 
-    G_Say(ent, NULL, mode, chatText);
+    va_start(argptr, format);
+    vsprintf(temp_buffer, format, argptr);
+    va_end(argptr);
+
+    if ((len = strlen(temp_buffer)) >= MAX_VA_STRING)
+        Com_Error(ERR_DROP, "Attempted to overrun string in call to va()\n");
+
+    if (len + index >= MAX_VA_STRING - 1)
+        index = 0;
+
+    buf = &string[index];
+    memcpy(buf, temp_buffer, len + 1);
+
+    index += len + 1;
+
+    return buf;
+}
+
+void sendMessageTo_inGameAdmin_orServerConsole(client_t *cl, std::string message)
+{
+    std::string finalMessage;
+    if (cl)
+    {
+        finalMessage = "e \"";
+        finalMessage.append(message);
+        finalMessage.append("\"");
+        SV_SendServerCommand(cl, SV_CMD_CAN_IGNORE, finalMessage.c_str());
+    }
+    else
+    {
+        finalMessage = message;
+        finalMessage.append("\n");
+        Com_Printf(finalMessage.c_str());
+    }
 }
 
 qboolean FS_svrPak(const char *base)
@@ -270,6 +275,143 @@ qboolean FS_svrPak(const char *base)
     }
 
     return qfalse;
+}
+
+bool shouldServeFile(const char *requestedFilePath)
+{
+    static char localFilePath[MAX_OSPATH*2+5];
+    searchpath_t* search;
+
+    localFilePath[0] = 0;
+
+    for (search = fs_searchpaths; search; search = search->next)
+    {
+        if (search->pak)
+        {
+            snprintf(localFilePath, sizeof(localFilePath), "%s/%s.pk3", search->pak->pakGamename, search->pak->pakBasename);
+            if(!strcmp(localFilePath, requestedFilePath))
+                if(!FS_svrPak(search->pak->pakBasename))
+                    return true;
+        }
+    }
+    return false;
+}
+
+void custom_Com_Init(char *commandLine)
+{
+    hook_Com_Init->unhook();
+    void (*Com_Init)(char *commandLine);
+    *(int*)&Com_Init = hook_Com_Init->from;
+    Com_Init(commandLine);
+    hook_Com_Init->hook();
+    
+    // Get references to stock cvars
+    com_cl_running = Cvar_FindVar("cl_running");
+    com_dedicated = Cvar_FindVar("dedicated");
+    com_logfile = Cvar_FindVar("logfile");
+    com_sv_running = Cvar_FindVar("sv_running");
+    fs_game = Cvar_FindVar("fs_game");
+    sv_allowDownload = Cvar_FindVar("sv_allowDownload");
+    sv_floodProtect = Cvar_FindVar("sv_floodProtect");
+    sv_fps = Cvar_FindVar("sv_fps");
+    sv_gametype = Cvar_FindVar("g_gametype");
+    sv_mapRotation = Cvar_FindVar("sv_mapRotation");
+    sv_mapRotationCurrent = Cvar_FindVar("sv_mapRotationCurrent");
+    sv_maxclients = Cvar_FindVar("sv_maxclients");
+    sv_maxRate = Cvar_FindVar("sv_maxRate");
+    sv_pure = Cvar_FindVar("sv_pure");
+    sv_rconPassword = Cvar_FindVar("rconpassword");
+    sv_serverid = Cvar_FindVar("sv_serverid");
+    sv_showAverageBPS = Cvar_FindVar("sv_showAverageBPS");
+    sv_showCommands = Cvar_FindVar("sv_showCommands");
+
+    // Register custom cvars
+    Cvar_Get("libcod", "1", CVAR_SERVERINFO);
+    Cvar_Get("sv_wwwBaseURL", "", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
+    Cvar_Get("sv_wwwDownload", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
+    
+    fs_callbacks = Cvar_Get("fs_callbacks", "maps/mp/gametypes/_callbacksetup", CVAR_ARCHIVE);
+    fs_callbacks_additional = Cvar_Get("fs_callbacks_additional", "", CVAR_ARCHIVE);
+    fs_svrPaks = Cvar_Get("fs_svrPaks", "", CVAR_ARCHIVE);
+    g_deadChat = Cvar_Get("g_deadChat", "0", CVAR_ARCHIVE);
+    g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
+    g_playerEject = Cvar_Get("g_playerEject", "1", CVAR_ARCHIVE);
+    g_resetSlide = Cvar_Get("g_resetSlide", "0", CVAR_ARCHIVE);
+    jump_height = Cvar_Get("jump_height", "39.0", CVAR_ARCHIVE);
+    jump_height_airScale = Cvar_Get("jump_height_airScaleScale", "1.5", CVAR_ARCHIVE);
+    player_sprint = Cvar_Get("player_sprint", "0", CVAR_ARCHIVE);
+    player_sprintMinTime = Cvar_Get("player_sprintMinTime", "1.0", CVAR_ARCHIVE);
+    player_sprintSpeedScale = Cvar_Get("player_sprintSpeedScale", "1.5", CVAR_ARCHIVE);
+    player_sprintTime = Cvar_Get("player_sprintTime", "4.0", CVAR_ARCHIVE);
+    sv_botReconnectMode = Cvar_Get("sv_botReconnectMode", "0", CVAR_ARCHIVE);
+    sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
+    sv_downloadNotifications = Cvar_Get("sv_downloadNotifications", "0", CVAR_ARCHIVE);
+    sv_fastDownload = Cvar_Get("sv_fastDownload", "0", CVAR_ARCHIVE);
+
+    /*
+    Force cl_allowDownload on client, otherwise 1.1x can't download to join the server
+    See: https://github.com/xtnded/codextended-client/blob/45af251518a390ab08b1c8713a6a1544b70114a1/cl_main.cpp#L41
+    TODO: Force only for 1.1x clients
+    */
+    Cvar_Get("cl_allowDownload", "1", CVAR_SYSTEMINFO);
+}
+
+// See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/script.c#L944
+static int localized_string_index = 128;
+int custom_G_LocalizedStringIndex(const char *string)
+{
+    int i;
+    char s[MAX_STRINGLENGTH];
+
+    if(localized_string_index >= 256)
+        localized_string_index = 128;
+
+    if(!string || !*string)
+        return 0;
+    
+    int start = 1244;
+
+    for (i = 1; i < 256; i++)
+    {
+        trap_GetConfigstring(start + i, s, sizeof(s));
+        if(!*s)
+            break;
+        if (!strcmp(s, string))
+            return i;
+    }
+    if(i == 256)
+        i = localized_string_index;
+
+    SV_SetConfigstring(i + 1244, string);
+    ++localized_string_index;
+    
+    return i;
+}
+
+void custom_GScr_LoadGameTypeScript()
+{
+    hook_GScr_LoadGameTypeScript->unhook();
+    void (*GScr_LoadGameTypeScript)();
+    *(int*)&GScr_LoadGameTypeScript = hook_GScr_LoadGameTypeScript->from;
+    GScr_LoadGameTypeScript();
+    hook_GScr_LoadGameTypeScript->hook();
+
+    unsigned int i;
+    
+    if(*fs_callbacks_additional->string)
+        if(!Scr_LoadScript(fs_callbacks_additional->string))
+            Com_DPrintf("custom_GScr_LoadGameTypeScript: Scr_LoadScript for fs_callbacks_additional failed.\n");
+
+    for (i = 0; i < sizeof(callbacks) / sizeof(callbacks[0]); i++)
+    {
+        if(callbacks[i].custom)
+            *callbacks[i].pos = Scr_GetFunctionHandle(fs_callbacks_additional->string, callbacks[i].name);
+        else
+            *callbacks[i].pos = Scr_GetFunctionHandle(fs_callbacks->string, callbacks[i].name);
+
+        /*if (*callbacks[i].pos && g_debugCallbacks->integer)
+            Com_Printf("%s found @ %p\n", callbacks[i].name, scrVarPub.programBuffer + *callbacks[i].pos);*/ //TODO: verify scrVarPub_t
+    }
 }
 
 const char* custom_FS_ReferencedPakNames(void)
@@ -316,198 +458,6 @@ const char* custom_FS_ReferencedPakChecksums(void)
     return info;
 }
 
-void custom_GScr_LoadGameTypeScript()
-{
-    hook_GScr_LoadGameTypeScript->unhook();
-    void (*GScr_LoadGameTypeScript)();
-    *(int*)&GScr_LoadGameTypeScript = hook_GScr_LoadGameTypeScript->from;
-    GScr_LoadGameTypeScript();
-    hook_GScr_LoadGameTypeScript->hook();
-
-    unsigned int i;
-    
-    if(*fs_callbacks_additional->string)
-        if(!Scr_LoadScript(fs_callbacks_additional->string))
-            Com_DPrintf("custom_GScr_LoadGameTypeScript: Scr_LoadScript for fs_callbacks_additional failed.\n");
-
-    for (i = 0; i < sizeof(callbacks) / sizeof(callbacks[0]); i++)
-    {
-        if(callbacks[i].custom)
-            *callbacks[i].pos = Scr_GetFunctionHandle(fs_callbacks_additional->string, callbacks[i].name);
-        else
-            *callbacks[i].pos = Scr_GetFunctionHandle(fs_callbacks->string, callbacks[i].name);
-
-        /*if (*callbacks[i].pos && g_debugCallbacks->integer)
-            Com_Printf("%s found @ %p\n", callbacks[i].name, scrVarPub.programBuffer + *callbacks[i].pos);*/ //TODO: verify scrVarPub_t
-    }
-}
-
-// See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/script.c#L944
-static int localized_string_index = 128;
-int custom_G_LocalizedStringIndex(const char *string)
-{
-    int i;
-    char s[MAX_STRINGLENGTH];
-
-    if(localized_string_index >= 256)
-        localized_string_index = 128;
-
-    if(!string || !*string)
-        return 0;
-    
-    int start = 1244;
-
-    for (i = 1; i < 256; i++)
-    {
-        trap_GetConfigstring(start + i, s, sizeof(s));
-        if(!*s)
-            break;
-        if (!strcmp(s, string))
-            return i;
-    }
-    if(i == 256)
-        i = localized_string_index;
-
-    SV_SetConfigstring(i + 1244, string);
-    ++localized_string_index;
-    
-    return i;
-}
-
-void hook_ClientCommand(int clientNum)
-{
-    if(!Scr_IsSystemActive())
-        return;
-
-    char* cmd = Cmd_Argv(0);
-    if(!strcmp(cmd, "gc"))
-        return; // Prevent server crash
-      
-    if (!codecallback_playercommand)
-    {
-        ClientCommand(clientNum);
-        return;
-    }
-
-    stackPushArray();
-    int args = Cmd_Argc();
-    for (int i = 0; i < args; i++)
-    {
-        char tmp[MAX_STRINGLENGTH];
-        trap_Argv(i, tmp, sizeof(tmp));
-        if (i == 1 && tmp[0] >= 20 && tmp[0] <= 22)
-        {
-            char *part = strtok(tmp + 1, " ");
-            while (part != NULL)
-            {
-                stackPushString(part);
-                stackPushArrayLast();
-                part = strtok(NULL, " ");
-            }
-        }
-        else
-        {
-            stackPushString(tmp);
-            stackPushArrayLast();
-        }
-    }
-    
-    short ret = Scr_ExecEntThread(&g_entities[clientNum], codecallback_playercommand, 1);
-    Scr_FreeThread(ret);
-}
-
-const char* hook_AuthorizeState(int arg)
-{
-    const char* s = Cmd_Argv(arg);
-    if(sv_cracked->integer && !strcmp(s, "deny"))
-        return "accept";
-    return s;
-}
-
-/*
-Fix the scoreboard showing the ping of players as being the ping of their spectators.
-The cause of the issue is that CoD1.1 sends cl->ps.ping instead of cl->ping.
-This is based on the CoD2 function.
-*/
-void custom_DeathmatchScoreboardMessage(gentity_t *ent)
-{
-    int ping;
-    int clientNum;
-    int numSorted;
-    gclient_t *client;
-    int len;
-    int i;
-    int stringlength;
-    char string[1400];
-    char entry[1024];
-
-    string[0] = 0;
-    stringlength = 0;
-
-    numSorted = level->numConnectedClients;
-
-    if(level->numConnectedClients > MAX_CLIENTS)
-        numSorted = MAX_CLIENTS;
-
-    for (i = 0; i < numSorted; i++)
-    {
-        clientNum = level->sortedClients[i];
-        client = &level->clients[clientNum];
-        
-        if (client->sess.connected == CON_CONNECTING)
-        {
-            Com_sprintf(
-                entry,
-                0x400u,
-                " %i %i %i %i %i",
-                level->sortedClients[i],
-                client->sess.score,
-                -1,
-                client->sess.deaths,
-                client->sess.statusIcon);
-        }
-        else
-        {
-            ping = svs.clients[clientNum].ping;
-
-            Com_sprintf(
-                entry,
-                0x400u,
-                " %i %i %i %i %i",
-                level->sortedClients[i],
-                client->sess.score,
-                ping,
-                client->sess.deaths,
-                client->sess.statusIcon);
-        }
-
-        len = strlen(entry);
-
-        if(stringlength + len > 1024)
-            break;
-
-        strcpy(&string[stringlength], entry);
-        stringlength += len;
-    }
-    
-    trap_SendServerCommand(ent - g_entities, SV_CMD_RELIABLE, va("b %i %i %i%s", i, level->teamScores[1], level->teamScores[2], string));
-}
-
-void custom_Touch_Item_Auto(gentity_t *item, gentity_t *entity, int touch)
-{
-    int clientNum = entity->client->ps.clientNum;
-    client_t *client = &svs.clients[clientNum];
-
-    if(customPlayerState[clientNum].noAutoPickup && !(client->lastUsercmd.buttons & KEY_MASK_USE))
-        return;
-
-    hook_Touch_Item_Auto->unhook();
-    void (*Touch_Item_Auto)(gentity_t * item, gentity_t * entity, int touch);
-    *(int*)&Touch_Item_Auto = hook_Touch_Item_Auto->from;
-    Touch_Item_Auto(item, entity, touch);
-    hook_Touch_Item_Auto->hook();
-}
-
 void custom_SV_SpawnServer(char *server)
 {
     hook_SV_SpawnServer->unhook();
@@ -521,6 +471,433 @@ void custom_SV_SpawnServer(char *server)
 #endif
 }
 
+void custom_SV_AddOperatorCommands()
+{
+    hook_SV_AddOperatorCommands->unhook();
+    void (*SV_AddOperatorCommands)();
+    *(int*)&SV_AddOperatorCommands = hook_SV_AddOperatorCommands->from;
+    SV_AddOperatorCommands();
+    hook_SV_AddOperatorCommands->hook();
+
+    Cmd_AddCommand("ban", ban);
+    Cmd_AddCommand("unban", unban);
+}
+
+// ioquake3 rate limit connectionless requests
+// https://github.com/ioquake/ioq3/blob/master/code/server/sv_main.c
+
+// This is deliberately quite large to make it more of an effort to DoS
+#define MAX_BUCKETS	16384
+#define MAX_HASHES 1024
+
+static leakyBucket_t buckets[MAX_BUCKETS];
+static leakyBucket_t* bucketHashes[MAX_HASHES];
+leakyBucket_t outboundLeakyBucket;
+
+static long SVC_HashForAddress(netadr_t address)
+{
+    unsigned char *ip = address.ip;
+    int	i;
+    long hash = 0;
+
+    for (i = 0; i < 4; i++)
+    {
+        hash += (long)(ip[i]) * (i + 119);
+    }
+
+    hash = (hash ^ (hash >> 10) ^ (hash >> 20));
+    hash &= (MAX_HASHES - 1);
+
+    return hash;
+}
+
+static leakyBucket_t * SVC_BucketForAddress(netadr_t address, int burst, int period)
+{
+    leakyBucket_t *bucket = NULL;
+    int i;
+    long hash = SVC_HashForAddress(address);
+    uint64_t now = Sys_Milliseconds64();
+
+    for (bucket = bucketHashes[hash]; bucket; bucket = bucket->next)
+    {
+        if (memcmp(bucket->adr, address.ip, 4) == 0)
+            return bucket;
+    }
+
+    for (i = 0; i < MAX_BUCKETS; i++)
+    {
+        int interval;
+
+        bucket = &buckets[i];
+        interval = now - bucket->lastTime;
+
+        // Reclaim expired buckets
+        if (bucket->lastTime > 0 && (interval > (burst * period) ||
+                                       interval < 0))
+        {
+            if (bucket->prev != NULL)
+                bucket->prev->next = bucket->next;
+            else
+                bucketHashes[bucket->hash] = bucket->next;
+
+            if (bucket->next != NULL)
+                bucket->next->prev = bucket->prev;
+
+            memset(bucket, 0, sizeof(leakyBucket_t));
+        }
+
+        if (bucket->type == 0)
+        {
+            bucket->type = address.type;
+            memcpy(bucket->adr, address.ip, 4);
+
+            bucket->lastTime = now;
+            bucket->burst = 0;
+            bucket->hash = hash;
+
+            // Add to the head of the relevant hash chain
+            bucket->next = bucketHashes[hash];
+            if (bucketHashes[hash] != NULL)
+                bucketHashes[hash]->prev = bucket;
+
+            bucket->prev = NULL;
+            bucketHashes[hash] = bucket;
+
+            return bucket;
+        }
+    }
+
+    // Couldn't allocate a bucket for this address
+    return NULL;
+}
+
+bool SVC_RateLimit(leakyBucket_t *bucket, int burst, int period)
+{
+    if (bucket != NULL)
+    {
+        uint64_t now = Sys_Milliseconds64();
+        int interval = now - bucket->lastTime;
+        int expired = interval / period;
+        int expiredRemainder = interval % period;
+
+        if (expired > bucket->burst || interval < 0)
+        {
+            bucket->burst = 0;
+            bucket->lastTime = now;
+        }
+        else
+        {
+            bucket->burst -= expired;
+            bucket->lastTime = now - expiredRemainder;
+        }
+
+        if (bucket->burst < burst)
+        {
+            bucket->burst++;
+            return false;
+        }
+    }
+    return true;
+}
+
+bool SVC_RateLimitAddress(netadr_t from, int burst, int period)
+{
+    leakyBucket_t *bucket = SVC_BucketForAddress(from, burst, period);
+    return SVC_RateLimit(bucket, burst, period);
+}
+
+bool SVC_callback(const char *str, const char *ip)
+{
+    if (codecallback_client_spam && Scr_IsSystemActive())
+    {
+        stackPushString(ip);
+        stackPushString(str);
+        short ret = Scr_ExecThread(codecallback_client_spam, 2);
+        Scr_FreeThread(ret);
+
+        return true;
+    }
+    return false;
+}
+
+bool SVC_ApplyRconLimit(netadr_t from, qboolean badRconPassword)
+{
+    // Prevent using rcon as an amplifier and make dictionary attacks impractical
+    if (SVC_RateLimitAddress(from, 10, 1000))
+    {
+        if(!SVC_callback("RCON:ADDRESS", NET_AdrToString(from)))
+            Com_DPrintf("SVC_RemoteCommand: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
+        return true;
+    }
+    
+    if (badRconPassword)
+    {
+        static leakyBucket_t bucket;
+
+        // Make DoS via rcon impractical
+        if (SVC_RateLimit(&bucket, 10, 1000))
+        {
+            if(!SVC_callback("RCON:GLOBAL", NET_AdrToString(from)))
+                Com_DPrintf("SVC_RemoteCommand: rate limit exceeded, dropping request\n");
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+bool SVC_ApplyStatusLimit(netadr_t from)
+{
+    // Prevent using getstatus as an amplifier
+    if (SVC_RateLimitAddress(from, 10, 1000))
+    {
+        if(!SVC_callback("STATUS:ADDRESS", NET_AdrToString(from)))
+            Com_DPrintf("SVC_Status: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
+        return true;
+    }
+
+    // Allow getstatus to be DoSed relatively easily, but prevent
+    // excess outbound bandwidth usage when being flooded inbound
+    if (SVC_RateLimit(&outboundLeakyBucket, 10, 100))
+    {
+        if(!SVC_callback("STATUS:GLOBAL", NET_AdrToString(from)))
+            Com_DPrintf("SVC_Status: rate limit exceeded, dropping request\n");
+        return true;
+    }
+
+    return false;
+}
+
+void hook_SV_GetChallenge(netadr_t from)
+{
+    // Prevent using getchallenge as an amplifier
+    if (SVC_RateLimitAddress(from, 10, 1000))
+    {
+        if(!SVC_callback("CHALLENGE:ADDRESS", NET_AdrToString(from)))
+            Com_DPrintf("SV_GetChallenge: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
+        return;
+    }
+
+    // Allow getchallenge to be DoSed relatively easily, but prevent
+    // excess outbound bandwidth usage when being flooded inbound
+    if (SVC_RateLimit(&outboundLeakyBucket, 10, 100))
+    {
+        if(!SVC_callback("CHALLENGE:GLOBAL", NET_AdrToString(from)))
+            Com_DPrintf("SV_GetChallenge: rate limit exceeded, dropping request\n");
+        return;
+    }
+
+    SV_GetChallenge(from);
+}
+
+void hook_SV_DirectConnect(netadr_t from)
+{
+    // Prevent using connect as an amplifier
+    if (SVC_RateLimitAddress(from, 10, 1000))
+    {
+        Com_DPrintf("SV_DirectConnect: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
+        return;
+    }
+
+    // Allow connect to be DoSed relatively easily, but prevent
+    // excess outbound bandwidth usage when being flooded inbound
+    if (SVC_RateLimit(&outboundLeakyBucket, 10, 100))
+    {
+        Com_DPrintf("SV_DirectConnect: rate limit exceeded, dropping request\n");
+        return;
+    }
+    
+    bool unbanned;
+    char* userinfo;
+    char ip[16];
+    std::ostringstream oss;
+    std::string argBackup;
+    
+    unbanned = false;
+    userinfo = Cmd_Argv(1);
+    oss << "connect \"" << userinfo << "\"";
+    argBackup = oss.str();
+    snprintf(ip, sizeof(ip), "%d.%d.%d.%d", from.ip[0], from.ip[1], from.ip[2], from.ip[3]);
+
+    auto banInfo = banInfoForIp(ip);
+    if(std::get<0>(banInfo) == true) // banned
+    {
+        time_t current_time = time(NULL);
+        std::string remainingTime;
+        
+        if(std::get<1>(banInfo) != -1) // duration
+        {
+            int elapsed_seconds = difftime(current_time, std::get<2>(banInfo)); // ban date
+            int remaining_seconds = std::get<1>(banInfo) - elapsed_seconds;
+            if (remaining_seconds <= 0)
+            {
+                Cbuf_ExecuteText(EXEC_APPEND, va("unban %s\n", ip));
+                unbanned = true;
+            }
+            else
+            {
+                int days = remaining_seconds / (60 * 60 * 24);
+                int hours = (remaining_seconds % (60 * 60 * 24)) / (60 * 60);
+                int minutes = (remaining_seconds % (60 * 60)) / 60;
+                int seconds = remaining_seconds % 60;
+
+                oss.str(std::string());
+                oss.clear();
+
+                if (days > 0)
+                {
+                    oss << days << " day" << (days > 1 ? "s" : "");
+                    if(hours > 0)
+                        oss << ", " << hours << " hour" << (hours > 1 ? "s" : "");
+                }
+                else if (hours > 0)
+                {
+                    oss << hours << " hour" << (hours > 1 ? "s" : "");
+                    if(minutes > 0)
+                        oss << ", " << minutes << " minute" << (minutes > 1 ? "s" : "");
+                }
+                else if(minutes > 0)
+                    oss << minutes << " minute" << (minutes > 1 ? "s" : "");
+                else
+                    oss << seconds << " second" << (seconds > 1 ? "s" : "");
+
+                remainingTime = oss.str();
+            }
+        }
+
+        if (!unbanned)
+        {
+            std::string banInfoMessage = "error\nBanned IP";
+            if(std::get<3>(banInfo) != "none")
+            {
+                banInfoMessage.append(" - Reason: ");
+                banInfoMessage.append(std::get<3>(banInfo));
+            }
+            if(!remainingTime.empty())
+            {
+                banInfoMessage.append(" - Remaining: ");
+                banInfoMessage.append(remainingTime);
+            }
+            
+            Com_Printf("rejected connection from banned IP %s\n", NET_AdrToString(from));
+            NET_OutOfBandPrint(NS_SERVER, from, banInfoMessage.c_str());
+            return;
+        }
+    }
+
+    if(unbanned)
+        Cmd_TokenizeString(argBackup.c_str());
+    SV_DirectConnect(from);
+}
+
+void hook_SV_AuthorizeIpPacket(netadr_t from)
+{
+    // Prevent ipAuthorize log spam DoS
+    if (SVC_RateLimitAddress(from, 20, 1000))
+    {
+        Com_DPrintf("SV_AuthorizeIpPacket: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
+        return;
+    }
+
+    // Allow ipAuthorize to be DoSed relatively easily, but prevent
+    // excess outbound bandwidth usage when being flooded inbound
+    if (SVC_RateLimit(&outboundLeakyBucket, 10, 100))
+    {
+        Com_DPrintf("SV_AuthorizeIpPacket: rate limit exceeded, dropping request\n");
+        return;
+    }
+
+    SV_AuthorizeIpPacket(from);
+}
+
+void hook_SVC_Info(netadr_t from)
+{
+    // Prevent using getinfo as an amplifier
+    if (SVC_RateLimitAddress(from, 10, 1000))
+    {
+        if (!SVC_callback("INFO:ADDRESS", NET_AdrToString(from)))
+            Com_DPrintf("SVC_Info: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
+        return;
+    }
+
+    // Allow getinfo to be DoSed relatively easily, but prevent
+    // excess outbound bandwidth usage when being flooded inbound
+    if (SVC_RateLimit(&outboundLeakyBucket, 10, 100))
+    {
+        if(!SVC_callback("INFO:GLOBAL", NET_AdrToString(from)))
+            Com_DPrintf("SVC_Info: rate limit exceeded, dropping request\n");
+        return;
+    }
+
+    SVC_Info(from);
+}
+
+void hook_SVC_Status(netadr_t from)
+{
+    if(SVC_ApplyStatusLimit(from))
+        return;
+    SVC_Status(from);
+}
+
+// See https://nachtimwald.com/2017/04/02/constant-time-string-comparison-in-c/
+bool str_iseq(const char *s1, const char *s2)
+{
+    int             m = 0;
+    volatile size_t i = 0;
+    volatile size_t j = 0;
+    volatile size_t k = 0;
+
+    if (s1 == NULL || s2 == NULL)
+        return false;
+
+    while (1) {
+        m |= s1[i]^s2[j];
+
+        if (s1[i] == '\0')
+            break;
+        i++;
+
+        if (s2[j] != '\0')
+            j++;
+        if (s2[j] == '\0')
+            k++;
+    }
+
+    return m == 0;
+}
+void hook_SVC_RemoteCommand(netadr_t from, msg_t *msg)
+{
+    char* password = Cmd_Argv(1);
+    qboolean badRconPassword = !strlen(sv_rconPassword->string) || !str_iseq(password, sv_rconPassword->string);
+    
+    if(SVC_ApplyRconLimit(from, badRconPassword))
+        return;
+    
+    SVC_RemoteCommand(from, msg);
+}
+
+const char* hook_AuthorizeState(int arg)
+{
+    const char* s = Cmd_Argv(arg);
+    if(sv_cracked->integer && !strcmp(s, "deny"))
+        return "accept";
+    return s;
+}
+
+void custom_SV_SendClientGameState(client_t *client)
+{
+    hook_SV_SendClientGameState->unhook();
+    void (*SV_SendClientGameState)(client_t *client);
+    *(int*)&SV_SendClientGameState = hook_SV_SendClientGameState->from;
+    SV_SendClientGameState(client);
+    hook_SV_SendClientGameState->hook();
+
+    // Reset custom player state to default values
+    int id = client - svs.clients;
+    memset(&customPlayerState[id], 0, sizeof(customPlayerState_t));
+}
+
+//// Custom ban
 std::tuple<bool, int, int, std::string> banInfoForIp(char* ip)
 {
     char *file;
@@ -553,24 +930,6 @@ std::tuple<bool, int, int, std::string> banInfoForIp(char* ip)
     }
     FS_FreeFile(file);
     return banInfo;
-}
-
-void sendMessageTo_inGameAdmin_orServerConsole(client_t *cl, std::string message)
-{
-    std::string finalMessage;
-    if (cl)
-    {
-        finalMessage = "e \"";
-        finalMessage.append(message);
-        finalMessage.append("\"");
-        SV_SendServerCommand(cl, SV_CMD_CAN_IGNORE, finalMessage.c_str());
-    }
-    else
-    {
-        finalMessage = message;
-        finalMessage.append("\n");
-        Com_Printf(finalMessage.c_str());
-    }
 }
 
 const std::array<std::string, 5> banParameters = {"-i", "-n", "-r", "-d", "-a"};
@@ -1032,85 +1391,7 @@ static void unban()
         sendMessageTo_inGameAdmin_orServerConsole(clAdmin, infoMessage);
     }
 }
-
-void custom_SV_AddOperatorCommands()
-{
-    hook_SV_AddOperatorCommands->unhook();
-    void (*SV_AddOperatorCommands)();
-    *(int*)&SV_AddOperatorCommands = hook_SV_AddOperatorCommands->from;
-    SV_AddOperatorCommands();
-    hook_SV_AddOperatorCommands->hook();
-
-    Cmd_AddCommand("ban", ban);
-    Cmd_AddCommand("unban", unban);
-}
-
-void custom_SV_SendClientGameState(client_t *client)
-{
-    hook_SV_SendClientGameState->unhook();
-    void (*SV_SendClientGameState)(client_t *client);
-    *(int*)&SV_SendClientGameState = hook_SV_SendClientGameState->from;
-    SV_SendClientGameState(client);
-    hook_SV_SendClientGameState->hook();
-
-    // Reset custom player state to default values
-    int id = client - svs.clients;
-    memset(&customPlayerState[id], 0, sizeof(customPlayerState_t));
-}
-
-qboolean hook_StuckInClient(gentity_s *self)
-{
-    if(!g_playerEject->integer)
-        return qfalse;
-    return StuckInClient(self);
-}
-
-bool shouldServeFile(const char *requestedFilePath)
-{
-    static char localFilePath[MAX_OSPATH*2+5];
-    searchpath_t* search;
-
-    localFilePath[0] = 0;
-
-    for (search = fs_searchpaths; search; search = search->next)
-    {
-        if (search->pak)
-        {
-            snprintf(localFilePath, sizeof(localFilePath), "%s/%s.pk3", search->pak->pakGamename, search->pak->pakBasename);
-            if(!strcmp(localFilePath, requestedFilePath))
-                if(!FS_svrPak(search->pak->pakBasename))
-                    return true;
-        }
-    }
-    return false;
-}
-
-void custom_SV_BeginDownload_f(client_t *cl)
-{
-    // Patch q3dirtrav
-    int args = Cmd_Argc();
-    if (args > 1)
-    {
-        const char* arg1 = Cmd_Argv(1);
-        if (!shouldServeFile(arg1))
-        {
-            char ip[16];
-            snprintf(ip, sizeof(ip), "%d.%d.%d.%d",
-                cl->netchan.remoteAddress.ip[0],
-                cl->netchan.remoteAddress.ip[1],
-                cl->netchan.remoteAddress.ip[2],
-                cl->netchan.remoteAddress.ip[3]);
-            Com_Printf("WARNING: %s (%s) tried to download %s.\n", cl->name, ip, arg1);
-            return;
-        }
-    }
-
-    hook_SV_BeginDownload_f->unhook();
-    void (*SV_BeginDownload_f)(client_t *cl);
-    *(int*)&SV_BeginDownload_f = hook_SV_BeginDownload_f->from;
-    SV_BeginDownload_f(cl);
-    hook_SV_BeginDownload_f->hook();
-}
+////
 
 void custom_SV_ExecuteClientMessage(client_t *cl, msg_t *msg)
 {
@@ -1187,91 +1468,389 @@ void custom_SV_ExecuteClientCommand(client_t *cl, const char *s, qboolean client
             VM_Call(gvm, GAME_CLIENT_COMMAND, cl - svs.clients);
 }
 
-void UCMD_custom_sprint(client_t *cl)
+void custom_SV_BeginDownload_f(client_t *cl)
 {
-    int clientNum = cl - svs.clients;
-    if (!player_sprint->integer)
+    // Patch q3dirtrav
+    int args = Cmd_Argc();
+    if (args > 1)
     {
-        std::string message = "e \"";
-        message.append("Sprint is not enabled on this server.");
-        message.append("\"");
-        SV_SendServerCommand(cl, SV_CMD_CAN_IGNORE, message.c_str());
+        const char* arg1 = Cmd_Argv(1);
+        if (!shouldServeFile(arg1))
+        {
+            char ip[16];
+            snprintf(ip, sizeof(ip), "%d.%d.%d.%d",
+                cl->netchan.remoteAddress.ip[0],
+                cl->netchan.remoteAddress.ip[1],
+                cl->netchan.remoteAddress.ip[2],
+                cl->netchan.remoteAddress.ip[3]);
+            Com_Printf("WARNING: %s (%s) tried to download %s.\n", cl->name, ip, arg1);
+            return;
+        }
+    }
+
+    hook_SV_BeginDownload_f->unhook();
+    void (*SV_BeginDownload_f)(client_t *cl);
+    *(int*)&SV_BeginDownload_f = hook_SV_BeginDownload_f->from;
+    SV_BeginDownload_f(cl);
+    hook_SV_BeginDownload_f->hook();
+}
+
+// See https://github.com/ibuddieat/zk_libcod/blob/dff123fad25d7b46d65685e9bca2111c8946a36e/code/libcod.cpp#L3600
+void SV_WriteDownloadErrorToClient(client_t *cl, msg_t *msg, char *errorMessage)
+{
+    MSG_WriteByte(msg, svc_download);
+    MSG_WriteShort(msg, 0);
+    MSG_WriteLong(msg, -1);
+    MSG_WriteString(msg, errorMessage);
+    *cl->downloadName = 0;
+}
+void custom_SV_WriteDownloadToClient(client_t *cl, msg_t *msg)
+{
+    int curindex;
+    int blksize;
+    char downloadNameNoExt[MAX_QPATH];
+    char errorMessage[MAX_STRINGLENGTH];
+
+    if(!*cl->downloadName)
         return;
+    
+    cl->state = CS_CONNECTED;
+    cl->rate = 25000;
+    cl->snapshotMsec = 50;
+
+    if (!cl->download)
+    {
+        if (!sv_allowDownload->integer)
+        {
+            Com_Printf("clientDownload: %d : \"%s\" download disabled\n", cl - svs.clients, cl->downloadName);
+
+            if(sv_pure->integer)
+                Com_sprintf(errorMessage, sizeof(errorMessage), "EXE_AUTODL_SERVERDISABLED_PURE\x15%s", cl->downloadName);
+            else
+                Com_sprintf(errorMessage, sizeof(errorMessage), "EXE_AUTODL_SERVERDISABLED\x15%s", cl->downloadName);
+
+            SV_WriteDownloadErrorToClient(cl, msg, errorMessage);
+            return;
+        }
+
+        Q_strncpyz(downloadNameNoExt, cl->downloadName, strlen(cl->downloadName) - 3);
+        if (FS_iwPak(downloadNameNoExt, "main"))
+        {
+            Com_Printf("clientDownload: %d : \"%s\" cannot download id pk3 files\n", cl - svs.clients, cl->downloadName);
+            Com_sprintf(errorMessage, sizeof(errorMessage), "EXE_CANTAUTODLGAMEPAK\x15%s", cl->downloadName);
+            SV_WriteDownloadErrorToClient(cl, msg, errorMessage);
+            return;
+        }
+
+        if ((cl->downloadSize = FS_SV_FOpenFileRead(cl->downloadName, &cl->download)) <= 0)
+        {
+            Com_Printf("clientDownload: %d : \"%s\" file not found on server\n", cl - svs.clients, cl->downloadName);
+            Com_sprintf(errorMessage, sizeof(errorMessage), "EXE_AUTODL_FILENOTONSERVER\x15%s", cl->downloadName);
+            SV_WriteDownloadErrorToClient(cl, msg, errorMessage);
+            return;
+        }
+
+        // Init download
+        Com_Printf("clientDownload: %d : beginning \"%s\"\n", cl - svs.clients, cl->downloadName);
+        cl->downloadCurrentBlock = cl->downloadClientBlock = cl->downloadXmitBlock = 0;
+        cl->downloadCount = 0;
+        cl->downloadEOF = qfalse;
+
+        if(sv_downloadNotifications->integer)
+            SV_SendServerCommand(0, SV_CMD_CAN_IGNORE, "f \"%s^7 downloads %s\"", cl->name, cl->downloadName);
     }
     
-    if(customPlayerState[clientNum].sprintActive)
-        customPlayerState[clientNum].sprintActive = false;
-    else if(customPlayerState[clientNum].sprintRequestPending)
-        customPlayerState[clientNum].sprintRequestPending = false;
-    else
-        customPlayerState[clientNum].sprintRequestPending = true;
-}
-
-// See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/shared.c#L632
-#define MAX_VA_STRING 32000
-char *custom_va(const char *format, ...)
-{
-    va_list argptr;
-    static char temp_buffer[MAX_VA_STRING];
-    static char string[MAX_VA_STRING];
-    static int index = 0;
-    char *buf;
-    int len;
-
-    va_start(argptr, format);
-    vsprintf(temp_buffer, format, argptr);
-    va_end(argptr);
-
-    if ((len = strlen(temp_buffer)) >= MAX_VA_STRING)
-        Com_Error(ERR_DROP, "Attempted to overrun string in call to va()\n");
-
-    if (len + index >= MAX_VA_STRING - 1)
-        index = 0;
-
-    buf = &string[index];
-    memcpy(buf, temp_buffer, len + 1);
-
-    index += len + 1;
-
-    return buf;
-}
-
-void custom_SV_BotUserMove(client_t *client)
-{
-    int num;
-    usercmd_t ucmd = {0};
-
-    if(client->gentity == NULL)
-        return;
-
-    num = client - svs.clients;
-    ucmd.serverTime = svs.time;
-
-    playerState_t *ps = SV_GameClientNum(num);
-    gentity_t *ent = &g_entities[num];
-
-    if(customPlayerState[num].botWeapon)
-        ucmd.weapon = (byte)(customPlayerState[num].botWeapon & 0xFF);
-    else
-        ucmd.weapon = (byte)(ps->weapon & 0xFF);
-
-    if(ent->client == NULL)
-        return;
-
-    if (ent->client->sess.archiveTime == 0)
+    while (cl->downloadCurrentBlock - cl->downloadClientBlock < MAX_DOWNLOAD_WINDOW && cl->downloadSize != cl->downloadCount)
     {
-        ucmd.buttons = customPlayerState[num].botButtons;
-        ucmd.wbuttons = customPlayerState[num].botWButtons;
-        ucmd.forwardmove = customPlayerState[num].botForwardMove;
-        ucmd.rightmove = customPlayerState[num].botRightMove;
-        ucmd.upmove = customPlayerState[num].botUpMove;
+        curindex = (cl->downloadCurrentBlock % MAX_DOWNLOAD_WINDOW);
 
-        VectorCopy(ent->client->sess.cmd.angles, ucmd.angles);
+        blksize = MAX_DOWNLOAD_BLKSIZE;
+        if (sv_fastDownload->integer)
+            blksize = MAX_DOWNLOAD_BLKSIZE_FAST;
+        
+        if(!cl->downloadBlocks[curindex])
+            cl->downloadBlocks[curindex] = (unsigned char *)Z_MallocInternal(MAX_DOWNLOAD_BLKSIZE_FAST); // Not passing blksize to prevent issue in case the block size alignment changes during runtime.
+
+        cl->downloadBlockSize[curindex] = FS_Read(cl->downloadBlocks[curindex], blksize, cl->download);
+
+        if (cl->downloadBlockSize[curindex] < 0)
+        {
+            // EOF
+            cl->downloadCount = cl->downloadSize;
+            break;
+        }
+
+        cl->downloadCount += cl->downloadBlockSize[curindex];
+        // Load in next block
+        cl->downloadCurrentBlock++;
     }
 
-    client->deltaMessage = client->netchan.outgoingSequence - 1;
-    SV_ClientThink(client, &ucmd);
+    // Check to see if we have eof condition and add the EOF block
+    if (cl->downloadCount == cl->downloadSize && !cl->downloadEOF && cl->downloadCurrentBlock - cl->downloadClientBlock < MAX_DOWNLOAD_WINDOW)
+    {
+        cl->downloadBlockSize[cl->downloadCurrentBlock % MAX_DOWNLOAD_WINDOW] = 0;
+        cl->downloadCurrentBlock++;
+        cl->downloadEOF = qtrue;
+    }
+
+    if(cl->downloadClientBlock == cl->downloadCurrentBlock)
+        return; // Nothing to transmit
+
+    if (cl->downloadXmitBlock == cl->downloadCurrentBlock)
+    {
+        // See https://github.com/id-Software/Quake-III-Arena/blob/dbe4ddb10315479fc00086f08e25d968b4b43c49/code/server/sv_client.c#L889
+        if(svs.time - cl->downloadSendTime > 1000)
+            cl->downloadXmitBlock = cl->downloadClientBlock;
+        else
+            return;
+    }
+
+    // Send current block
+    curindex = (cl->downloadXmitBlock % MAX_DOWNLOAD_WINDOW);
+
+    MSG_WriteByte(msg, svc_download);
+    MSG_WriteShort(msg, cl->downloadXmitBlock);
+    // Block zero contains file size
+    if(cl->downloadXmitBlock == 0)
+        MSG_WriteLong(msg, cl->downloadSize);
+    MSG_WriteShort(msg, cl->downloadBlockSize[curindex]);
+
+    // Write the block
+    if(cl->downloadBlockSize[curindex])
+        MSG_WriteData(msg, cl->downloadBlocks[curindex], cl->downloadBlockSize[curindex]);
+
+    Com_DPrintf("clientDownload: %d : writing block %d\n", cl - svs.clients, cl->downloadXmitBlock);
+
+    // Move on to the next block
+    // It will get sent with next snapshot
+    cl->downloadXmitBlock++;
+    cl->downloadSendTime = svs.time;
 }
+
+// See https://github.com/voron00/CoD2rev_Server/blob/b012c4b45a25f7f80dc3f9044fe9ead6463cb5c6/src/server/sv_snapshot_mp.cpp#L686
+static int SV_RateMsec(client_t *client, int messageSize)
+{
+    int rate;
+    int rateMsec;
+    
+    if (messageSize > 1500)
+    {
+        messageSize = 1500;
+    }
+    rate = client->rate;
+    if (sv_maxRate->integer)
+    {
+        if (sv_maxRate->integer < 1000)
+        {
+            Cvar_Set("sv_maxRate", "");
+        }
+
+        if (sv_maxRate->integer < rate)
+        {
+            rate = sv_maxRate->integer;
+        }
+    }
+
+    rateMsec = (1000 * messageSize + (HEADER_RATE_BYTES * 1000)) / rate;
+    /*if (sv_debugRate->integer)
+    {
+        Com_Printf("It would take %ims to send %i bytes to client %s (rate %i)\n", rateMsec, messageSize, client->name, client->rate);
+    }*/
+    return rateMsec;
+}
+void custom_SV_SendClientMessages(void)
+{
+    int i;
+    client_t *cl;
+    int numclients = 0;
+
+    sv.bpsTotalBytes = 0;
+    sv.ubpsTotalBytes = 0;
+
+    for (i = 0; i < sv_maxclients->integer; i++)
+    {
+        cl = &svs.clients[i];
+
+        if(!cl->state)
+            continue;
+        if(svs.time < cl->nextSnapshotTime)
+            continue;
+
+        numclients++;
+
+        if (sv_fastDownload->integer && cl->download)
+        {
+            for (int j = 0; j < 1 + ((sv_fps->integer / 20) * MAX_DOWNLOAD_WINDOW); j++)
+            {
+                while (cl->netchan.unsentFragments)
+                {
+                    cl->nextSnapshotTime = svs.time + SV_RateMsec(cl, cl->netchan.unsentLength - cl->netchan.unsentFragmentStart);
+                    SV_Netchan_TransmitNextFragment(&cl->netchan);
+                }
+                SV_SendClientSnapshot(cl);
+            }
+        }
+        else
+        {
+            if (cl->netchan.unsentFragments)
+            {
+                cl->nextSnapshotTime = svs.time + SV_RateMsec(cl, cl->netchan.unsentLength - cl->netchan.unsentFragmentStart);
+                SV_Netchan_TransmitNextFragment(&cl->netchan);
+                continue;
+            }
+            SV_SendClientSnapshot(cl);
+        }
+    }
+
+    if (sv_showAverageBPS->integer && numclients > 0)
+    {
+        float ave = 0, uave = 0;
+
+        for (i = 0; i < MAX_BPS_WINDOW - 1; i++)
+        {
+            sv.bpsWindow[i] = sv.bpsWindow[i + 1];
+            ave += sv.bpsWindow[i];
+
+            sv.ubpsWindow[i] = sv.ubpsWindow[i + 1];
+            uave += sv.ubpsWindow[i];
+        }
+
+        sv.bpsWindow[MAX_BPS_WINDOW - 1] = sv.bpsTotalBytes;
+        ave += sv.bpsTotalBytes;
+
+        sv.ubpsWindow[MAX_BPS_WINDOW - 1] = sv.ubpsTotalBytes;
+        uave += sv.ubpsTotalBytes;
+
+        if(sv.bpsTotalBytes >= sv.bpsMaxBytes)
+            sv.bpsMaxBytes = sv.bpsTotalBytes;
+
+        if(sv.ubpsTotalBytes >= sv.ubpsMaxBytes)
+            sv.ubpsMaxBytes = sv.ubpsTotalBytes;
+
+        sv.bpsWindowSteps++;
+
+        if (sv.bpsWindowSteps >= MAX_BPS_WINDOW)
+        {
+            float comp_ratio;
+
+            sv.bpsWindowSteps = 0;
+
+            ave = ave / (float)MAX_BPS_WINDOW;
+            uave = uave / (float)MAX_BPS_WINDOW;
+
+            comp_ratio = (1 - ave / uave) * 100.f;
+            sv.ucompAve += comp_ratio;
+            sv.ucompNum++;
+
+            Com_DPrintf("bpspc(%2.0f) bps(%2.0f) pk(%i) ubps(%2.0f) upk(%i) cr(%2.2f) acr(%2.2f)\n",
+                        ave / (float)numclients,
+                        ave,
+                        sv.bpsMaxBytes,
+                        uave,
+                        sv.ubpsMaxBytes,
+                        comp_ratio,
+                        sv.ucompAve / sv.ucompNum);
+        }
+    }
+}
+
+void custom_SV_SendMessageToClient(msg_t *msg, client_t *client)
+{
+    byte data[MAX_MSGLEN];
+    int compressedSize;
+    int rateMsec;
+    
+    memcpy(data, msg->data, sizeof(data));
+    compressedSize = MSG_WriteBitsCompress(msg->data + 4, data + 4, msg->cursize - 4) + 4;
+    if (client->dropReason)
+    {
+        SV_DropClient(client, client->dropReason);
+    }
+    client->frames[client->netchan.outgoingSequence & PACKET_MASK].messageSize = compressedSize;
+    client->frames[client->netchan.outgoingSequence & PACKET_MASK].messageSent = svs.time;
+    client->frames[client->netchan.outgoingSequence & PACKET_MASK].messageAcked = -1;
+    SV_Netchan_Transmit(client, data, compressedSize);
+
+    if (client->netchan.remoteAddress.type == NA_LOOPBACK || Sys_IsLANAddress(client->netchan.remoteAddress) || (sv_fastDownload->integer && client->download))
+    {
+        client->nextSnapshotTime = svs.time - 1;
+        return;
+    }
+
+    rateMsec = SV_RateMsec(client, compressedSize);
+    if (rateMsec < client->snapshotMsec)
+    {
+        rateMsec = client->snapshotMsec;
+        client->rateDelayed = qfalse;
+    }
+    else
+    {
+        client->rateDelayed = qtrue;
+    }
+    client->nextSnapshotTime = svs.time + rateMsec;
+    if (client->state != CS_ACTIVE)
+    {
+        if (!*client->downloadName && client->nextSnapshotTime < svs.time + 1000)
+        {
+            client->nextSnapshotTime = svs.time + 1000;
+        }
+    }
+    sv.bpsTotalBytes += compressedSize;
+}
+
+void hook_ClientCommand(int clientNum)
+{
+    if(!Scr_IsSystemActive())
+        return;
+
+    char* cmd = Cmd_Argv(0);
+    if(!strcmp(cmd, "gc"))
+        return; // Prevent server crash
+      
+    if (!codecallback_playercommand)
+    {
+        ClientCommand(clientNum);
+        return;
+    }
+
+    stackPushArray();
+    int args = Cmd_Argc();
+    for (int i = 0; i < args; i++)
+    {
+        char tmp[MAX_STRINGLENGTH];
+        trap_Argv(i, tmp, sizeof(tmp));
+        if (i == 1 && tmp[0] >= 20 && tmp[0] <= 22)
+        {
+            char *part = strtok(tmp + 1, " ");
+            while (part != NULL)
+            {
+                stackPushString(part);
+                stackPushArrayLast();
+                part = strtok(NULL, " ");
+            }
+        }
+        else
+        {
+            stackPushString(tmp);
+            stackPushArrayLast();
+        }
+    }
+    
+    short ret = Scr_ExecEntThread(&g_entities[clientNum], codecallback_playercommand, 1);
+    Scr_FreeThread(ret);
+}
+
+//// 1.1 deadchat support
+// See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/sv_client.c#L940
+void hook_G_Say(gentity_s *ent, gentity_s *target, int mode, const char *chatText)
+{
+    int unknown_var = *(int*)((int)ent->client + 8400);
+    if(unknown_var && !g_deadChat->integer)
+        return;
+
+    G_Say(ent, NULL, mode, chatText);
+}
+////
 
 void custom_ClientThink(int clientNum)
 {
@@ -1292,6 +1871,22 @@ void custom_ClientThink(int clientNum)
         customPlayerState[clientNum].frameTime = Sys_Milliseconds64();
         customPlayerState[clientNum].frames = 0;
     }
+}
+
+void custom_ClientSpawn(gentity_t *ent, const float *spawn_origin, const float *spawn_angles)
+{
+    hook_ClientSpawn->unhook();
+    void (*ClientSpawn)(gentity_t *ent, const float *spawn_origin, const float *spawn_angles);
+    *(int*)&ClientSpawn = hook_ClientSpawn->from;
+    ClientSpawn(ent, spawn_origin, spawn_angles);
+    hook_ClientSpawn->hook();
+
+    int clientNum = ent - g_entities;
+
+    // Reset sprint
+    customPlayerState[clientNum].sprintActive = false;
+    customPlayerState[clientNum].sprintRequestPending = false;
+    customPlayerState[clientNum].sprintTimer = 0;
 }
 
 void custom_ClientEndFrame(gentity_t *ent)
@@ -1317,38 +1912,6 @@ void custom_ClientEndFrame(gentity_t *ent)
             if(ent->client->ps.pm_flags & PMF_SLIDING)
                 ent->client->ps.pm_flags &= ~PMF_SLIDING;
     }
-}
-
-void custom_ClientSpawn(gentity_t *ent, const float *spawn_origin, const float *spawn_angles)
-{
-    hook_ClientSpawn->unhook();
-    void (*ClientSpawn)(gentity_t *ent, const float *spawn_origin, const float *spawn_angles);
-    *(int*)&ClientSpawn = hook_ClientSpawn->from;
-    ClientSpawn(ent, spawn_origin, spawn_angles);
-    hook_ClientSpawn->hook();
-
-    int clientNum = ent - g_entities;
-
-    // Reset sprint
-    customPlayerState[clientNum].sprintActive = false;
-    customPlayerState[clientNum].sprintRequestPending = false;
-    customPlayerState[clientNum].sprintTimer = 0;
-}
-
-void custom_PM_CrashLand()
-{
-    int clientNum = (*pm)->ps->clientNum;
-    if (customPlayerState[clientNum].overrideJumpHeight_air)
-    {
-        // Player landed an airjump, disable overrideJumpHeight_air
-        customPlayerState[clientNum].overrideJumpHeight_air = false;
-    }
-    
-    hook_PM_CrashLand->unhook();
-    void (*PM_CrashLand)();
-    *(int*)&PM_CrashLand = hook_PM_CrashLand->from;
-    PM_CrashLand();
-    hook_PM_CrashLand->hook();
 }
 
 void custom_PM_AirMove()
@@ -1379,6 +1942,22 @@ void custom_PM_AirMove()
     *(int*)&PM_AirMove = hook_PM_AirMove->from;
     PM_AirMove();
     hook_PM_AirMove->hook();
+}
+
+void custom_PM_CrashLand()
+{
+    int clientNum = (*pm)->ps->clientNum;
+    if (customPlayerState[clientNum].overrideJumpHeight_air)
+    {
+        // Player landed an airjump, disable overrideJumpHeight_air
+        customPlayerState[clientNum].overrideJumpHeight_air = false;
+    }
+    
+    hook_PM_CrashLand->unhook();
+    void (*PM_CrashLand)();
+    *(int*)&PM_CrashLand = hook_PM_CrashLand->from;
+    PM_CrashLand();
+    hook_PM_CrashLand->hook();
 }
 
 /* See:
@@ -1462,397 +2041,152 @@ void custom_PmoveSingle(pmove_t *pmove)
     PM_UpdateSprint(pmove);
 }
 
-// ioquake3 rate limit connectionless requests
-// https://github.com/ioquake/ioq3/blob/master/code/server/sv_main.c
-
-// This is deliberately quite large to make it more of an effort to DoS
-#define MAX_BUCKETS	16384
-#define MAX_HASHES 1024
-
-static leakyBucket_t buckets[MAX_BUCKETS];
-static leakyBucket_t* bucketHashes[MAX_HASHES];
-leakyBucket_t outboundLeakyBucket;
-
-static long SVC_HashForAddress(netadr_t address)
+void custom_SV_BotUserMove(client_t *client)
 {
-    unsigned char *ip = address.ip;
-    int	i;
-    long hash = 0;
+    int num;
+    usercmd_t ucmd = {0};
 
-    for (i = 0; i < 4; i++)
+    if(client->gentity == NULL)
+        return;
+
+    num = client - svs.clients;
+    ucmd.serverTime = svs.time;
+
+    playerState_t *ps = SV_GameClientNum(num);
+    gentity_t *ent = &g_entities[num];
+
+    if(customPlayerState[num].botWeapon)
+        ucmd.weapon = (byte)(customPlayerState[num].botWeapon & 0xFF);
+    else
+        ucmd.weapon = (byte)(ps->weapon & 0xFF);
+
+    if(ent->client == NULL)
+        return;
+
+    if (ent->client->sess.archiveTime == 0)
     {
-        hash += (long)(ip[i]) * (i + 119);
+        ucmd.buttons = customPlayerState[num].botButtons;
+        ucmd.wbuttons = customPlayerState[num].botWButtons;
+        ucmd.forwardmove = customPlayerState[num].botForwardMove;
+        ucmd.rightmove = customPlayerState[num].botRightMove;
+        ucmd.upmove = customPlayerState[num].botUpMove;
+
+        VectorCopy(ent->client->sess.cmd.angles, ucmd.angles);
     }
 
-    hash = (hash ^ (hash >> 10) ^ (hash >> 20));
-    hash &= (MAX_HASHES - 1);
-
-    return hash;
+    client->deltaMessage = client->netchan.outgoingSequence - 1;
+    SV_ClientThink(client, &ucmd);
 }
 
-static leakyBucket_t * SVC_BucketForAddress(netadr_t address, int burst, int period)
+qboolean hook_StuckInClient(gentity_s *self)
 {
-    leakyBucket_t *bucket = NULL;
+    if(!g_playerEject->integer)
+        return qfalse;
+    return StuckInClient(self);
+}
+
+void custom_Touch_Item_Auto(gentity_t *item, gentity_t *entity, int touch)
+{
+    int clientNum = entity->client->ps.clientNum;
+    client_t *client = &svs.clients[clientNum];
+
+    if(customPlayerState[clientNum].noAutoPickup && !(client->lastUsercmd.buttons & KEY_MASK_USE))
+        return;
+
+    hook_Touch_Item_Auto->unhook();
+    void (*Touch_Item_Auto)(gentity_t * item, gentity_t * entity, int touch);
+    *(int*)&Touch_Item_Auto = hook_Touch_Item_Auto->from;
+    Touch_Item_Auto(item, entity, touch);
+    hook_Touch_Item_Auto->hook();
+}
+
+/*
+Fix the scoreboard showing the ping of players as being the ping of their spectators.
+The cause of the issue is that CoD1.1 sends cl->ps.ping instead of cl->ping.
+This is based on the CoD2 function.
+*/
+void custom_DeathmatchScoreboardMessage(gentity_t *ent)
+{
+    int ping;
+    int clientNum;
+    int numSorted;
+    gclient_t *client;
+    int len;
     int i;
-    long hash = SVC_HashForAddress(address);
-    uint64_t now = Sys_Milliseconds64();
+    int stringlength;
+    char string[1400];
+    char entry[1024];
 
-    for (bucket = bucketHashes[hash]; bucket; bucket = bucket->next)
+    string[0] = 0;
+    stringlength = 0;
+
+    numSorted = level->numConnectedClients;
+
+    if(level->numConnectedClients > MAX_CLIENTS)
+        numSorted = MAX_CLIENTS;
+
+    for (i = 0; i < numSorted; i++)
     {
-        if (memcmp(bucket->adr, address.ip, 4) == 0)
-            return bucket;
-    }
-
-    for (i = 0; i < MAX_BUCKETS; i++)
-    {
-        int interval;
-
-        bucket = &buckets[i];
-        interval = now - bucket->lastTime;
-
-        // Reclaim expired buckets
-        if (bucket->lastTime > 0 && (interval > (burst * period) ||
-                                       interval < 0))
+        clientNum = level->sortedClients[i];
+        client = &level->clients[clientNum];
+        
+        if (client->sess.connected == CON_CONNECTING)
         {
-            if (bucket->prev != NULL)
-                bucket->prev->next = bucket->next;
-            else
-                bucketHashes[bucket->hash] = bucket->next;
-
-            if (bucket->next != NULL)
-                bucket->next->prev = bucket->prev;
-
-            memset(bucket, 0, sizeof(leakyBucket_t));
-        }
-
-        if (bucket->type == 0)
-        {
-            bucket->type = address.type;
-            memcpy(bucket->adr, address.ip, 4);
-
-            bucket->lastTime = now;
-            bucket->burst = 0;
-            bucket->hash = hash;
-
-            // Add to the head of the relevant hash chain
-            bucket->next = bucketHashes[hash];
-            if (bucketHashes[hash] != NULL)
-                bucketHashes[hash]->prev = bucket;
-
-            bucket->prev = NULL;
-            bucketHashes[hash] = bucket;
-
-            return bucket;
-        }
-    }
-
-    // Couldn't allocate a bucket for this address
-    return NULL;
-}
-
-bool SVC_RateLimit(leakyBucket_t *bucket, int burst, int period)
-{
-    if (bucket != NULL)
-    {
-        uint64_t now = Sys_Milliseconds64();
-        int interval = now - bucket->lastTime;
-        int expired = interval / period;
-        int expiredRemainder = interval % period;
-
-        if (expired > bucket->burst || interval < 0)
-        {
-            bucket->burst = 0;
-            bucket->lastTime = now;
+            Com_sprintf(
+                entry,
+                0x400u,
+                " %i %i %i %i %i",
+                level->sortedClients[i],
+                client->sess.score,
+                -1,
+                client->sess.deaths,
+                client->sess.statusIcon);
         }
         else
         {
-            bucket->burst -= expired;
-            bucket->lastTime = now - expiredRemainder;
+            ping = svs.clients[clientNum].ping;
+
+            Com_sprintf(
+                entry,
+                0x400u,
+                " %i %i %i %i %i",
+                level->sortedClients[i],
+                client->sess.score,
+                ping,
+                client->sess.deaths,
+                client->sess.statusIcon);
         }
 
-        if (bucket->burst < burst)
-        {
-            bucket->burst++;
-            return false;
-        }
-    }
-    return true;
-}
+        len = strlen(entry);
 
-bool SVC_RateLimitAddress(netadr_t from, int burst, int period)
-{
-    leakyBucket_t *bucket = SVC_BucketForAddress(from, burst, period);
-    return SVC_RateLimit(bucket, burst, period);
-}
-
-bool SVC_callback(const char *str, const char *ip)
-{
-    if (codecallback_client_spam && Scr_IsSystemActive())
-    {
-        stackPushString(ip);
-        stackPushString(str);
-        short ret = Scr_ExecThread(codecallback_client_spam, 2);
-        Scr_FreeThread(ret);
-
-        return true;
-    }
-    return false;
-}
-
-bool SVC_ApplyRconLimit(netadr_t from, qboolean badRconPassword)
-{
-    // Prevent using rcon as an amplifier and make dictionary attacks impractical
-    if (SVC_RateLimitAddress(from, 10, 1000))
-    {
-        if(!SVC_callback("RCON:ADDRESS", NET_AdrToString(from)))
-            Com_DPrintf("SVC_RemoteCommand: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
-        return true;
-    }
-    
-    if (badRconPassword)
-    {
-        static leakyBucket_t bucket;
-
-        // Make DoS via rcon impractical
-        if (SVC_RateLimit(&bucket, 10, 1000))
-        {
-            if(!SVC_callback("RCON:GLOBAL", NET_AdrToString(from)))
-                Com_DPrintf("SVC_RemoteCommand: rate limit exceeded, dropping request\n");
-            return true;
-        }
-    }
-    
-    return false;
-}
-
-bool SVC_ApplyStatusLimit(netadr_t from)
-{
-    // Prevent using getstatus as an amplifier
-    if (SVC_RateLimitAddress(from, 10, 1000))
-    {
-        if(!SVC_callback("STATUS:ADDRESS", NET_AdrToString(from)))
-            Com_DPrintf("SVC_Status: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
-        return true;
-    }
-
-    // Allow getstatus to be DoSed relatively easily, but prevent
-    // excess outbound bandwidth usage when being flooded inbound
-    if (SVC_RateLimit(&outboundLeakyBucket, 10, 100))
-    {
-        if(!SVC_callback("STATUS:GLOBAL", NET_AdrToString(from)))
-            Com_DPrintf("SVC_Status: rate limit exceeded, dropping request\n");
-        return true;
-    }
-
-    return false;
-}
-
-void hook_SV_GetChallenge(netadr_t from)
-{
-    // Prevent using getchallenge as an amplifier
-    if (SVC_RateLimitAddress(from, 10, 1000))
-    {
-        if(!SVC_callback("CHALLENGE:ADDRESS", NET_AdrToString(from)))
-            Com_DPrintf("SV_GetChallenge: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
-        return;
-    }
-
-    // Allow getchallenge to be DoSed relatively easily, but prevent
-    // excess outbound bandwidth usage when being flooded inbound
-    if (SVC_RateLimit(&outboundLeakyBucket, 10, 100))
-    {
-        if(!SVC_callback("CHALLENGE:GLOBAL", NET_AdrToString(from)))
-            Com_DPrintf("SV_GetChallenge: rate limit exceeded, dropping request\n");
-        return;
-    }
-
-    SV_GetChallenge(from);
-}
-
-void hook_SV_DirectConnect(netadr_t from)
-{
-    // Prevent using connect as an amplifier
-    if (SVC_RateLimitAddress(from, 10, 1000))
-    {
-        Com_DPrintf("SV_DirectConnect: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
-        return;
-    }
-
-    // Allow connect to be DoSed relatively easily, but prevent
-    // excess outbound bandwidth usage when being flooded inbound
-    if (SVC_RateLimit(&outboundLeakyBucket, 10, 100))
-    {
-        Com_DPrintf("SV_DirectConnect: rate limit exceeded, dropping request\n");
-        return;
-    }
-    
-    bool unbanned;
-    char* userinfo;
-    char ip[16];
-    std::ostringstream oss;
-    std::string argBackup;
-    
-    unbanned = false;
-    userinfo = Cmd_Argv(1);
-    oss << "connect \"" << userinfo << "\"";
-    argBackup = oss.str();
-    snprintf(ip, sizeof(ip), "%d.%d.%d.%d", from.ip[0], from.ip[1], from.ip[2], from.ip[3]);
-
-    auto banInfo = banInfoForIp(ip);
-    if(std::get<0>(banInfo) == true) // banned
-    {
-        time_t current_time = time(NULL);
-        std::string remainingTime;
-        
-        if(std::get<1>(banInfo) != -1) // duration
-        {
-            int elapsed_seconds = difftime(current_time, std::get<2>(banInfo)); // ban date
-            int remaining_seconds = std::get<1>(banInfo) - elapsed_seconds;
-            if (remaining_seconds <= 0)
-            {
-                Cbuf_ExecuteText(EXEC_APPEND, va("unban %s\n", ip));
-                unbanned = true;
-            }
-            else
-            {
-                int days = remaining_seconds / (60 * 60 * 24);
-                int hours = (remaining_seconds % (60 * 60 * 24)) / (60 * 60);
-                int minutes = (remaining_seconds % (60 * 60)) / 60;
-                int seconds = remaining_seconds % 60;
-
-                oss.str(std::string());
-                oss.clear();
-
-                if (days > 0)
-                {
-                    oss << days << " day" << (days > 1 ? "s" : "");
-                    if(hours > 0)
-                        oss << ", " << hours << " hour" << (hours > 1 ? "s" : "");
-                }
-                else if (hours > 0)
-                {
-                    oss << hours << " hour" << (hours > 1 ? "s" : "");
-                    if(minutes > 0)
-                        oss << ", " << minutes << " minute" << (minutes > 1 ? "s" : "");
-                }
-                else if(minutes > 0)
-                    oss << minutes << " minute" << (minutes > 1 ? "s" : "");
-                else
-                    oss << seconds << " second" << (seconds > 1 ? "s" : "");
-
-                remainingTime = oss.str();
-            }
-        }
-
-        if (!unbanned)
-        {
-            std::string banInfoMessage = "error\nBanned IP";
-            if(std::get<3>(banInfo) != "none")
-            {
-                banInfoMessage.append(" - Reason: ");
-                banInfoMessage.append(std::get<3>(banInfo));
-            }
-            if(!remainingTime.empty())
-            {
-                banInfoMessage.append(" - Remaining: ");
-                banInfoMessage.append(remainingTime);
-            }
-            
-            Com_Printf("rejected connection from banned IP %s\n", NET_AdrToString(from));
-            NET_OutOfBandPrint(NS_SERVER, from, banInfoMessage.c_str());
-            return;
-        }
-    }
-
-    if(unbanned)
-        Cmd_TokenizeString(argBackup.c_str());
-    SV_DirectConnect(from);
-}
-
-void hook_SV_AuthorizeIpPacket(netadr_t from)
-{
-    // Prevent ipAuthorize log spam DoS
-    if (SVC_RateLimitAddress(from, 20, 1000))
-    {
-        Com_DPrintf("SV_AuthorizeIpPacket: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
-        return;
-    }
-
-    // Allow ipAuthorize to be DoSed relatively easily, but prevent
-    // excess outbound bandwidth usage when being flooded inbound
-    if (SVC_RateLimit(&outboundLeakyBucket, 10, 100))
-    {
-        Com_DPrintf("SV_AuthorizeIpPacket: rate limit exceeded, dropping request\n");
-        return;
-    }
-
-    SV_AuthorizeIpPacket(from);
-}
-
-void hook_SVC_Info(netadr_t from)
-{
-    // Prevent using getinfo as an amplifier
-    if (SVC_RateLimitAddress(from, 10, 1000))
-    {
-        if (!SVC_callback("INFO:ADDRESS", NET_AdrToString(from)))
-            Com_DPrintf("SVC_Info: rate limit from %s exceeded, dropping request\n", NET_AdrToString(from));
-        return;
-    }
-
-    // Allow getinfo to be DoSed relatively easily, but prevent
-    // excess outbound bandwidth usage when being flooded inbound
-    if (SVC_RateLimit(&outboundLeakyBucket, 10, 100))
-    {
-        if(!SVC_callback("INFO:GLOBAL", NET_AdrToString(from)))
-            Com_DPrintf("SVC_Info: rate limit exceeded, dropping request\n");
-        return;
-    }
-
-    SVC_Info(from);
-}
-
-void hook_SVC_Status(netadr_t from)
-{
-    if(SVC_ApplyStatusLimit(from))
-        return;
-    SVC_Status(from);
-}
-
-// See https://nachtimwald.com/2017/04/02/constant-time-string-comparison-in-c/
-bool str_iseq(const char *s1, const char *s2)
-{
-    int             m = 0;
-    volatile size_t i = 0;
-    volatile size_t j = 0;
-    volatile size_t k = 0;
-
-    if (s1 == NULL || s2 == NULL)
-        return false;
-
-    while (1) {
-        m |= s1[i]^s2[j];
-
-        if (s1[i] == '\0')
+        if(stringlength + len > 1024)
             break;
-        i++;
 
-        if (s2[j] != '\0')
-            j++;
-        if (s2[j] == '\0')
-            k++;
+        strcpy(&string[stringlength], entry);
+        stringlength += len;
     }
 
-    return m == 0;
+    trap_SendServerCommand(ent - g_entities, SV_CMD_RELIABLE, va("b %i %i %i%s", i, level->teamScores[1], level->teamScores[2], string));
 }
-void hook_SVC_RemoteCommand(netadr_t from, msg_t *msg)
+
+void UCMD_custom_sprint(client_t *cl)
 {
-    char* password = Cmd_Argv(1);
-    qboolean badRconPassword = !strlen(sv_rconPassword->string) || !str_iseq(password, sv_rconPassword->string);
-    
-    if(SVC_ApplyRconLimit(from, badRconPassword))
+    int clientNum = cl - svs.clients;
+    if (!player_sprint->integer)
+    {
+        std::string message = "e \"";
+        message.append("Sprint is not enabled on this server.");
+        message.append("\"");
+        SV_SendServerCommand(cl, SV_CMD_CAN_IGNORE, message.c_str());
         return;
+    }
     
-    SVC_RemoteCommand(from, msg);
+    if(customPlayerState[clientNum].sprintActive)
+        customPlayerState[clientNum].sprintActive = false;
+    else if(customPlayerState[clientNum].sprintRequestPending)
+        customPlayerState[clientNum].sprintRequestPending = false;
+    else
+        customPlayerState[clientNum].sprintRequestPending = true;
 }
 
 void ServerCrash(int sig)
@@ -2093,6 +2427,9 @@ class libcod
         hook_jmp(0x080872ec, (int)custom_SV_ExecuteClientMessage);
         hook_jmp(0x08086d58, (int)custom_SV_ExecuteClientCommand);
         hook_jmp(0x0808cccc, (int)custom_SV_BotUserMove);
+        hook_jmp(0x0809045c, (int)custom_SV_SendClientMessages);
+        hook_jmp(0x08086290, (int)custom_SV_WriteDownloadToClient);
+        hook_jmp(0x0808f680, (int)custom_SV_SendMessageToClient);
         
         hook_Sys_LoadDll = new cHook(0x080c5fe4, (int)custom_Sys_LoadDll);
         hook_Sys_LoadDll->hook();

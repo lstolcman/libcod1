@@ -1,8 +1,4 @@
-#include "gsc_exec.hpp"
-
-#include <errno.h>
-
-#include <thread>
+#include "shared.hpp"
 
 enum
 {

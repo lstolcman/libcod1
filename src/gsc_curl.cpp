@@ -1,9 +1,7 @@
-#include "gsc_curl.hpp"
+#include "shared.hpp"
 
 #if COMPILE_LIBCURL == 1
-
 #include <curl/curl.h>
-
 #include <thread>
 
 struct WebhookData

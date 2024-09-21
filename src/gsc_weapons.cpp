@@ -1,4 +1,4 @@
-#include "gsc_weapons.hpp"
+#include "shared.hpp"
 
 qboolean isValidWeaponId(int id)
 {

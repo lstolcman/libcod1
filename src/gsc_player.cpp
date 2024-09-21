@@ -1,8 +1,6 @@
-#include "gsc_player.hpp"
+#include "shared.hpp"
 
 extern cvar_t *player_sprintTime;
-
-extern customPlayerState_t customPlayerState[MAX_CLIENTS];
 
 void gsc_player_setvelocity(scr_entref_t ref)
 {

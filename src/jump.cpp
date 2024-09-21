@@ -16,19 +16,13 @@ asm volatile (
 );
 */
 
-#include "jump.hpp"
+#include "shared.hpp"
 
 // Custom cvars
 extern cvar_t *jump_height;
 
 // Game lib objects
 extern pmove_t **pm;
-
-// Resume addresses
-extern uintptr_t resume_addr_Jump_Check;
-extern uintptr_t resume_addr_Jump_Check_2;
-
-extern customPlayerState_t customPlayerState[MAX_CLIENTS];
 
 float getJumpHeight()
 {
