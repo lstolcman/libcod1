@@ -3,7 +3,7 @@
 # E.g.: ./build.sh -d --sqlite
 
 cc="g++"
-options="-I. -m32 -fPIC -Wall -fvisibility=hidden -std=c++11 -pthread"
+options="-I. -m32 -fPIC -Wall -fvisibility=hidden"
 
 separator="-----------------"
 list_item=" - "
