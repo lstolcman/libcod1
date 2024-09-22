@@ -491,6 +491,81 @@ void custom_SV_AddOperatorCommands()
     Cmd_AddCommand("unban", unban);
 }
 
+void custom_SV_PacketEvent(netadr_t from, msg_t *msg)
+{
+    int qport;
+    client_t *cl;
+    int i;
+    
+    int unknown_var = *(int*)0x080e30cc;
+    int unknown_var2 = *(int*)0x0833df04;
+    
+    if (msg->cursize < 4 || *(int *)msg->data != -1)
+    {
+        // Seems related to SV_ResetSkeletonCache
+        int v7 = unknown_var2++;
+        if(v7 == -1)
+            unknown_var2 = 1;
+        unknown_var = 1;
+        
+        MSG_BeginReading(msg);
+        MSG_ReadLong(msg);
+        qport = MSG_ReadShort(msg);
+        cl = svs.clients;
+
+        for (i = 0; i < sv_maxclients->integer; i++, cl++)
+        {
+            if (cl->state != CS_FREE && NET_CompareBaseAdr(from, (cl->netchan).remoteAddress) && (cl->netchan).qport == (qport & 0xFFFF))
+            {
+                if (cl->netchan.remoteAddress.port != from.port )
+                {
+                    Com_Printf("SV_ReadPackets: fixing up a translated port\n");
+                    cl->netchan.remoteAddress.port = from.port;
+                }
+
+                if (!Netchan_Process(&cl->netchan, msg))
+                {
+                    return;
+                }
+
+                cl->serverId = MSG_ReadByte(msg);
+                cl->messageAcknowledge = MSG_ReadLong(msg);
+                if (cl->messageAcknowledge < 0)
+                {
+                    Com_Printf("Invalid reliableAcknowledge message from %s - reliableAcknowledge is %i\n", cl->name, cl->reliableAcknowledge);
+                    return;
+                }
+
+                cl->reliableAcknowledge = MSG_ReadLong(msg);
+                if ((cl->reliableSequence - cl->reliableAcknowledge ) > (MAX_RELIABLE_COMMANDS - 1) || cl->reliableAcknowledge < 0 || (cl->reliableSequence - cl->reliableAcknowledge) < 0)
+                {
+                    Com_Printf("Out of range reliableAcknowledge message from %s - cl->reliableSequence is %i, reliableAcknowledge is %i\n",
+                    cl->name, cl->reliableSequence, cl->reliableAcknowledge);
+                    cl->reliableAcknowledge = cl->reliableSequence;
+                    return;
+                }
+                
+                SV_Netchan_Decode(cl, msg->data + msg->readcount, msg->cursize - msg->readcount);
+
+                if (cl->state == CS_ZOMBIE)
+                {
+                    return;
+                }
+                cl->lastPacketTime = svs.time;
+                SV_ExecuteClientMessage(cl, msg);
+                return;
+            }
+        }
+        NET_OutOfBandPrint(NS_SERVER, from, "disconnect");
+        unknown_var = 0;
+        Hunk_ClearTempMemoryInternal();
+    }
+    else
+    {
+        SV_ConnectionlessPacket(from, msg);
+    }
+}
+
 /*
 Purpose:
 Prevent server from no longer appearing in client list after masterserver spent time unreachable.
@@ -2493,6 +2568,7 @@ class libcod
         hook_jmp(0x08086290, (int)custom_SV_WriteDownloadToClient);
         hook_jmp(0x0808f680, (int)custom_SV_SendMessageToClient);
         hook_jmp(0x0808ba0c, (int)custom_SV_MasterHeartbeat);
+        hook_jmp(0x0808c870, (int)custom_SV_PacketEvent);
         
         hook_Sys_LoadDll = new cHook(0x080c5fe4, (int)custom_Sys_LoadDll);
         hook_Sys_LoadDll->hook();

@@ -10,8 +10,14 @@ static const Cbuf_ExecuteText_t Cbuf_ExecuteText = (Cbuf_ExecuteText_t)0x0805a8a
 typedef void* (*Z_MallocInternal_t)(int size);
 static const Z_MallocInternal_t Z_MallocInternal = (Z_MallocInternal_t)0x080681e8;
 
+typedef void (*Hunk_ClearTempMemoryInternal_t)(void);
+static const Hunk_ClearTempMemoryInternal_t Hunk_ClearTempMemoryInternal = (Hunk_ClearTempMemoryInternal_t)0x080686a0;
+
 typedef void (*Huff_Decompress_t)(msg_t *mbuf, int offset);
 static const Huff_Decompress_t Huff_Decompress = (Huff_Decompress_t)0x08071f7c;
+
+typedef qboolean (*Netchan_Process_t)(netchan_t *chan, msg_t *msg);
+static const Netchan_Process_t Netchan_Process = (Netchan_Process_t)0x080804f0;
 
 typedef qboolean (*Sys_IsLANAddress_t)(netadr_t adr);
 static const Sys_IsLANAddress_t Sys_IsLANAddress = (Sys_IsLANAddress_t)0x080c72f8;
@@ -242,6 +248,15 @@ static const SV_Netchan_TransmitNextFragment_t SV_Netchan_TransmitNextFragment =
 
 typedef qboolean (*SV_Netchan_Transmit_t)(client_t *client, byte *data, int length);
 static const SV_Netchan_Transmit_t SV_Netchan_Transmit = (SV_Netchan_Transmit_t)0x0808dc74;
+
+typedef void (*SV_Netchan_Decode_t)(client_t *client, byte *data, int remaining);
+static const SV_Netchan_Decode_t SV_Netchan_Decode = (SV_Netchan_Decode_t)0x0808de60;
+
+typedef void (*SV_ConnectionlessPacket_t)(netadr_t from, msg_t *msg);
+static const SV_ConnectionlessPacket_t SV_ConnectionlessPacket = (SV_ConnectionlessPacket_t)0x0808c63c;
+
+typedef void (*SV_ExecuteClientMessage_t)(client_t *cl, msg_t *msg);
+static const SV_ExecuteClientMessage_t SV_ExecuteClientMessage = (SV_ExecuteClientMessage_t)0x080872ec;
 ////
 
 //// Info
@@ -269,6 +284,9 @@ static const NET_OutOfBandPrint_t NET_OutOfBandPrint = (NET_OutOfBandPrint_t)0x0
 
 typedef qboolean (*NET_StringToAdr_t)(const char *s, netadr_t *a);
 static const NET_StringToAdr_t NET_StringToAdr = (NET_StringToAdr_t)0x08080c38;
+
+typedef qboolean (*NET_CompareBaseAdr_t)(netadr_t a, netadr_t b);
+static const NET_CompareBaseAdr_t NET_CompareBaseAdr = (NET_CompareBaseAdr_t)0x08080e60;
 ////
 
 //// G
@@ -322,6 +340,12 @@ static const MSG_ReadStringLine_t MSG_ReadStringLine = (MSG_ReadStringLine_t)0x0
 
 typedef int (*MSG_WriteBitsCompress_t)(const byte *datasrc, byte *buffdest, int bytecount);
 static const MSG_WriteBitsCompress_t MSG_WriteBitsCompress = (MSG_WriteBitsCompress_t)0x0807f03c;
+
+typedef int (*MSG_ReadShort_t)(msg_t *msg);
+static const MSG_ReadShort_t MSG_ReadShort = (MSG_ReadShort_t)0x0807f2c0;
+
+typedef int (*MSG_ReadByte_t)(msg_t *msg);
+static const MSG_ReadByte_t MSG_ReadByte = (MSG_ReadByte_t)0x0807f294;
 ////
 
 //// BG
