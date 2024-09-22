@@ -1,4 +1,4 @@
-#include <map> // make_tuple, get, array, 
+#include <map> // make_tuple, get, array
 #include <sstream> // ostringstream
 #include <vector>
 
@@ -25,6 +25,7 @@ cvar_t *sv_fps;
 cvar_t *sv_gametype;
 cvar_t *sv_mapRotation;
 cvar_t *sv_mapRotationCurrent;
+cvar_t *sv_master[MAX_MASTER_SERVERS];
 cvar_t *sv_maxclients;
 cvar_t *sv_maxRate;
 cvar_t *sv_pure;
@@ -47,6 +48,7 @@ cvar_t *sv_botReconnectMode;
 cvar_t *sv_cracked;
 cvar_t *sv_downloadNotifications;
 cvar_t *sv_fastDownload;
+cvar_t *sv_heartbeatDelay;
 cvar_t *player_sprint;
 cvar_t *player_sprintMinTime;
 cvar_t *player_sprintSpeedScale;
@@ -317,6 +319,11 @@ void custom_Com_Init(char *commandLine)
     sv_gametype = Cvar_FindVar("g_gametype");
     sv_mapRotation = Cvar_FindVar("sv_mapRotation");
     sv_mapRotationCurrent = Cvar_FindVar("sv_mapRotationCurrent");
+    sv_master[0] = Cvar_FindVar("sv_master1");
+    sv_master[1] = Cvar_FindVar("sv_master2");
+    sv_master[2] = Cvar_FindVar("sv_master3");
+    sv_master[3] = Cvar_FindVar("sv_master4");
+    sv_master[4] = Cvar_FindVar("sv_master5");
     sv_maxclients = Cvar_FindVar("sv_maxclients");
     sv_maxRate = Cvar_FindVar("sv_maxRate");
     sv_pure = Cvar_FindVar("sv_pure");
@@ -347,6 +354,7 @@ void custom_Com_Init(char *commandLine)
     sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
     sv_downloadNotifications = Cvar_Get("sv_downloadNotifications", "0", CVAR_ARCHIVE);
     sv_fastDownload = Cvar_Get("sv_fastDownload", "0", CVAR_ARCHIVE);
+    sv_heartbeatDelay = Cvar_Get("sv_heartbeatDelay", "30", CVAR_ARCHIVE);
 
     /*
     Force cl_allowDownload on client, otherwise 1.1x can't download to join the server
@@ -481,6 +489,60 @@ void custom_SV_AddOperatorCommands()
 
     Cmd_AddCommand("ban", ban);
     Cmd_AddCommand("unban", unban);
+}
+
+/*
+Purpose:
+Prevent server from no longer appearing in client list after masterserver spent time unreachable.
+Using the sv_heartbeatDelay cvar which has a default value lower than HEARTBEAT_MSEC.
+See:
+- https://github.com/xtnded/codextended/blob/f7b28c8b8ee4cfb03f8d46d6e1df2efe0380cc1b/src/sv_main.c#L337
+- https://github.com/id-Software/Enemy-Territory/blob/40342a9e3690cb5b627a433d4d5cbf30e3c57698/src/server/sv_main.c#L244
+- https://github.com/voron00/CoD2rev_Server/blob/b012c4b45a25f7f80dc3f9044fe9ead6463cb5c6/src/libcod/libcod.cpp#L505
+- https://github.com/voron00/CoD2rev_Server/blob/b012c4b45a25f7f80dc3f9044fe9ead6463cb5c6/src/server/sv_main_pc_mp.cpp#L216
+*/
+void custom_SV_MasterHeartbeat(const char *hbname)
+{
+    static netadr_t adr[MAX_MASTER_SERVERS];
+    int i;
+    
+    if(!com_dedicated || com_dedicated->integer != 2)
+        return;
+    
+    if (svs.time >= svs.nextHeartbeatTime)
+    {
+        svs.nextHeartbeatTime = svs.time + (sv_heartbeatDelay->integer * 1000); // Original: HEARTBEAT_MSEC
+        
+        for (i = 0 ; i < MAX_MASTER_SERVERS ; i++)
+        {
+            if(!*sv_master[i]->string)
+                continue;
+            
+            if (sv_master[i]->modified || !adr[i].type)
+            {
+                sv_master[i]->modified = qfalse;
+
+                Com_Printf("Resolving %s\n", sv_master[i]->string);
+
+                if (!NET_StringToAdr(sv_master[i]->string, &adr[i]))
+                {
+                    Com_Printf("Couldn't resolve address: %s\n", sv_master[i]->string);
+                    Cvar_Set(sv_master[i]->name, "");
+                    sv_master[i]->modified = qfalse;
+                    continue;
+                }
+
+                if(!strstr(":", sv_master[i]->string))
+                    adr[i].port = BigShort(PORT_MASTER);
+                Com_Printf("%s resolved to %i.%i.%i.%i:%i\n", sv_master[i]->string,
+                adr[i].ip[0], adr[i].ip[1], adr[i].ip[2], adr[i].ip[3],
+                BigShort(adr[i].port));
+            }
+
+            Com_Printf("Sending heartbeat to %s\n", sv_master[i]->string);
+            NET_OutOfBandPrint(NS_SERVER, adr[i], "heartbeat %s\n", hbname);
+        }
+    }
 }
 
 // ioquake3 rate limit connectionless requests
@@ -2430,6 +2492,7 @@ class libcod
         hook_jmp(0x0809045c, (int)custom_SV_SendClientMessages);
         hook_jmp(0x08086290, (int)custom_SV_WriteDownloadToClient);
         hook_jmp(0x0808f680, (int)custom_SV_SendMessageToClient);
+        hook_jmp(0x0808ba0c, (int)custom_SV_MasterHeartbeat);
         
         hook_Sys_LoadDll = new cHook(0x080c5fe4, (int)custom_Sys_LoadDll);
         hook_Sys_LoadDll->hook();

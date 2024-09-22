@@ -19,6 +19,9 @@ static const Sys_IsLANAddress_t Sys_IsLANAddress = (Sys_IsLANAddress_t)0x080c72f
 typedef char* (*SL_ConvertToString_t)(unsigned int index);
 static const SL_ConvertToString_t SL_ConvertToString = (SL_ConvertToString_t)0x0809cac4;
 
+typedef short (*BigShort_t)(short l);
+static const BigShort_t BigShort = (BigShort_t)0x08083460;
+
 typedef char* (*UI_GetMapRotationToken_t)(void);
 static const UI_GetMapRotationToken_t UI_GetMapRotationToken = (UI_GetMapRotationToken_t)0x08084014;
 
@@ -263,6 +266,9 @@ static const NET_AdrToString_t NET_AdrToString = (NET_AdrToString_t)0x08080ef4;
 
 typedef void (*NET_OutOfBandPrint_t)(netsrc_t net_socket, netadr_t adr, const char *format, ...);
 static const NET_OutOfBandPrint_t NET_OutOfBandPrint = (NET_OutOfBandPrint_t)0x08080920;
+
+typedef qboolean (*NET_StringToAdr_t)(const char *s, netadr_t *a);
+static const NET_StringToAdr_t NET_StringToAdr = (NET_StringToAdr_t)0x08080c38;
 ////
 
 //// G

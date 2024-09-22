@@ -14,6 +14,8 @@
 #define SNAPFLAG_SERVERCOUNT 4
 #define GAME_INIT_FRAMES 3
 #define FRAMETIME 100
+#define PORT_MASTER 20510
+#define	HEARTBEAT_MSEC 180000
 
 #define MAX_BPS_WINDOW              20
 #define MAX_CHALLENGES              1024
@@ -31,6 +33,7 @@
 #define	MAX_NAME_LENGTH             32
 #define MAX_RELIABLE_COMMANDS       64
 #define MAX_STRINGLENGTH            1024
+#define MAX_MASTER_SERVERS          5
 
 #define CVAR_NOFLAG         0               // 0x0000
 #define CVAR_ARCHIVE        (1 << 0)        // 0x0001
@@ -851,7 +854,13 @@ typedef struct
     int time;
     int snapFlagServerBit;
     client_t *clients;
-    //...
+    int numSnapshotEntities;
+    int numSnapshotClients;
+    int nextSnapshotEntities;
+    int nextSnapshotClients;
+    byte pad[0x38];
+    int nextHeartbeatTime;
+    byte pad2[45096];
 } serverStatic_t;
 
 typedef struct
@@ -1043,6 +1052,7 @@ static_assert((sizeof(gentity_t) == 788), "ERROR: gentity_t size is invalid!");
 static_assert((sizeof(usercmd_t) == 24), "ERROR: usercmd_t size is invalid!");
 static_assert((sizeof(clientSession_t) == 260), "ERROR: clientSession_t size is invalid!");
 static_assert((sizeof(gclient_t) == 8900), "ERROR: gclient_t size is invalid!");
+static_assert((sizeof(serverStatic_t) == 45188), "ERROR: serverStatic_t size is invalid!");
 #endif
 
 
