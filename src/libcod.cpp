@@ -513,12 +513,12 @@ void custom_SV_MasterHeartbeat(const char *hbname)
     {
         svs.nextHeartbeatTime = svs.time + (sv_heartbeatDelay->integer * 1000); // Original: HEARTBEAT_MSEC
         
-        for (i = 0 ; i < MAX_MASTER_SERVERS ; i++)
+        for (i = 0; i < MAX_MASTER_SERVERS; i++)
         {
             if(!*sv_master[i]->string)
                 continue;
             
-            if (sv_master[i]->modified || !adr[i].type)
+            if (sv_master[i]->modified)
             {
                 sv_master[i]->modified = qfalse;
 

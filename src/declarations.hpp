@@ -170,8 +170,8 @@ typedef struct
 {
     netadrtype_t type;
     byte ip[4];
-    unsigned short port;
     byte ipx[10];
+    unsigned short port;
 } netadr_t;
 
 typedef enum
@@ -858,9 +858,9 @@ typedef struct
     int numSnapshotClients;
     int nextSnapshotEntities;
     int nextSnapshotClients;
-    byte pad[0x38];
+    byte pad[0x34];
     int nextHeartbeatTime;
-    byte pad2[45096];
+    byte pad2[45100];
 } serverStatic_t;
 
 typedef struct
@@ -1053,6 +1053,7 @@ static_assert((sizeof(usercmd_t) == 24), "ERROR: usercmd_t size is invalid!");
 static_assert((sizeof(clientSession_t) == 260), "ERROR: clientSession_t size is invalid!");
 static_assert((sizeof(gclient_t) == 8900), "ERROR: gclient_t size is invalid!");
 static_assert((sizeof(serverStatic_t) == 45188), "ERROR: serverStatic_t size is invalid!");
+static_assert((sizeof(netadr_t) == 20), "ERROR: netadr_t size is invalid!");
 #endif
 
 
