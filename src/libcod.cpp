@@ -527,7 +527,7 @@ void custom_SV_PacketEvent(netadr_t from, msg_t *msg)
                 
                 //// [exploit patch]
                 /* See:
-                - https://github.com/callofduty4x/CoD4x_Server/pull/336
+                - https://github.com/callofduty4x/CoD4x_Server/pull/407
                 - https://github.com/diamante0018/MW3ServerFreezer
                 */
                 cl->reliableAcknowledge = MSG_ReadLong(msg);
