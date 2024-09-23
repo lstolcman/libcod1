@@ -1,9 +1,5 @@
 #include "shared.hpp"
 
-#if COMPILE_EVPHASH == 1
-#include <openssl/evp.h>
-#endif
-
 void gsc_utils_sendcommandtoclient()
 {
     int clientNum;

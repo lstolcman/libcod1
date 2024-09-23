@@ -1,12 +1,18 @@
 /*
-Inline asm notes
+Linux inline asm notes
 
-- __attribute__ ((naked)): no prologue/epilogue
-- extern "C": no name mangling
-- asm volatile: no optimizaion/reordering
+- __attribute__ ((naked)):  no prologue/epilogue
+- extern "C":               no name mangling
+- asm volatile:             no optimizaion/reordering
 
-- pushal: save general-purpose registers
-- popal: restore general-purpose registers
+- pushal:   save general-purpose registers
+- popal:    restore general-purpose registers
+
+Add a suffix to an instruction to indicate the size/type of the operand,
+to avoid incorrect code generation and compiler warnings.
+- b: byte
+- w: word
+- l: long
 
 asm volatile (
     // Instructions
@@ -63,7 +69,7 @@ extern "C" void setJumpHeight()
 Had to:
 - start at the mov instruction
 - add eax to the clobber list
-not to prevent landing faster when jumping on objects instead of continuing to ascend.
+not to prevent landing faster when jumping on objects.
 */
 __attribute__ ((naked)) void hook_Jump_Check_Naked_2()
 {
@@ -85,7 +91,7 @@ extern "C" void setJumpHeight_2()
 {
     float height = getJumpHeight();
     asm volatile (
-        "fadd %0\n"
+        "faddl %0\n"
         :
         : "m"(height)
         :

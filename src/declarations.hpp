@@ -905,7 +905,7 @@ typedef struct
     byte pad[0x6141C];
     playerState_t *gameClients;
     int gameClientSize;
-    byte pad2[0x4];
+    int	skelTimeStamp;
     int	bpsWindow[MAX_BPS_WINDOW];
     int	bpsWindowSteps;
     int	bpsTotalBytes;

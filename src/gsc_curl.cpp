@@ -1,9 +1,6 @@
 #include "shared.hpp"
 
 #if COMPILE_LIBCURL == 1
-#include <curl/curl.h>
-#include <thread>
-
 struct WebhookData
 {
     std::string url;
@@ -59,5 +56,4 @@ void gsc_curl_webhookmessage()
 
     stackPushBool(qtrue);  // Return true to indicate the async operation has started
 }
-
 #endif

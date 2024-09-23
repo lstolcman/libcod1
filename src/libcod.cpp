@@ -1,13 +1,3 @@
-#include <map> // make_tuple, get, array
-#include <sstream> // ostringstream
-#include <vector>
-
-#include <signal.h>
-#include <arpa/inet.h> // sockaddr_in, inet_pton
-#include <execinfo.h> // backtrace
-#include <dlfcn.h> // dlsym
-#include <sys/time.h> // gettimeofday
-
 #include "libcod.hpp"
 
 #include "cracking.hpp"
@@ -497,16 +487,15 @@ void custom_SV_PacketEvent(netadr_t from, msg_t *msg)
     client_t *cl;
     int i;
     
-    int unknown_var = *(int*)0x080e30cc;
-    int unknown_var2 = *(int*)0x0833df04;
+    int *unknown_var = (int*)0x080e30cc; // Maybe related to scrVmGlob.loading
     
     if (msg->cursize < 4 || *(int *)msg->data != -1)
     {
-        // Seems related to SV_ResetSkeletonCache
-        int v7 = unknown_var2++;
-        if(v7 == -1)
-            unknown_var2 = 1;
-        unknown_var = 1;
+        //// See https://github.com/voron00/CoD2rev_Server/blob/b012c4b45a25f7f80dc3f9044fe9ead6463cb5c6/src/server/sv_game_mp.cpp#L399
+        if(sv.skelTimeStamp++ == -1)
+            sv.skelTimeStamp = 1;
+        ////
+        *unknown_var = 1;
         
         MSG_BeginReading(msg);
         MSG_ReadLong(msg);
@@ -535,7 +524,12 @@ void custom_SV_PacketEvent(netadr_t from, msg_t *msg)
                     Com_Printf("Invalid reliableAcknowledge message from %s - reliableAcknowledge is %i\n", cl->name, cl->reliableAcknowledge);
                     return;
                 }
-
+                
+                //// [exploit patch]
+                /* See:
+                - https://github.com/callofduty4x/CoD4x_Server/pull/336
+                - https://github.com/diamante0018/MW3ServerFreezer
+                */
                 cl->reliableAcknowledge = MSG_ReadLong(msg);
                 if ((cl->reliableSequence - cl->reliableAcknowledge ) > (MAX_RELIABLE_COMMANDS - 1) || cl->reliableAcknowledge < 0 || (cl->reliableSequence - cl->reliableAcknowledge) < 0)
                 {
@@ -544,6 +538,7 @@ void custom_SV_PacketEvent(netadr_t from, msg_t *msg)
                     cl->reliableAcknowledge = cl->reliableSequence;
                     return;
                 }
+                ////
                 
                 SV_Netchan_Decode(cl, msg->data + msg->readcount, msg->cursize - msg->readcount);
 
@@ -1607,7 +1602,12 @@ void custom_SV_ExecuteClientCommand(client_t *cl, const char *s, qboolean client
 
 void custom_SV_BeginDownload_f(client_t *cl)
 {
-    // Patch q3dirtrav
+    //// [exploit patch] q3dirtrav
+    /* See:
+    - https://aluigi.altervista.org/video/q3dirtrav.avi
+    - https://aluigi.altervista.org/poc/q3dirtrav.zip
+    - https://oldforum.aluigi.org/post3479.html#p3479
+    */
     int args = Cmd_Argc();
     if (args > 1)
     {
@@ -1624,6 +1624,7 @@ void custom_SV_BeginDownload_f(client_t *cl)
             return;
         }
     }
+    ////
 
     hook_SV_BeginDownload_f->unhook();
     void (*SV_BeginDownload_f)(client_t *cl);
@@ -1940,10 +1941,12 @@ void hook_ClientCommand(int clientNum)
     if(!Scr_IsSystemActive())
         return;
 
+    //// [exploit patch] gc
     char* cmd = Cmd_Argv(0);
     if(!strcmp(cmd, "gc"))
-        return; // Prevent server crash
-      
+        return;
+    ////
+
     if (!codecallback_playercommand)
     {
         ClientCommand(clientNum);
@@ -2453,7 +2456,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     va = (va_t)dlsym(libHandle, "va");
     ////
 
-    //// Patch codmsgboom
+    //// [exploit patch] codmsgboom
     /* See:
     - https://aluigi.altervista.org/adv/codmsgboom-adv.txt
     - https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/librarymodule.c#L146
@@ -2534,7 +2537,7 @@ class libcod
         // Allow to write in executable memory
         mprotect((void *)0x08048000, 0x135000, PROT_READ | PROT_WRITE | PROT_EXEC);
 
-        // Patch q3infoboom
+        // [exploit patch] q3infoboom
         /* See:
         - https://aluigi.altervista.org/adv/q3infoboom-adv.txt
         - https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/codextended.c#L295

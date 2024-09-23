@@ -1,12 +1,12 @@
 #ifndef _SHARED_HPP_
 #define _SHARED_HPP_
 
-#include <unistd.h> // access
-#include <stdint.h> // uint16_t
-#include <cstdio> // printf, snprintf
-#include <cstring> // strcasecmp, strlen, strcmp, strerror, strncpy...
-#include <stdlib.h> // atoi
-#include <stdarg.h> // va
+#include <unistd.h>     // access
+#include <stdint.h>     // uint16_t
+#include <cstdio>       // printf, snprintf
+#include <cstring>      // strcasecmp, strlen, strcmp, strerror, strncpy...
+#include <stdlib.h>     // atoi
+#include <stdarg.h>     // va
 #include <string>
 
 #include "declarations.hpp"

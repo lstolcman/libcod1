@@ -1,3 +1,9 @@
+#include <ctime>
+
+#if COMPILE_EVPHASH == 1
+#include <openssl/evp.h>
+#endif
+
 void gsc_utils_file_exists();
 void gsc_utils_fopen();
 void gsc_utils_fread();

@@ -1,5 +1,5 @@
-#include <cstring> // memcpy, memset
-#include <sys/mman.h> // mprotect
+#include <cstring>      // memcpy, memset
+#include <sys/mman.h>   // mprotect
 
 void hook_jmp(int from, int to);
 void hook_call(int from, int to);

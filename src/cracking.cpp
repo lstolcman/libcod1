@@ -16,7 +16,11 @@ void hook_call(int from, int to)
 void hook_nop(int from, int to)
 {
     // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/util.h#L111
-    int len = (to < from) ? to : (to - from);
+    int len;
+    if(to < from)
+        len = to;
+    else
+        len = to - from;
     memset((void *)from, 0x90, len);
 }
 
