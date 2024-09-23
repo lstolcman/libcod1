@@ -21,7 +21,7 @@
 #if COMPILE_SQLITE == 1
 #include "gsc_sqlite.hpp"
 #endif
-#if COMPILE_LIBCURL == 1
+#if COMPILE_CURL == 1
 #include "gsc_curl.hpp"
 #endif
 

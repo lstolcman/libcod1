@@ -56,11 +56,11 @@ scr_function_t scriptFunctions[] =
 #endif
 #endif
 
-#if COMPILE_LIBCURL == 1
+#if COMPILE_CURL == 1
     {"webhookMessage", gsc_curl_webhookmessage, 0}, // From Kazam pull request #8
 #endif
 
-#if COMPILE_EVPHASH == 1
+#if COMPILE_SSL == 1
     {"hash", gsc_utils_hash, 0},
 #endif
 

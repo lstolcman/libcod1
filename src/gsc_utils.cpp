@@ -602,7 +602,7 @@ void gsc_utils_monotone()
     stackPushString(buffer);
 }
 
-#if COMPILE_EVPHASH == 1
+#if COMPILE_SSL == 1
 void gsc_utils_hash()
 {
     const char *input;

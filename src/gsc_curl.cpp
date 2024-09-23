@@ -1,6 +1,6 @@
 #include "shared.hpp"
 
-#if COMPILE_LIBCURL == 1
+#if COMPILE_CURL == 1
 struct WebhookData
 {
     std::string url;

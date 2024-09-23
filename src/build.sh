@@ -5,7 +5,7 @@
 cc="g++"
 options="-I. -m32 -fPIC -Wall -fvisibility=hidden"
 
-separator="-----------------"
+separator="-------------------------"
 list_item=" - "
 wait_indicator="..."
 
@@ -15,14 +15,14 @@ while [[ $# -gt 0 ]]; do
         -d | --debug)
             debug="-g -ggdb -O0" # debug build without optimization
             ;;
-        -s | --sqlite)
+        --sqlite)
             sqlite=true
             ;;
-        -l | --libcurl)
-            libcurl=true
+        -c | --curl)
+            curl=true
             ;;
-        --evp)
-            evp=true
+        --ssl)
+            ssl=true
             ;;
         -u | --unsafe)
             unsafe=true
@@ -41,8 +41,10 @@ if [ -v unrecognized_arg ]; then
 fi
 
 echo $separator
+echo "Options:"
 
-echo -n "Debug:    "
+echo -n "$list_item"
+echo -n "Debug:  "
 if [ -v debug ]; then
     echo "ON"
 else
@@ -50,7 +52,8 @@ else
     debug=""
 fi
 
-echo -n "Unsafe:   "
+echo -n "$list_item"
+echo -n "Unsafe: "
 if [ -v unsafe ]; then
     echo "ON"
     constants+=" -D ENABLE_UNSAFE=1"
@@ -64,7 +67,8 @@ sqlite_link=""
 sqlite_libpath="/usr/lib32/libsqlite3.so"
 sqlite_libpath2="/usr/lib/i386-linux-gnu/libsqlite3.so"
 sqlite_libpath3="/usr/lib/libsqlite3.so"
-echo -n "SQLite:   "
+echo -n "$list_item"
+echo -n "SQLite: "
 if [ -v sqlite ]; then
     if [ -e "$sqlite_libpath" ] || [ -e "$sqlite_libpath2" ] || [ -e "$sqlite_libpath3" ]; then
         sqlite_found=1
@@ -80,15 +84,16 @@ else
     constants+=" -D COMPILE_SQLITE=0"
 fi
 
-libcurl_found=0
-libcurl_link=""
-libcurl_libpath="/usr/lib/i386-linux-gnu/libcurl.so.4"
-echo -n "libcurl:  "
-if [ -v libcurl ]; then
-    if [ -e "$libcurl_libpath" ]; then
-        libcurl_found=1
-        libcurl_link="-lcurl"
-        constants+=" -D COMPILE_LIBCURL=1"
+curl_found=0
+curl_link=""
+curl_libpath="/usr/lib/i386-linux-gnu/libcurl.so.4"
+echo -n "$list_item"
+echo -n "cURL:   "
+if [ -v curl ]; then
+    if [ -e "$curl_libpath" ]; then
+        curl_found=1
+        curl_link="-lcurl"
+        constants+=" -D COMPILE_CURL=1"
         echo "ON"
     else
         echo "requested but lib not found, aborting."
@@ -96,25 +101,25 @@ if [ -v libcurl ]; then
     fi
 else
     echo "OFF"
-    constants+=" -D COMPILE_LIBCURL=0"
+    constants+=" -D COMPILE_CURL=0"
 fi
 
-echo -n "EVP Hash: "
-if [ -v evp ]; then
+echo -n "$list_item"
+echo -n "SSL:    "
+if [ -v ssl ]; then
     echo "ON"
-    constants+=" -D COMPILE_EVPHASH=1"
-    evp_link="-lssl -lcrypto"
+    constants+=" -D COMPILE_SSL=1"
+    ssl_link="-lssl -lcrypto"
 else
     echo "OFF"
-    constants+=" -D COMPILE_EVPHASH=0"
+    constants+=" -D COMPILE_SSL=0"
 fi
 
 echo $separator
+echo "Compiling:"
 
 mkdir -p ../bin
 mkdir -p objects
-
-echo "Compiling"
 
 echo -n "$list_item"
 echo -n "cracking.cpp"
@@ -178,7 +183,7 @@ if [ $sqlite_found == 1 ]; then
     $cc $debug $options $constants -c gsc_sqlite.cpp -o objects/gsc_sqlite.opp
 fi
 
-if [ $libcurl_found == 1 ]; then
+if [ $curl_found == 1 ]; then
     echo -n "$list_item"
     echo -n "gsc_curl.cpp"
     echo $wait_indicator
@@ -188,6 +193,8 @@ fi
 echo -n "Linking libcod1.so"
 echo $wait_indicator
 objects="$(ls objects/*.opp)"
-$cc -m32 -shared -L/lib32 -o ../bin/libcod1.so -ldl $objects -lpthread $sqlite_link $libcurl_link $evp_link
+$cc -m32 -shared -L/lib32 -o ../bin/libcod1.so -ldl $objects -lpthread $sqlite_link $curl_link $ssl_link
+
+echo $separator
 
 rm objects -r
