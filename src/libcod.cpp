@@ -32,6 +32,7 @@ cvar_t *g_deadChat;
 cvar_t *g_debugCallbacks;
 cvar_t *g_playerEject;
 cvar_t *g_resetSlide;
+cvar_t *jump_bounceEnable;
 cvar_t *jump_height;
 cvar_t *jump_height_airScale;
 cvar_t *sv_botReconnectMode;
@@ -105,6 +106,7 @@ Com_ParseRestOfLine_t Com_ParseRestOfLine;
 Com_ParseInt_t Com_ParseInt;
 Jump_Check_t Jump_Check;
 PM_GetEffectiveStance_t PM_GetEffectiveStance;
+PM_ClipVelocity_t PM_ClipVelocity;
 va_t va;
 
 // Stock callbacks
@@ -324,8 +326,8 @@ void custom_Com_Init(char *commandLine)
 
     // Register custom cvars
     Cvar_Get("libcod", "1", CVAR_SERVERINFO);
-    Cvar_Get("sv_wwwBaseURL", "", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
-    Cvar_Get("sv_wwwDownload", "0", CVAR_SYSTEMINFO | CVAR_ARCHIVE);
+    Cvar_Get("sv_wwwBaseURL", "", CVAR_ARCHIVE | CVAR_SYSTEMINFO);
+    Cvar_Get("sv_wwwDownload", "0", CVAR_ARCHIVE | CVAR_SYSTEMINFO);
     
     fs_callbacks = Cvar_Get("fs_callbacks", "maps/mp/gametypes/_callbacksetup", CVAR_ARCHIVE);
     fs_callbacks_additional = Cvar_Get("fs_callbacks_additional", "", CVAR_ARCHIVE);
@@ -334,6 +336,7 @@ void custom_Com_Init(char *commandLine)
     g_debugCallbacks = Cvar_Get("g_debugCallbacks", "0", CVAR_ARCHIVE);
     g_playerEject = Cvar_Get("g_playerEject", "1", CVAR_ARCHIVE);
     g_resetSlide = Cvar_Get("g_resetSlide", "0", CVAR_ARCHIVE);
+    jump_bounceEnable = Cvar_Get("jump_bounceEnable", "0", CVAR_ARCHIVE | CVAR_SYSTEMINFO);
     jump_height = Cvar_Get("jump_height", "39.0", CVAR_ARCHIVE);
     jump_height_airScale = Cvar_Get("jump_height_airScaleScale", "1.5", CVAR_ARCHIVE);
     player_sprint = Cvar_Get("player_sprint", "0", CVAR_ARCHIVE);
@@ -506,7 +509,7 @@ void custom_SV_PacketEvent(netadr_t from, msg_t *msg)
         {
             if (cl->state != CS_FREE && NET_CompareBaseAdr(from, (cl->netchan).remoteAddress) && (cl->netchan).qport == (qport & 0xFFFF))
             {
-                if (cl->netchan.remoteAddress.port != from.port )
+                if (cl->netchan.remoteAddress.port != from.port)
                 {
                     Com_Printf("SV_ReadPackets: fixing up a translated port\n");
                     cl->netchan.remoteAddress.port = from.port;
@@ -531,7 +534,7 @@ void custom_SV_PacketEvent(netadr_t from, msg_t *msg)
                 - https://github.com/diamante0018/MW3ServerFreezer
                 */
                 cl->reliableAcknowledge = MSG_ReadLong(msg);
-                if ((cl->reliableSequence - cl->reliableAcknowledge ) > (MAX_RELIABLE_COMMANDS - 1) || cl->reliableAcknowledge < 0 || (cl->reliableSequence - cl->reliableAcknowledge) < 0)
+                if ((cl->reliableSequence - cl->reliableAcknowledge) > (MAX_RELIABLE_COMMANDS - 1) || cl->reliableAcknowledge < 0 || (cl->reliableSequence - cl->reliableAcknowledge) < 0)
                 {
                     Com_Printf("Out of range reliableAcknowledge message from %s - cl->reliableSequence is %i, reliableAcknowledge is %i\n",
                     cl->name, cl->reliableSequence, cl->reliableAcknowledge);
@@ -2084,6 +2087,45 @@ void custom_PM_AirMove()
     hook_PM_AirMove->hook();
 }
 
+// See https://github.com/voron00/CoD2rev_Server/blob/b012c4b45a25f7f80dc3f9044fe9ead6463cb5c6/src/bgame/bg_pmove.cpp#L1273
+void PM_ProjectVelocity(const float *velIn, const float *normal, float *velOut)
+{
+    float lengthSq2D;
+    float adjusted;
+    float newZ;
+    float lengthScale;
+    
+    lengthSq2D = (float)(velIn[0] * velIn[0]) + (float)(velIn[1] * velIn[1]);
+
+    if (fabs(normal[2]) < 0.001 || lengthSq2D == 0.0)
+    {
+        velOut[0] = velIn[0];
+        velOut[1] = velIn[1];
+        velOut[2] = velIn[2];
+    }
+    else
+    {
+        newZ = (float)-(float)((float)(velIn[0] * normal[0]) + (float)(velIn[1] * normal[1])) / normal[2];
+        adjusted = velIn[1];
+        lengthScale = sqrt((float)((float)(velIn[2] * velIn[2]) + lengthSq2D) / (float)((float)(newZ * newZ) + lengthSq2D));
+
+        if (lengthScale < 1.0 || newZ < 0.0 || velIn[2] > 0.0)
+        {
+            velOut[0] = lengthScale * velIn[0];
+            velOut[1] = lengthScale * adjusted;
+            velOut[2] = lengthScale * newZ;
+        }
+    }
+}
+
+void hook_PM_ClipVelocity_bounce(const float *velIn, const float *normal, float *velOut)
+{
+    if(jump_bounceEnable->integer)
+        PM_ProjectVelocity(velIn, normal, velOut);
+    else
+        PM_ClipVelocity(velIn, normal, velOut);
+}
+
 void custom_PM_CrashLand()
 {
     int clientNum = (*pm)->ps->clientNum;
@@ -2453,6 +2495,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Q_CleanStr = (Q_CleanStr_t)dlsym(libHandle, "Q_CleanStr");
     Jump_Check = (Jump_Check_t)((int)dlsym(libHandle, "_init") + 0x76F4);
     PM_GetEffectiveStance = (PM_GetEffectiveStance_t)dlsym(libHandle, "PM_GetEffectiveStance");
+    PM_ClipVelocity = (PM_ClipVelocity_t)dlsym(libHandle, "PM_ClipVelocity");
     va = (va_t)dlsym(libHandle, "va");
     ////
 
@@ -2495,6 +2538,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     
     hook_call((int)dlsym(libHandle, "vmMain") + 0xB0, (int)hook_ClientCommand);
     hook_call((int)dlsym(libHandle, "ClientEndFrame") + 0x311, (int)hook_StuckInClient);
+    hook_call((int)dlsym(libHandle, "_init") + 0xDF22, (int)hook_PM_ClipVelocity_bounce);
 
     hook_jmp((int)dlsym(libHandle, "G_LocalizedStringIndex"), (int)custom_G_LocalizedStringIndex);
     hook_jmp((int)dlsym(libHandle, "va"), (int)custom_va);

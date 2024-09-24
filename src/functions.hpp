@@ -39,7 +39,11 @@ extern StuckInClient_t StuckInClient;
 
 typedef int (*Jump_Check_t)();
 
+//// PM
 typedef int (*PM_GetEffectiveStance_t)(playerState_t *ps);
+
+typedef void (*PM_ClipVelocity_t)(const float *in, const float *normal, float *out);
+////
 
 //// trap
 typedef void (*trap_Argv_t)(int arg, char *buffer, int bufferLength);
