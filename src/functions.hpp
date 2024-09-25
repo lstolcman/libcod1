@@ -45,7 +45,7 @@ typedef int (*Jump_Check_t)();
 //// PM
 typedef int (*PM_GetEffectiveStance_t)(playerState_t *ps);
 
-typedef void (*PM_ClipVelocity_t)(const float *in, const float *normal, float *out);
+typedef void (*PM_ClipVelocity_t)(const float *in, const float *normal, float *out, float overbounce);
 ////
 
 //// trap

@@ -2153,12 +2153,12 @@ void PM_ProjectVelocity(const float *velIn, const float *normal, float *velOut)
     }
 }
 
-void hook_PM_ClipVelocity_bounce(const float *velIn, const float *normal, float *velOut)
+void hook_PM_ClipVelocity_bounce(const float *in, const float *normal, float *out, float overbounce)
 {
     if(jump_bounceEnable->integer)
-        PM_ProjectVelocity(velIn, normal, velOut);
+        PM_ProjectVelocity(in, normal, out);
     else
-        PM_ClipVelocity(velIn, normal, velOut);
+        PM_ClipVelocity(in, normal, out, overbounce);
 }
 
 void custom_PM_CrashLand()
