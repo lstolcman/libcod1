@@ -16,6 +16,7 @@
 #define FRAMETIME 100
 #define PORT_MASTER 20510
 #define	HEARTBEAT_MSEC 180000
+#define HMAX 256
 
 #define MAX_BPS_WINDOW              20
 #define MAX_CHALLENGES              1024
@@ -502,6 +503,34 @@ typedef enum
     EV_PLAYER_TELEPORT_OUT,
     EV_OBITUARY
 } entity_event_t;
+
+typedef struct nodetype
+{
+    struct  nodetype *left, *right, *parent;
+    struct  nodetype *next, *prev;
+    struct  nodetype **head;
+    int weight;
+    int symbol;
+} node_t;
+
+typedef struct
+{
+    int blocNode;
+    int blocPtrs;
+    node_t* tree;
+    node_t* lhead;
+    node_t* ltail;
+    node_t* loc[HMAX + 1];
+    node_t** freelist;
+    node_t nodeList[768];
+    node_t* nodePtrs[768];
+} huff_t;
+
+typedef struct
+{
+    huff_t compressor;
+    huff_t decompressor;
+} huffman_t;
 
 typedef struct leakyBucket_s leakyBucket_t;
 struct leakyBucket_s
@@ -1031,6 +1060,7 @@ static const int svs_offset = 0x083b67a0;
 static const int varpub_offset = 0x082f17d8;
 static const int vmpub_offset = 0x082f57e0;
 static const int gvm_offset = 0x080e30c4;
+static const int msgHuff_offset = 0x0813e740;
 
 #define com_frameTime (*((int*)(com_frameTime_offset)))
 #define fs_searchpaths (*((searchpath_t**)(fs_searchpaths_offset)))
@@ -1040,6 +1070,7 @@ static const int gvm_offset = 0x080e30c4;
 #define sv_serverId_value (*((int*)(sv_serverId_value_offset)))
 #define svs (*((serverStatic_t*)(svs_offset)))
 #define gvm (*(vm_t**)(gvm_offset))
+#define msgHuff (*((huffman_t*)( msgHuff_offset )))
 
 // Require structure sizes to match
 #if __GNUC__ >= 6

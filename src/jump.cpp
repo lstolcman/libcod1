@@ -91,7 +91,7 @@ extern "C" void setJumpHeight_2()
 {
     float height = getJumpHeight();
     asm volatile (
-        "faddl %0\n"
+        "fadd %0\n"
         :
         : "m"(height)
         :

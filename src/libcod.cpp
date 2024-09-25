@@ -528,7 +528,7 @@ void custom_SV_PacketEvent(netadr_t from, msg_t *msg)
                     return;
                 }
                 
-                //// [exploit patch]
+                //// [exploit patch] freeze
                 /* See:
                 - https://github.com/callofduty4x/CoD4x_Server/pull/407
                 - https://github.com/diamante0018/MW3ServerFreezer
@@ -1528,15 +1528,50 @@ static void unban()
 }
 ////
 
+int custom_MSG_ReadBitsCompress(const byte* input, byte* outputBuf, int readsize, int outputBufSize)
+{
+    readsize = readsize * 8;
+    byte *outptr = outputBuf;
+
+    int get;
+    int offset;
+    int i;
+
+    if(readsize <= 0)
+        return 0;
+
+    for (offset = 0, i = 0; offset < readsize && i < outputBufSize; i++)
+    {
+        Huff_offsetReceive(msgHuff.decompressor.tree, &get, (byte*)input, &offset); // See https://github.com/callofduty4x/CoD4x_Server/pull/396
+        *outptr = (byte)get;
+        outptr++;
+    }
+
+    return i;
+}
+
 void custom_SV_ExecuteClientMessage(client_t *cl, msg_t *msg)
 {
-    byte msgBuf[MAX_MSGLEN];
+    byte outputBuf[MAX_MSGLEN];
     msg_t decompressMsg;
     int c;
 
-    MSG_Init(&decompressMsg, msgBuf, sizeof(msgBuf));
-    decompressMsg.cursize = MSG_ReadBitsCompress(&msg->data[msg->readcount], msgBuf, msg->cursize - msg->readcount);
+    MSG_Init(&decompressMsg, outputBuf, sizeof(outputBuf));
+
+    //// [exploit patch] CVE-2018-10718 // UNTESTED
+    // See https://github.com/momo5502/cod-exploits/tree/master/huffman
+    decompressMsg.cursize = custom_MSG_ReadBitsCompress(msg->data + msg->readcount, outputBuf, msg->cursize - msg->readcount, decompressMsg.maxsize);
+    if (decompressMsg.cursize == decompressMsg.maxsize)
+    {
+        SV_DropClient(cl, "SV_ExecuteClientMessage: Client sent oversize message");
+        return;
+    }
+    ////
     
+    /*
+    Check "nextdl" to prevent client getting stuck downloading after a map_restart occurred.
+    See https://github.com/id-Software/Quake-III-Arena/blob/dbe4ddb10315479fc00086f08e25d968b4b43c49/code/server/sv_client.c#L1485
+    */
     if ((cl->serverId == sv_serverId_value || cl->downloadName[0])
         || (!cl->downloadName[0] && strstr(cl->lastClientCommandString, "nextdl")))
     {
@@ -1561,9 +1596,9 @@ void custom_SV_ExecuteClientMessage(client_t *cl, msg_t *msg)
                     Com_Printf("WARNING: bad command byte %i for client %i\n", c, cl - svs.clients);
                 return;
             }
+
             if(!SV_ClientCommand(cl, &decompressMsg))
                 return;
-
         } while (cl->state != CS_ZOMBIE);
     }
     else if ((cl->serverId & 0xF0) == (sv_serverId_value & 0xF0))

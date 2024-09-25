@@ -16,6 +16,9 @@ static const Hunk_ClearTempMemoryInternal_t Hunk_ClearTempMemoryInternal = (Hunk
 typedef void (*Huff_Decompress_t)(msg_t *mbuf, int offset);
 static const Huff_Decompress_t Huff_Decompress = (Huff_Decompress_t)0x08071f7c;
 
+typedef void (*Huff_offsetReceive_t)(node_t *node, int *ch, byte *fin, int *offset);
+static const Huff_offsetReceive_t Huff_offsetReceive = (Huff_offsetReceive_t)0x080724fc;
+
 typedef qboolean (*Netchan_Process_t)(netchan_t *chan, msg_t *msg);
 static const Netchan_Process_t Netchan_Process = (Netchan_Process_t)0x080804f0;
 
