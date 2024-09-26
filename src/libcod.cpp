@@ -108,6 +108,7 @@ Jump_Check_t Jump_Check;
 PM_GetEffectiveStance_t PM_GetEffectiveStance;
 PM_ClipVelocity_t PM_ClipVelocity;
 va_t va;
+trap_GetUserinfo_t trap_GetUserinfo;
 
 // Stock callbacks
 int codecallback_startgametype = 0;
@@ -348,13 +349,6 @@ void custom_Com_Init(char *commandLine)
     sv_downloadNotifications = Cvar_Get("sv_downloadNotifications", "0", CVAR_ARCHIVE);
     sv_fastDownload = Cvar_Get("sv_fastDownload", "0", CVAR_ARCHIVE);
     sv_heartbeatDelay = Cvar_Get("sv_heartbeatDelay", "30", CVAR_ARCHIVE);
-
-    /*
-    Force cl_allowDownload on client, otherwise 1.1x can't download to join the server
-    See: https://github.com/xtnded/codextended-client/blob/45af251518a390ab08b1c8713a6a1544b70114a1/cl_main.cpp#L41
-    TODO: Force only for 1.1x clients
-    */
-    Cvar_Get("cl_allowDownload", "1", CVAR_SYSTEMINFO);
 }
 
 // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/script.c#L944
@@ -1021,15 +1015,90 @@ const char* hook_AuthorizeState(int arg)
 
 void custom_SV_SendClientGameState(client_t *client)
 {
-    hook_SV_SendClientGameState->unhook();
-    void (*SV_SendClientGameState)(client_t *client);
-    *(int*)&SV_SendClientGameState = hook_SV_SendClientGameState->from;
-    SV_SendClientGameState(client);
-    hook_SV_SendClientGameState->hook();
+    int start;
+    entityState_t /**base,*/ nullstate;
+    msg_t msg;
+    byte msgBuffer[MAX_MSGLEN];
+    int clientNum = client - svs.clients;
+    
+    while(client->state != CS_FREE && client->netchan.unsentFragments)
+        SV_Netchan_TransmitNextFragment(&client->netchan);
+
+    Com_DPrintf("SV_SendClientGameState() for %s\n", client->name);
+    Com_DPrintf("Going from CS_CONNECTED to CS_PRIMED for %s\n", client->name);
+
+    client->state = CS_PRIMED;
+    client->pureAuthentic = 0;
+    client->gamestateMessageNum = client->netchan.outgoingSequence;
 
     // Reset custom player state to default values
-    int id = client - svs.clients;
-    memset(&customPlayerState[id], 0, sizeof(customPlayerState_t));
+    memset(&customPlayerState[clientNum], 0, sizeof(customPlayerState_t));
+
+    // Restore user-provided rate and snaps after download
+    SV_UserinfoChanged(client);
+    
+    MSG_Init(&msg, msgBuffer, sizeof(msgBuffer));
+    MSG_WriteLong(&msg, client->lastClientCommand);
+    SV_UpdateServerCommandsToClient(client, &msg);
+    MSG_WriteByte(&msg, svc_gamestate);
+    MSG_WriteLong(&msg, client->reliableSequence);
+    
+    for (start = 0; start < MAX_CONFIGSTRINGS; start++)
+    {
+        if (sv.configstrings[start][0])
+        {
+            MSG_WriteByte(&msg, svc_configstring);
+            MSG_WriteShort(&msg, start);
+            std::string stringCopy(sv.configstrings[start]);
+            if (start == 1)
+            {
+                if (!sv_allowDownload->integer)
+                {
+                    // Fix to prevent the client failing to join because he has cl_allowDownload enabled and sv_allowDownload is disabled.
+                    stringCopy.append("\\cl_allowDownload\\0");
+                }
+                else
+                {
+                    /*
+                    Fix for 1.1x extension requiring download forcing, even if player enables himself before joining.
+                    See: https://github.com/xtnded/codextended-client/blob/45af251518a390ab08b1c8713a6a1544b70114a1/cl_main.cpp#L41
+                    */
+                    if(*Info_ValueForKey(client->userinfo, "xtndedbuild") && sv_allowDownload->integer)
+                        stringCopy.append("\\cl_allowDownload\\1");
+
+                    // We do not force cl_allowDownload, if a player doesn't want to download, we respect his choice.
+                }
+            }
+            MSG_WriteBigString(&msg, stringCopy.c_str());
+        }
+    }
+    
+    memset(&nullstate, 0, sizeof(nullstate));
+    int *base = (int*)(0x08357680);
+    for (start = 0; start < MAX_GENTITIES; start++)
+    {
+        base += 0x5f;
+        //base = &sv.svEntities[start].baseline.s;
+        if(!*base)
+        //if(!base->number)
+            continue;
+        MSG_WriteByte(&msg, svc_baseline);
+        //MSG_WriteDeltaEntity(&msg, &nullstate, base, qtrue);
+        ((void(*)(
+            msg_t*,
+            struct entityState_s*,
+            int*,
+            qboolean))0x807f698)(&msg, &nullstate, base, qtrue); //MSG_WriteDeltaEntity
+    }
+    
+    MSG_WriteByte(&msg, svc_EOF);
+    MSG_WriteLong(&msg, clientNum);
+    MSG_WriteLong(&msg, sv.checksumFeed);
+    MSG_WriteByte(&msg, svc_EOF);
+
+    Com_DPrintf("Sending %i bytes in gamestate to client: %i\n", msg.cursize, clientNum);
+
+    SV_SendMessageToClient(&msg, client);
 }
 
 //// Custom ban
@@ -2532,6 +2601,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     PM_GetEffectiveStance = (PM_GetEffectiveStance_t)dlsym(libHandle, "PM_GetEffectiveStance");
     PM_ClipVelocity = (PM_ClipVelocity_t)dlsym(libHandle, "PM_ClipVelocity");
     va = (va_t)dlsym(libHandle, "va");
+    trap_GetUserinfo = (trap_GetUserinfo_t)dlsym(libHandle, "trap_GetUserinfo");
     ////
 
     //// [exploit patch] codmsgboom
@@ -2651,6 +2721,7 @@ class libcod
         hook_jmp(0x0808f680, (int)custom_SV_SendMessageToClient);
         hook_jmp(0x0808ba0c, (int)custom_SV_MasterHeartbeat);
         hook_jmp(0x0808c870, (int)custom_SV_PacketEvent);
+        hook_jmp(0x08085eec, (int)custom_SV_SendClientGameState);
         
         hook_Sys_LoadDll = new cHook(0x080c5fe4, (int)custom_Sys_LoadDll);
         hook_Sys_LoadDll->hook();
@@ -2660,8 +2731,6 @@ class libcod
         hook_SV_SpawnServer->hook();
         hook_SV_BeginDownload_f = new cHook(0x08087a64, (int)custom_SV_BeginDownload_f);
         hook_SV_BeginDownload_f->hook();
-        hook_SV_SendClientGameState = new cHook(0x08085eec, (int)custom_SV_SendClientGameState);
-        hook_SV_SendClientGameState->hook();
         hook_SV_AddOperatorCommands = new cHook(0x08084a3c, (int)custom_SV_AddOperatorCommands);
         hook_SV_AddOperatorCommands->hook();
 

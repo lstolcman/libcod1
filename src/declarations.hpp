@@ -25,6 +25,7 @@
 #define MAX_DOWNLOAD_BLKSIZE        2048
 #define MAX_DOWNLOAD_BLKSIZE_FAST   0x2000 // See https://github.com/ibuddieat/zk_libcod/blob/dff123fad25d7b46d65685e9bca2111c8946a36e/code/declarations.hpp#L60
 #define MAX_DOWNLOAD_WINDOW         8
+#define MAX_ENT_CLUSTERS            16
 #define MAX_GENTITIES               (1 << GENTITYNUM_BITS)
 #define MAX_INFO_STRING             0x400
 #define MAX_MSGLEN                  0x4000
@@ -230,7 +231,7 @@ typedef struct
 typedef struct
 {
     const char *fieldBuffer;
-    byte pad[0x4176];
+    byte gap[0x4176];
     unsigned int levelId;
     // ...
     const char *programBuffer;
@@ -240,7 +241,7 @@ typedef struct
 typedef struct
 {
     unsigned int *localVars;
-    byte pad[356];
+    byte gap[356];
     VariableValue *top;
     //...
 } scrVmPub_t; // TODO: verify
@@ -689,10 +690,10 @@ typedef struct entityState_s
 
 typedef struct
 {
-    byte pad[4];
+    byte gap[4];
     int svFlags;
     int singleClient;
-    byte pad2[4];
+    byte gap2[4];
     vec3_t mins;
     vec3_t maxs;
     int contents;
@@ -771,7 +772,7 @@ typedef struct playerState_s
     vec3_t viewangles;
     int viewHeightTarget;
     float viewHeightCurrent;
-    byte pad[8188];
+    byte gap[8188];
 } playerState_t;
 
 typedef struct
@@ -782,15 +783,15 @@ typedef struct
     int archiveTime;
     int score;
     int deaths;
-    byte pad[4];
+    byte gap[4];
     clientConnected_t connected;
     usercmd_t cmd;
     usercmd_t oldcmd;
     qboolean localClient;
-    byte pad2[8];
+    byte gap2[8];
     char netname[MAX_NETNAME];
     int maxHealth;
-    byte pad3[128];
+    byte gap3[128];
 } clientSession_t;
 
 struct gclient_s
@@ -800,16 +801,16 @@ struct gclient_s
     int spectatorClient;
     qboolean noclip;
     qboolean ufo;
-    byte pad2[228];
+    byte gap2[228];
 };
 
 struct gentity_s
 {
   entityState_t s;
   entityShared_t r;
-  byte pad[4];
+  byte gap[4];
   gclient_t *client;
-  byte pad2[440];
+  byte gap2[440];
 };
 
 typedef struct
@@ -887,9 +888,9 @@ typedef struct
     int numSnapshotClients;
     int nextSnapshotEntities;
     int nextSnapshotClients;
-    byte pad[0x34];
+    byte gap[0x34];
     int nextHeartbeatTime;
-    byte pad2[45100];
+    byte gap2[45100];
 } serverStatic_t;
 
 typedef struct
@@ -902,7 +903,7 @@ typedef struct
     gentity_t *lastFreeEnt;
     fileHandle_t logFile;
     int initializing;
-    byte pad[0x1C0];
+    byte gap[0x1C0];
     int maxclients;
     int framenum;
     int time;
@@ -931,7 +932,16 @@ typedef struct
     serverState_t state;
     qboolean restarting;
     int start_frameTime;
-    byte pad[0x6141C];
+    int	checksumFeed;
+    int timeResidual;
+    int nextFrameTime;
+    byte gap[0x400];
+    char *configstrings[MAX_CONFIGSTRINGS];
+    byte gap2[0x5EFFC]; //svEntity_t svEntities[MAX_GENTITIES];
+    char *entityParsePoint;
+    gentity_t *gentities;
+    int gentitySize;
+    int	num_entities;
     playerState_t *gameClients;
     int gameClientSize;
     int	skelTimeStamp;
@@ -972,21 +982,21 @@ typedef struct WeaponDef_t
     int number;
     char* name;
     char* displayName;
-    byte pad[0x1E4];
+    byte gap[0x1E4];
     int reloadAddTime;
-    byte pad2[0x1C];
+    byte gap2[0x1C];
     int fuseTime;
     float moveSpeedScale;
     float adsZoomFov;
     float adsZoomInFrac;
     float adsZoomOutFrac;
-    byte pad3[0x44];
+    byte gap3[0x44];
     int adsTransInTime;
     int adsTransOutTime;
-    byte pad4[0x8];
+    byte gap4[0x8];
     float idleCrouchFactor;
     float idleProneFactor;
-    byte pad5[0x50];
+    byte gap5[0x50];
     int cookOffHold;
     int clipOnly;
     //...
@@ -1038,13 +1048,13 @@ struct pml_t
 
 typedef struct
 {
-    byte pad[4];
+    byte gap[4];
     unsigned short allies;
-    byte pad2[2];
+    byte gap2[2];
     unsigned short axis;
-    byte pad3[114];
+    byte gap3[114];
     unsigned short spectator;
-    byte pad4[122];
+    byte gap4[122];
     unsigned short none;
     // ...
 } stringIndex_t;
@@ -1085,6 +1095,7 @@ static_assert((sizeof(clientSession_t) == 260), "ERROR: clientSession_t size is 
 static_assert((sizeof(gclient_t) == 8900), "ERROR: gclient_t size is invalid!");
 static_assert((sizeof(serverStatic_t) == 45188), "ERROR: serverStatic_t size is invalid!");
 static_assert((sizeof(netadr_t) == 20), "ERROR: netadr_t size is invalid!");
+static_assert((sizeof(server_t) == 398572), "ERROR: server_t size is invalid!");
 #endif
 
 
