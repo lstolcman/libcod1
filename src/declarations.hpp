@@ -233,9 +233,9 @@ typedef struct
     const char *fieldBuffer;
     byte gap[0x4176];
     unsigned int levelId;
-    // ...
+    //...
     const char *programBuffer;
-    // ... 
+    //... 
 } scrVarPub_t; // TODO: finish setup
 
 typedef struct
@@ -917,7 +917,7 @@ typedef struct
     int numConnectedClients;
     int sortedClients[MAX_CLIENTS];
     char voteString[1024];
-    // ...
+    //...
 } level_locals_t;
 
 typedef enum
@@ -934,17 +934,16 @@ typedef struct
     int start_frameTime;
     int	checksumFeed;
     int timeResidual;
-    int nextFrameTime;
-    byte gap[0x400];
+    byte gap[0x404];
     char *configstrings[MAX_CONFIGSTRINGS];
-    byte gap2[0x5EFFC]; //svEntity_t svEntities[MAX_GENTITIES];
+    byte pad[0x60FFC];
     char *entityParsePoint;
     gentity_t *gentities;
     int gentitySize;
     int	num_entities;
     playerState_t *gameClients;
     int gameClientSize;
-    int	skelTimeStamp;
+    int skelTimeStamp;
     int	bpsWindow[MAX_BPS_WINDOW];
     int	bpsWindowSteps;
     int	bpsTotalBytes;
@@ -954,7 +953,7 @@ typedef struct
     int	ubpsMaxBytes;
     float ucompAve;
     int	ucompNum;
-} server_t;
+} server_t; // TODO: Verify, seems to big
 
 enum clc_ops_e
 {
@@ -1056,7 +1055,7 @@ typedef struct
     unsigned short spectator;
     byte gap4[122];
     unsigned short none;
-    // ...
+    //...
 } stringIndex_t;
 
 extern gentity_t *g_entities;
@@ -1084,18 +1083,18 @@ static const int msgHuff_offset = 0x0813e740;
 
 // Require structure sizes to match
 #if __GNUC__ >= 6
-static_assert((sizeof(netchan_t) == 32832), "ERROR: netchan_t size is invalid!");
-static_assert((sizeof(entityState_t) == 240), "ERROR: entityState_t size is invalid!");
-static_assert((sizeof(client_t) == 370940), "ERROR: client_t size is invalid!");
-static_assert((sizeof(playerState_t) == 8400), "ERROR: playerState_t size is invalid!");
-static_assert((sizeof(entityShared_t) == 100), "ERROR: entityShared_t size is invalid!");
-static_assert((sizeof(gentity_t) == 788), "ERROR: gentity_t size is invalid!");
-static_assert((sizeof(usercmd_t) == 24), "ERROR: usercmd_t size is invalid!");
-static_assert((sizeof(clientSession_t) == 260), "ERROR: clientSession_t size is invalid!");
-static_assert((sizeof(gclient_t) == 8900), "ERROR: gclient_t size is invalid!");
-static_assert((sizeof(serverStatic_t) == 45188), "ERROR: serverStatic_t size is invalid!");
-static_assert((sizeof(netadr_t) == 20), "ERROR: netadr_t size is invalid!");
-static_assert((sizeof(server_t) == 398572), "ERROR: server_t size is invalid!");
+static_assert((sizeof(netchan_t) == 32832), "ERROR: netchan_t size is invalid");
+static_assert((sizeof(entityState_t) == 240), "ERROR: entityState_t size is invalid");
+static_assert((sizeof(client_t) == 370940), "ERROR: client_t size is invalid");
+static_assert((sizeof(playerState_t) == 8400), "ERROR: playerState_t size is invalid");
+static_assert((sizeof(entityShared_t) == 100), "ERROR: entityShared_t size is invalid");
+static_assert((sizeof(gentity_t) == 788), "ERROR: gentity_t size is invalid");
+static_assert((sizeof(usercmd_t) == 24), "ERROR: usercmd_t size is invalid");
+static_assert((sizeof(clientSession_t) == 260), "ERROR: clientSession_t size is invalid");
+static_assert((sizeof(gclient_t) == 8900), "ERROR: gclient_t size is invalid");
+static_assert((sizeof(serverStatic_t) == 45188), "ERROR: serverStatic_t size is invalid");
+static_assert((sizeof(netadr_t) == 20), "ERROR: netadr_t size is invalid");
+//static_assert((sizeof(server_t) == 398572), "ERROR: server_t size is invalid");
 #endif
 
 

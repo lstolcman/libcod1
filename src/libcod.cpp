@@ -37,6 +37,7 @@ cvar_t *jump_height;
 cvar_t *jump_height_airScale;
 cvar_t *sv_botReconnectMode;
 cvar_t *sv_cracked;
+cvar_t *sv_debugRate;
 cvar_t *sv_downloadNotifications;
 cvar_t *sv_fastDownload;
 cvar_t *sv_heartbeatDelay;
@@ -346,6 +347,7 @@ void custom_Com_Init(char *commandLine)
     player_sprintTime = Cvar_Get("player_sprintTime", "4.0", CVAR_ARCHIVE);
     sv_botReconnectMode = Cvar_Get("sv_botReconnectMode", "0", CVAR_ARCHIVE);
     sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
+    sv_debugRate = Cvar_Get("sv_debugRate", "0", CVAR_ARCHIVE);
     sv_downloadNotifications = Cvar_Get("sv_downloadNotifications", "0", CVAR_ARCHIVE);
     sv_fastDownload = Cvar_Get("sv_fastDownload", "0", CVAR_ARCHIVE);
     sv_heartbeatDelay = Cvar_Get("sv_heartbeatDelay", "30", CVAR_ARCHIVE);
@@ -1878,31 +1880,26 @@ static int SV_RateMsec(client_t *client, int messageSize)
     int rate;
     int rateMsec;
     
-    if (messageSize > 1500)
-    {
+    if(messageSize > 1500)
         messageSize = 1500;
-    }
+
     rate = client->rate;
     if (sv_maxRate->integer)
     {
-        if (sv_maxRate->integer < 1000)
-        {
-            Cvar_Set("sv_maxRate", "");
-        }
+        if(sv_maxRate->integer < 1000)
+            Cvar_Set("sv_MaxRate", "1000");
 
-        if (sv_maxRate->integer < rate)
-        {
+        if(sv_maxRate->integer < rate)
             rate = sv_maxRate->integer;
-        }
     }
 
-    rateMsec = (1000 * messageSize + (HEADER_RATE_BYTES * 1000)) / rate;
-    /*if (sv_debugRate->integer)
-    {
+    rateMsec = ((messageSize + HEADER_RATE_BYTES) * 1000) / rate;
+    if(sv_debugRate->integer)
         Com_Printf("It would take %ims to send %i bytes to client %s (rate %i)\n", rateMsec, messageSize, client->name, client->rate);
-    }*/
+
     return rateMsec;
 }
+
 void custom_SV_SendClientMessages(void)
 {
     int i;
@@ -2016,7 +2013,8 @@ void custom_SV_SendMessageToClient(msg_t *msg, client_t *client)
     client->frames[client->netchan.outgoingSequence & PACKET_MASK].messageAcked = -1;
     SV_Netchan_Transmit(client, data, compressedSize);
 
-    if (client->netchan.remoteAddress.type == NA_LOOPBACK || Sys_IsLANAddress(client->netchan.remoteAddress) || (sv_fastDownload->integer && client->download))
+    if (client->netchan.remoteAddress.type == NA_LOOPBACK || Sys_IsLANAddress(client->netchan.remoteAddress)
+        || (sv_fastDownload->integer && client->download))
     {
         client->nextSnapshotTime = svs.time - 1;
         return;
