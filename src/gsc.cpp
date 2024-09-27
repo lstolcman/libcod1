@@ -113,6 +113,8 @@ scr_method_t scriptMethods[] =
     {"processClientCommand", gsc_player_processclientcommand, 0},
     {"connectionlessPacketToClient", gsc_player_connectionlesspackettoclient, 0},
     {"dropClient", gsc_player_dropclient, 0},
+    {"setHiddenFromScoreboard", gsc_player_sethiddenfromscoreboard, 0},
+    {"isHiddenFromScoreboard", gsc_player_ishiddenfromscoreboard, 0},
 
     {"getVelocity", gsc_player_getvelocity, 0},
     {"setVelocity", gsc_player_setvelocity, 0},

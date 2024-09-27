@@ -1815,9 +1815,11 @@ void custom_SV_WriteDownloadToClient(client_t *cl, msg_t *msg)
         if (sv_fastDownload->integer)
             blksize = MAX_DOWNLOAD_BLKSIZE_FAST;
         
-        if(!cl->downloadBlocks[curindex])
-            cl->downloadBlocks[curindex] = (unsigned char *)Z_MallocInternal(MAX_DOWNLOAD_BLKSIZE_FAST); // Not passing blksize to prevent issue in case the block size alignment changes during runtime.
-
+        if (!cl->downloadBlocks[curindex])
+        {
+            // See https://github.com/ibuddieat/zk_libcod/blob/dfdd4ef17508ff8ffbaacb0353a6b736a9707cba/code/libcod.cpp#L3761
+            cl->downloadBlocks[curindex] = (unsigned char *)Z_MallocInternal(MAX_DOWNLOAD_BLKSIZE_FAST);
+        }
         cl->downloadBlockSize[curindex] = FS_Read(cl->downloadBlocks[curindex], blksize, cl->download);
 
         if (cl->downloadBlockSize[curindex] < 0)
@@ -2400,9 +2402,11 @@ void custom_DeathmatchScoreboardMessage(gentity_t *ent)
     int stringlength;
     char string[1400];
     char entry[1024];
+    int visiblePlayers;
 
     string[0] = 0;
     stringlength = 0;
+    visiblePlayers = 0;
 
     numSorted = level->numConnectedClients;
 
@@ -2413,6 +2417,8 @@ void custom_DeathmatchScoreboardMessage(gentity_t *ent)
     {
         clientNum = level->sortedClients[i];
         client = &level->clients[clientNum];
+        if(customPlayerState[clientNum].hiddenFromScoreboard)
+            continue;
         
         if (client->sess.connected == CON_CONNECTING)
         {
@@ -2448,9 +2454,10 @@ void custom_DeathmatchScoreboardMessage(gentity_t *ent)
 
         strcpy(&string[stringlength], entry);
         stringlength += len;
+        visiblePlayers++;
     }
 
-    trap_SendServerCommand(ent - g_entities, SV_CMD_RELIABLE, va("b %i %i %i%s", i, level->teamScores[1], level->teamScores[2], string));
+    trap_SendServerCommand(ent - g_entities, SV_CMD_RELIABLE, va("b %i %i %i%s", visiblePlayers, level->teamScores[1], level->teamScores[2], string));
 }
 
 void UCMD_custom_sprint(client_t *cl)

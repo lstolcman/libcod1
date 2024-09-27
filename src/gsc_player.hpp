@@ -31,3 +31,5 @@ void gsc_player_enableitemautopickup(scr_entref_t ref);
 void gsc_player_getsprintremaining(scr_entref_t ref);
 void gsc_player_playscriptanimation(scr_entref_t ref);
 void gsc_player_isbot(scr_entref_t ref);
+void gsc_player_sethiddenfromscoreboard(scr_entref_t ref);
+void gsc_player_ishiddenfromscoreboard(scr_entref_t ref);

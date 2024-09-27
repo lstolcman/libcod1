@@ -1079,7 +1079,7 @@ static const int msgHuff_offset = 0x0813e740;
 #define sv_serverId_value (*((int*)(sv_serverId_value_offset)))
 #define svs (*((serverStatic_t*)(svs_offset)))
 #define gvm (*(vm_t**)(gvm_offset))
-#define msgHuff (*((huffman_t*)( msgHuff_offset )))
+#define msgHuff (*((huffman_t*)(msgHuff_offset)))
 
 // Require structure sizes to match
 #if __GNUC__ >= 6
@@ -1109,6 +1109,14 @@ typedef struct src_error_s
 
 typedef struct customPlayerState_s
 {
+    //// Bots
+    int botButtons;
+    int botWButtons;
+    int botWeapon;
+    char botForwardMove;
+    char botRightMove;
+    char botUpMove;
+    ////
     int speed;
     int fps;
     int frames;
@@ -1121,13 +1129,7 @@ typedef struct customPlayerState_s
     bool sprintRequestPending;
     int sprintTimer;
     bool noAutoPickup;
-    // Bots
-    int botButtons;
-    int botWButtons;
-    int botWeapon;
-    char botForwardMove;
-    char botRightMove;
-    char botUpMove;
+    bool hiddenFromScoreboard;
 } customPlayerState_t;
 
 typedef struct callback_s
