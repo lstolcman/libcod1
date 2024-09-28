@@ -9,6 +9,8 @@ cvar_t *com_dedicated;
 cvar_t *com_logfile;
 cvar_t *com_sv_running;
 cvar_t *fs_game;
+cvar_t *net_lanauthorize;
+cvar_t *sv_allowAnonymous;
 cvar_t *sv_allowDownload;
 cvar_t *sv_floodProtect;
 cvar_t *sv_fps;
@@ -18,6 +20,7 @@ cvar_t *sv_mapRotationCurrent;
 cvar_t *sv_master[MAX_MASTER_SERVERS];
 cvar_t *sv_maxclients;
 cvar_t *sv_maxRate;
+cvar_t *sv_onlyVisibleClients;
 cvar_t *sv_pure;
 cvar_t *sv_rconPassword;
 cvar_t *sv_serverid;
@@ -36,6 +39,8 @@ cvar_t *jump_bounceEnable;
 cvar_t *jump_height;
 cvar_t *jump_height_airScale;
 cvar_t *sv_botReconnectMode;
+cvar_t *sv_connectMessage;
+cvar_t *sv_connectMessage_repetitions;
 cvar_t *sv_cracked;
 cvar_t *sv_debugRate;
 cvar_t *sv_downloadNotifications;
@@ -154,6 +159,7 @@ static ucmd_t ucmds[] =
 };
 
 customPlayerState_t customPlayerState[MAX_CLIENTS];
+customChallenge_t customChallenge[MAX_CHALLENGES];
 
 cHook *hook_ClientEndFrame;
 cHook *hook_ClientSpawn;
@@ -307,6 +313,8 @@ void custom_Com_Init(char *commandLine)
     com_logfile = Cvar_FindVar("logfile");
     com_sv_running = Cvar_FindVar("sv_running");
     fs_game = Cvar_FindVar("fs_game");
+    net_lanauthorize = Cvar_FindVar("net_lanauthorize");
+    sv_allowAnonymous = Cvar_FindVar("sv_allowAnonymous");
     sv_allowDownload = Cvar_FindVar("sv_allowDownload");
     sv_floodProtect = Cvar_FindVar("sv_floodProtect");
     sv_fps = Cvar_FindVar("sv_fps");
@@ -320,6 +328,7 @@ void custom_Com_Init(char *commandLine)
     sv_master[4] = Cvar_FindVar("sv_master5");
     sv_maxclients = Cvar_FindVar("sv_maxclients");
     sv_maxRate = Cvar_FindVar("sv_maxRate");
+    sv_onlyVisibleClients = Cvar_FindVar("sv_onlyVisibleClients");
     sv_pure = Cvar_FindVar("sv_pure");
     sv_rconPassword = Cvar_FindVar("rconpassword");
     sv_serverid = Cvar_FindVar("sv_serverid");
@@ -346,6 +355,8 @@ void custom_Com_Init(char *commandLine)
     player_sprintSpeedScale = Cvar_Get("player_sprintSpeedScale", "1.5", CVAR_ARCHIVE);
     player_sprintTime = Cvar_Get("player_sprintTime", "4.0", CVAR_ARCHIVE);
     sv_botReconnectMode = Cvar_Get("sv_botReconnectMode", "0", CVAR_ARCHIVE);
+    sv_connectMessage = Cvar_Get("sv_connectMessage", "", CVAR_ARCHIVE);
+    sv_connectMessage_repetitions = Cvar_Get("sv_connectMessage_repetitions", "0", CVAR_ARCHIVE);
     sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
     sv_debugRate = Cvar_Get("sv_debugRate", "0", CVAR_ARCHIVE);
     sv_downloadNotifications = Cvar_Get("sv_downloadNotifications", "0", CVAR_ARCHIVE);
@@ -799,7 +810,30 @@ bool SVC_ApplyStatusLimit(netadr_t from)
     return false;
 }
 
-void hook_SV_GetChallenge(netadr_t from)
+// See https://github.com/voron00/CoD2rev_Server/blob/b012c4b45a25f7f80dc3f9044fe9ead6463cb5c6/src/server/sv_client_mp.cpp#L1685
+void SV_AuthorizeRequest(netadr_t from, int challenge)
+{
+    char gameDir[MAX_STRINGLENGTH];
+
+    if(svs.authorizeAddress.type == NA_BAD)
+        return;
+
+    gameDir[0] = '\0';
+    if(*fs_game->string)
+        Q_strncpyz(gameDir, fs_game->string, sizeof(gameDir));
+
+    Com_DPrintf("sending getIpAuthorize for %s\n", NET_AdrToString(from));
+    NET_OutOfBandPrint(NS_SERVER, svs.authorizeAddress,
+        va("getIpAuthorize %i %i.%i.%i.%i %s %i",
+            challenge,
+            from.ip[0],
+            from.ip[1],
+            from.ip[2],
+            from.ip[3],
+            gameDir,
+            sv_allowAnonymous->integer));
+}
+void custom_SV_GetChallenge(netadr_t from)
 {
     // Prevent using getchallenge as an amplifier
     if (SVC_RateLimitAddress(from, 10, 1000))
@@ -817,8 +851,81 @@ void hook_SV_GetChallenge(netadr_t from)
             Com_DPrintf("SV_GetChallenge: rate limit exceeded, dropping request\n");
         return;
     }
+    
+    int i;
+    int oldest;
+    int oldestTime;
+    challenge_t *challenge;
 
-    SV_GetChallenge(from);
+    oldest = 0;
+    oldestTime = 0x7FFFFFFF;
+    challenge = &svs.challenges[0];
+    
+    for (i = 0; i < MAX_CHALLENGES; i++, challenge++)
+    {
+        if(!challenge->connected && NET_CompareAdr(from, challenge->adr))
+            break;
+
+        if (challenge->time < oldestTime)
+        {
+            oldestTime = challenge->time;
+            oldest = i;
+        }
+    }
+    
+    if (i == MAX_CHALLENGES)
+    {
+        challenge = &svs.challenges[oldest];
+
+        challenge->challenge = ((rand() << 16) ^ rand()) ^ svs.time;
+        challenge->adr = from;
+        challenge->firstTime = svs.time;
+        challenge->firstPing = 0;
+        challenge->time = svs.time;
+        challenge->connected = qfalse;
+
+        customChallenge[oldest].ignoredCount = 0;
+
+        i = oldest;
+    }
+    
+    if (!net_lanauthorize->integer && Sys_IsLANAddress(from))
+    {
+        challenge->pingTime = svs.time;
+        NET_OutOfBandPrint(NS_SERVER, from, va("challengeResponse %i", challenge->challenge));
+        return;
+    }
+    
+    if (!svs.authorizeAddress.ip[0] && svs.authorizeAddress.type != NA_BAD)
+    {
+        Com_Printf("Resolving %s\n", AUTHORIZE_SERVER_NAME);
+        if (!NET_StringToAdr(AUTHORIZE_SERVER_NAME, &svs.authorizeAddress))
+        {
+            Com_Printf("Couldn't resolve address\n");
+            return;
+        }
+        svs.authorizeAddress.port = BigShort(PORT_AUTHORIZE);
+        Com_Printf("%s resolved to %i.%i.%i.%i:%i\n",
+                    AUTHORIZE_SERVER_NAME,
+                    svs.authorizeAddress.ip[0],
+                    svs.authorizeAddress.ip[1],
+                    svs.authorizeAddress.ip[2],
+                    svs.authorizeAddress.ip[3],
+                    BigShort(svs.authorizeAddress.port));
+    }
+    
+    if ((AUTHORIZE_TIMEOUT < svs.time - svs.sv_lastTimeMasterServerCommunicated) && (AUTHORIZE_TIMEOUT < svs.time - challenge->firstTime))
+    {
+        Com_DPrintf("authorize server timed out\n");
+        challenge->pingTime = svs.time;
+        if(sv_onlyVisibleClients->integer)
+            NET_OutOfBandPrint(NS_SERVER, challenge->adr, va("challengeResponse %i %i", challenge->challenge, sv_onlyVisibleClients->integer));
+        else
+            NET_OutOfBandPrint(NS_SERVER, challenge->adr, va("challengeResponse %i", challenge->challenge));
+        return;
+    }
+    
+    SV_AuthorizeRequest(from, svs.challenges[i].challenge);
 }
 
 void hook_SV_DirectConnect(netadr_t from)
@@ -918,6 +1025,40 @@ void hook_SV_DirectConnect(netadr_t from)
 
     if(unbanned)
         Cmd_TokenizeString(argBackup.c_str());
+
+    if (*sv_connectMessage->string)
+    {
+        int userinfoChallenge = atoi(Info_ValueForKey(userinfo, "challenge"));
+        for (int i = 0; i < MAX_CHALLENGES; i++)
+        {
+            challenge_t *challenge = &svs.challenges[i];
+            if (NET_CompareAdr(from, challenge->adr))
+            {
+                if (challenge->challenge == userinfoChallenge)
+                {
+                    if (!sv_connectMessage_repetitions->integer)
+                    {
+                        if (customChallenge[i].ignoredCount == 0)
+                        {
+                            NET_OutOfBandPrint(NS_SERVER, from, "print\n%s\n", sv_connectMessage->string);
+                            customChallenge[i].ignoredCount++;
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        if (customChallenge[i].ignoredCount < sv_connectMessage_repetitions->integer + 1)
+                        {
+                            NET_OutOfBandPrint(NS_SERVER, from, "print\n%s\n", sv_connectMessage->string);
+                            customChallenge[i].ignoredCount++;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     SV_DirectConnect(from);
 }
 
@@ -2709,7 +2850,6 @@ class libcod
         hook_call(0x08085213, (int)hook_AuthorizeState);
         hook_call(0x08094c54, (int)Scr_GetCustomFunction);
         hook_call(0x080951c4, (int)Scr_GetCustomMethod);
-        hook_call(0x0808c780, (int)hook_SV_GetChallenge);
         hook_call(0x0808c7b8, (int)hook_SV_DirectConnect);
         hook_call(0x0808c7ea, (int)hook_SV_AuthorizeIpPacket);
         hook_call(0x0808c74e, (int)hook_SVC_Info);
@@ -2727,6 +2867,7 @@ class libcod
         hook_jmp(0x0808ba0c, (int)custom_SV_MasterHeartbeat);
         hook_jmp(0x0808c870, (int)custom_SV_PacketEvent);
         hook_jmp(0x08085eec, (int)custom_SV_SendClientGameState);
+        hook_jmp(0x08084d90, (int)custom_SV_GetChallenge);
         
         hook_Sys_LoadDll = new cHook(0x080c5fe4, (int)custom_Sys_LoadDll);
         hook_Sys_LoadDll->hook();

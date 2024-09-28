@@ -15,8 +15,11 @@
 #define GAME_INIT_FRAMES 3
 #define FRAMETIME 100
 #define PORT_MASTER 20510
+#define PORT_AUTHORIZE 20500
 #define	HEARTBEAT_MSEC 180000
 #define HMAX 256
+#define AUTHORIZE_TIMEOUT 5000
+#define AUTHORIZE_SERVER_NAME "codauthorize.activision.com"
 
 #define MAX_BPS_WINDOW              20
 #define MAX_CHALLENGES              1024
@@ -37,11 +40,13 @@
 #define MAX_STRINGLENGTH            1024
 #define MAX_MASTER_SERVERS          5
 
-#define CVAR_NOFLAG         0               // 0x0000
-#define CVAR_ARCHIVE        (1 << 0)        // 0x0001
-#define CVAR_SERVERINFO     (1 << 2)        // 0x0004
-#define CVAR_SYSTEMINFO     (1 << 3)        // 0x0008
-#define CVAR_CHEAT          (1 << 9)        // 0x0200
+#define CVAR_NOFLAG             0               // 0
+#define CVAR_ARCHIVE            (1 << 0)        // 1
+#define CVAR_SERVERINFO         (1 << 2)        // 4
+#define CVAR_SYSTEMINFO         (1 << 3)        // 8
+#define CVAR_INIT               (1 << 4)        // 16
+#define CVAR_LATCH              (1 << 5)        // 32
+#define CVAR_CHEAT              (1 << 9)        // 512
 
 #define SVF_SINGLECLIENT 0x800
 
@@ -160,7 +165,7 @@ typedef enum
 typedef enum
 {
     NA_BOT = 0,
-    NA_BAD = 0,
+    NA_BAD = 1,
     NA_LOOPBACK = 2,
     NA_BROADCAST = 3,
     NA_IP = 4,
@@ -533,17 +538,6 @@ typedef struct
     huff_t decompressor;
 } huffman_t;
 
-typedef struct leakyBucket_s leakyBucket_t;
-struct leakyBucket_s
-{
-    netadrtype_t type;
-    unsigned char adr[4];
-    uint64_t lastTime;
-    signed char	burst;
-    long hash;
-    leakyBucket_t *prev, *next;
-};
-
 typedef struct usercmd_s
 {
     int serverTime;
@@ -616,17 +610,6 @@ typedef struct
     int cmdTime;
     int cmdType;
 } reliableCommands_t;
-
-typedef struct
-{
-    netadr_t adr;
-    int challenge;
-    int time;
-    int pingTime;
-    int firstTime;
-    int firstPing;
-    qboolean connected;
-} challenge_t;
 
 typedef enum
 {
@@ -831,7 +814,7 @@ typedef struct client_s
     qboolean sendAsActive;
     const char *dropReason;
     char userinfo[MAX_INFO_STRING];
-    reliableCommands_t	reliableCommands[MAX_RELIABLE_COMMANDS];
+    reliableCommands_t reliableCommands[MAX_RELIABLE_COMMANDS];
     int reliableSequence;
     int reliableAcknowledge;
     int reliableSent;
@@ -880,6 +863,17 @@ typedef struct
 
 typedef struct
 {
+    netadr_t adr;
+    int challenge;
+    int time;
+    int pingTime;
+    int firstTime;
+    int firstPing;
+    qboolean connected;
+} challenge_t;
+
+typedef struct
+{
     qboolean initialized;
     int time;
     int snapFlagServerBit;
@@ -890,7 +884,10 @@ typedef struct
     int nextSnapshotClients;
     byte gap[0x34];
     int nextHeartbeatTime;
-    byte gap2[45100];
+    challenge_t challenges[MAX_CHALLENGES];
+    netadr_t redirectAddress;
+    netadr_t authorizeAddress;
+    int sv_lastTimeMasterServerCommunicated;
 } serverStatic_t;
 
 typedef struct
@@ -1095,11 +1092,28 @@ static_assert((sizeof(gclient_t) == 8900), "ERROR: gclient_t size is invalid");
 static_assert((sizeof(serverStatic_t) == 45188), "ERROR: serverStatic_t size is invalid");
 static_assert((sizeof(netadr_t) == 20), "ERROR: netadr_t size is invalid");
 //static_assert((sizeof(server_t) == 398572), "ERROR: server_t size is invalid");
+static_assert((sizeof(challenge_t) == 44), "ERROR: challenge_t size is invalid");
 #endif
 
 
 //// Custom
-#define MAX_ERROR_BUFFER 64
+typedef struct leakyBucket_s leakyBucket_t;
+struct leakyBucket_s
+{
+    netadrtype_t type;
+    unsigned char adr[4];
+    uint64_t lastTime;
+    signed char	burst;
+    long hash;
+    leakyBucket_t *prev, *next;
+};
+
+typedef struct callback_s
+{
+    int *pos;
+    const char *name;
+    bool custom;
+} callback_t;
 
 typedef struct src_error_s
 {
@@ -1132,10 +1146,8 @@ typedef struct customPlayerState_s
     bool hiddenFromScoreboard;
 } customPlayerState_t;
 
-typedef struct callback_s
+typedef struct customChallenge_s
 {
-    int *pos;
-    const char *name;
-    bool custom;
-} callback_t;
+    int ignoredCount;
+} customChallenge_t;
 ////

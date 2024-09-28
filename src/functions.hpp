@@ -243,6 +243,9 @@ static const NET_StringToAdr_t NET_StringToAdr = (NET_StringToAdr_t)0x08080c38;
 
 typedef qboolean (*NET_CompareBaseAdr_t)(netadr_t a, netadr_t b);
 static const NET_CompareBaseAdr_t NET_CompareBaseAdr = (NET_CompareBaseAdr_t)0x08080e60;
+
+typedef qboolean (*NET_CompareAdr_t)(netadr_t a, netadr_t b);
+static const NET_CompareAdr_t NET_CompareAdr = (NET_CompareAdr_t)0x08080dec;
 ////
 
 //// PM
@@ -358,9 +361,6 @@ static const SV_ClientEnterWorld_t SV_ClientEnterWorld = (SV_ClientEnterWorld_t)
 
 typedef void (*SV_SendClientGameState_t)(client_t *cl);
 static const SV_SendClientGameState_t SV_SendClientGameState = (SV_SendClientGameState_t)0x08085eec;
-
-typedef void (*SV_AuthorizeRequest_t)(netadr_t adr, int challenge);
-static const SV_AuthorizeRequest_t SV_AuthorizeRequest = (SV_AuthorizeRequest_t)0x08084d90;
 
 typedef qboolean (*SV_ClientCommand_t)(client_t *cl, msg_t *msg);
 static const SV_ClientCommand_t SV_ClientCommand = (SV_ClientCommand_t)0x08086e08;
