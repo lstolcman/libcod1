@@ -28,6 +28,7 @@ cvar_t *sv_showAverageBPS;
 cvar_t *sv_showCommands;
 
 // Custom cvars
+cvar_t *airjump_heightScale;
 cvar_t *fs_callbacks;
 cvar_t *fs_callbacks_additional;
 cvar_t *fs_svrPaks;
@@ -37,7 +38,6 @@ cvar_t *g_playerEject;
 cvar_t *g_resetSlide;
 cvar_t *jump_bounceEnable;
 cvar_t *jump_height;
-cvar_t *jump_height_airScale;
 cvar_t *sv_botHook;
 cvar_t *sv_connectMessage;
 cvar_t *sv_connectMessageChallenges;
@@ -46,6 +46,7 @@ cvar_t *sv_debugRate;
 cvar_t *sv_downloadNotifications;
 cvar_t *sv_fastDownload;
 cvar_t *sv_heartbeatDelay;
+cvar_t *sv_spectatorNoclip;
 cvar_t *player_sprint;
 cvar_t *player_sprintMinTime;
 cvar_t *player_sprintSpeedScale;
@@ -115,6 +116,7 @@ PM_GetEffectiveStance_t PM_GetEffectiveStance;
 PM_ClipVelocity_t PM_ClipVelocity;
 va_t va;
 trap_GetUserinfo_t trap_GetUserinfo;
+PM_NoclipMove_t PM_NoclipMove;
 
 // Stock callbacks
 int codecallback_startgametype = 0;
@@ -169,6 +171,7 @@ cHook *hook_DeathmatchScoreboardMessage;
 cHook *hook_GScr_LoadGameTypeScript;
 cHook *hook_PM_AirMove;
 cHook *hook_PM_CrashLand;
+cHook *hook_PM_FlyMove;
 cHook *hook_PmoveSingle;
 cHook *hook_SV_AddOperatorCommands;
 cHook *hook_SV_BeginDownload_f;
@@ -341,6 +344,7 @@ void custom_Com_Init(char *commandLine)
     Cvar_Get("sv_wwwBaseURL", "", CVAR_ARCHIVE | CVAR_SYSTEMINFO);
     Cvar_Get("sv_wwwDownload", "0", CVAR_ARCHIVE | CVAR_SYSTEMINFO);
     
+    airjump_heightScale = Cvar_Get("airjump_heightScale", "1.5", CVAR_ARCHIVE);
     fs_callbacks = Cvar_Get("fs_callbacks", "maps/mp/gametypes/_callbacksetup", CVAR_ARCHIVE);
     fs_callbacks_additional = Cvar_Get("fs_callbacks_additional", "", CVAR_ARCHIVE);
     fs_svrPaks = Cvar_Get("fs_svrPaks", "", CVAR_ARCHIVE);
@@ -350,7 +354,6 @@ void custom_Com_Init(char *commandLine)
     g_resetSlide = Cvar_Get("g_resetSlide", "0", CVAR_ARCHIVE);
     jump_bounceEnable = Cvar_Get("jump_bounceEnable", "0", CVAR_ARCHIVE | CVAR_SYSTEMINFO);
     jump_height = Cvar_Get("jump_height", "39.0", CVAR_ARCHIVE);
-    jump_height_airScale = Cvar_Get("jump_height_airScaleScale", "1.5", CVAR_ARCHIVE);
     player_sprint = Cvar_Get("player_sprint", "0", CVAR_ARCHIVE);
     player_sprintMinTime = Cvar_Get("player_sprintMinTime", "1.0", CVAR_ARCHIVE);
     player_sprintSpeedScale = Cvar_Get("player_sprintSpeedScale", "1.5", CVAR_ARCHIVE);
@@ -363,6 +366,7 @@ void custom_Com_Init(char *commandLine)
     sv_downloadNotifications = Cvar_Get("sv_downloadNotifications", "0", CVAR_ARCHIVE);
     sv_fastDownload = Cvar_Get("sv_fastDownload", "0", CVAR_ARCHIVE);
     sv_heartbeatDelay = Cvar_Get("sv_heartbeatDelay", "30", CVAR_ARCHIVE);
+    sv_spectatorNoclip = Cvar_Get("sv_spectatorNoclip", "0", CVAR_ARCHIVE);
 }
 
 // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/script.c#L944
@@ -2291,6 +2295,21 @@ void custom_ClientEndFrame(gentity_t *ent)
     }
 }
 
+void custom_PM_FlyMove()
+{
+    if (sv_spectatorNoclip->integer)
+    {
+        PM_NoclipMove();
+        return;
+    }
+
+    hook_PM_FlyMove->unhook();
+    void (*PM_FlyMove)();
+    *(int*)&PM_FlyMove = hook_PM_FlyMove->from;
+    PM_FlyMove();
+    hook_PM_FlyMove->hook();
+}
+
 void custom_PM_AirMove()
 {
     // Player is in air
@@ -2299,7 +2318,7 @@ void custom_PM_AirMove()
     {
         // Player is allowed to jump, enable overrideJumpHeight_air
         customPlayerState[clientNum].overrideJumpHeight_air = true;
-        customPlayerState[clientNum].jumpHeight = jump_height->value * jump_height_airScale->value;
+        customPlayerState[clientNum].jumpHeight = jump_height->value * airjump_heightScale->value;
         
         if (Jump_Check())
         {
@@ -2747,6 +2766,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     PM_ClipVelocity = (PM_ClipVelocity_t)dlsym(libHandle, "PM_ClipVelocity");
     va = (va_t)dlsym(libHandle, "va");
     trap_GetUserinfo = (trap_GetUserinfo_t)dlsym(libHandle, "trap_GetUserinfo");
+    PM_NoclipMove = (PM_NoclipMove_t)((int)dlsym(libHandle, "_init") + 0x8300);
     ////
 
     //// [exploit patch] codmsgboom
@@ -2805,7 +2825,9 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_Touch_Item_Auto->hook();
     hook_DeathmatchScoreboardMessage = new cHook((int)dlsym(libHandle, "DeathmatchScoreboardMessage"), (int)custom_DeathmatchScoreboardMessage);
     hook_DeathmatchScoreboardMessage->hook();
-
+    hook_PM_FlyMove = new cHook((int)dlsym(libHandle, "_init") + 0x79C8, (int)custom_PM_FlyMove);
+    hook_PM_FlyMove->hook();
+    
     return libHandle;
 }
 

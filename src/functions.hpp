@@ -252,6 +252,8 @@ static const NET_CompareAdr_t NET_CompareAdr = (NET_CompareAdr_t)0x08080dec;
 typedef int (*PM_GetEffectiveStance_t)(playerState_t *ps);
 
 typedef void (*PM_ClipVelocity_t)(const float *in, const float *normal, float *out, float overbounce);
+
+typedef void (*PM_NoclipMove_t)();
 ////
 
 //// Q
