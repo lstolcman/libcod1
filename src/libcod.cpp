@@ -38,9 +38,9 @@ cvar_t *g_resetSlide;
 cvar_t *jump_bounceEnable;
 cvar_t *jump_height;
 cvar_t *jump_height_airScale;
-cvar_t *sv_botReconnectMode;
+cvar_t *sv_botHook;
 cvar_t *sv_connectMessage;
-cvar_t *sv_connectMessage_repetitions;
+cvar_t *sv_connectMessageChallenges;
 cvar_t *sv_cracked;
 cvar_t *sv_debugRate;
 cvar_t *sv_downloadNotifications;
@@ -174,6 +174,7 @@ cHook *hook_SV_AddOperatorCommands;
 cHook *hook_SV_BeginDownload_f;
 cHook *hook_SV_SendClientGameState;
 cHook *hook_SV_SpawnServer;
+cHook *hook_SV_BotUserMove;
 cHook *hook_Sys_LoadDll;
 cHook *hook_Touch_Item_Auto;
 
@@ -354,9 +355,9 @@ void custom_Com_Init(char *commandLine)
     player_sprintMinTime = Cvar_Get("player_sprintMinTime", "1.0", CVAR_ARCHIVE);
     player_sprintSpeedScale = Cvar_Get("player_sprintSpeedScale", "1.5", CVAR_ARCHIVE);
     player_sprintTime = Cvar_Get("player_sprintTime", "4.0", CVAR_ARCHIVE);
-    sv_botReconnectMode = Cvar_Get("sv_botReconnectMode", "0", CVAR_ARCHIVE);
+    sv_botHook = Cvar_Get("sv_botHook", "0", CVAR_ARCHIVE);
     sv_connectMessage = Cvar_Get("sv_connectMessage", "", CVAR_ARCHIVE);
-    sv_connectMessage_repetitions = Cvar_Get("sv_connectMessage_repetitions", "0", CVAR_ARCHIVE);
+    sv_connectMessageChallenges = Cvar_Get("sv_connectMessageChallenges", "1", CVAR_ARCHIVE);
     sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
     sv_debugRate = Cvar_Get("sv_debugRate", "0", CVAR_ARCHIVE);
     sv_downloadNotifications = Cvar_Get("sv_downloadNotifications", "0", CVAR_ARCHIVE);
@@ -1026,7 +1027,7 @@ void hook_SV_DirectConnect(netadr_t from)
     if(unbanned)
         Cmd_TokenizeString(argBackup.c_str());
 
-    if (*sv_connectMessage->string)
+    if (*sv_connectMessage->string && sv_connectMessageChallenges->integer)
     {
         int userinfoChallenge = atoi(Info_ValueForKey(userinfo, "challenge"));
         for (int i = 0; i < MAX_CHALLENGES; i++)
@@ -1036,23 +1037,11 @@ void hook_SV_DirectConnect(netadr_t from)
             {
                 if (challenge->challenge == userinfoChallenge)
                 {
-                    if (!sv_connectMessage_repetitions->integer)
+                    if (customChallenge[i].ignoredCount < sv_connectMessageChallenges->integer)
                     {
-                        if (customChallenge[i].ignoredCount == 0)
-                        {
-                            NET_OutOfBandPrint(NS_SERVER, from, "print\n%s\n", sv_connectMessage->string);
-                            customChallenge[i].ignoredCount++;
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        if (customChallenge[i].ignoredCount < sv_connectMessage_repetitions->integer + 1)
-                        {
-                            NET_OutOfBandPrint(NS_SERVER, from, "print\n%s\n", sv_connectMessage->string);
-                            customChallenge[i].ignoredCount++;
-                            return;
-                        }
+                        NET_OutOfBandPrint(NS_SERVER, from, "print\n%s\n", sv_connectMessage->string);
+                        customChallenge[i].ignoredCount++;
+                        return;
                     }
                 }
             }
@@ -2470,6 +2459,16 @@ void custom_PmoveSingle(pmove_t *pmove)
 
 void custom_SV_BotUserMove(client_t *client)
 {
+    if (!sv_botHook->integer)
+    {
+        hook_SV_BotUserMove->unhook();
+        void (*SV_BotUserMove)(client_t *client);
+        *(int*)&SV_BotUserMove = hook_SV_BotUserMove->from;
+        SV_BotUserMove(client);
+        hook_SV_BotUserMove->hook();
+        return;
+    }
+    
     int num;
     usercmd_t ucmd = {0};
 
@@ -2860,7 +2859,6 @@ class libcod
         hook_jmp(0x080716cc, (int)custom_FS_ReferencedPakNames);
         hook_jmp(0x080872ec, (int)custom_SV_ExecuteClientMessage);
         hook_jmp(0x08086d58, (int)custom_SV_ExecuteClientCommand);
-        hook_jmp(0x0808cccc, (int)custom_SV_BotUserMove);
         hook_jmp(0x0809045c, (int)custom_SV_SendClientMessages);
         hook_jmp(0x08086290, (int)custom_SV_WriteDownloadToClient);
         hook_jmp(0x0808f680, (int)custom_SV_SendMessageToClient);
@@ -2879,6 +2877,8 @@ class libcod
         hook_SV_BeginDownload_f->hook();
         hook_SV_AddOperatorCommands = new cHook(0x08084a3c, (int)custom_SV_AddOperatorCommands);
         hook_SV_AddOperatorCommands->hook();
+        hook_SV_BotUserMove = new cHook(0x0808cccc, (int)custom_SV_BotUserMove);
+        hook_SV_BotUserMove->hook();
 
         printf("Loading complete\n");
         printf("-----------------------------------\n");
