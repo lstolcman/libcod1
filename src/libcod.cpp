@@ -2011,7 +2011,7 @@ void custom_SV_WriteDownloadToClient(client_t *cl, msg_t *msg)
 }
 
 // See https://github.com/voron00/CoD2rev_Server/blob/b012c4b45a25f7f80dc3f9044fe9ead6463cb5c6/src/server/sv_snapshot_mp.cpp#L686
-static int SV_RateMsec(client_t *client, int messageSize)
+static int SV_RateMsec(client_t client, int messageSize)
 {
     int rate;
     int rateMsec;
@@ -2019,7 +2019,7 @@ static int SV_RateMsec(client_t *client, int messageSize)
     if(messageSize > 1500)
         messageSize = 1500;
 
-    rate = client->rate;
+    rate = client.rate;
     if (sv_maxRate->integer)
     {
         if(sv_maxRate->integer < 1000)
@@ -2031,7 +2031,7 @@ static int SV_RateMsec(client_t *client, int messageSize)
 
     rateMsec = ((messageSize + HEADER_RATE_BYTES) * 1000) / rate;
     if(sv_debugRate->integer)
-        Com_Printf("It would take %ims to send %i bytes to client %s (rate %i)\n", rateMsec, messageSize, client->name, client->rate);
+        Com_Printf("It would take %ims to send %i bytes to client %s (rate %i)\n", rateMsec, messageSize, client.name, client.rate);
 
     return rateMsec;
 }
@@ -2062,7 +2062,7 @@ void custom_SV_SendClientMessages(void)
             {
                 while (cl->netchan.unsentFragments)
                 {
-                    cl->nextSnapshotTime = svs.time + SV_RateMsec(cl, cl->netchan.unsentLength - cl->netchan.unsentFragmentStart);
+                    cl->nextSnapshotTime = svs.time + SV_RateMsec(*cl, cl->netchan.unsentLength - cl->netchan.unsentFragmentStart);
                     SV_Netchan_TransmitNextFragment(&cl->netchan);
                 }
                 SV_SendClientSnapshot(cl);
@@ -2072,7 +2072,7 @@ void custom_SV_SendClientMessages(void)
         {
             if (cl->netchan.unsentFragments)
             {
-                cl->nextSnapshotTime = svs.time + SV_RateMsec(cl, cl->netchan.unsentLength - cl->netchan.unsentFragmentStart);
+                cl->nextSnapshotTime = svs.time + SV_RateMsec(*cl, cl->netchan.unsentLength - cl->netchan.unsentFragmentStart);
                 SV_Netchan_TransmitNextFragment(&cl->netchan);
                 continue;
             }
@@ -2156,7 +2156,7 @@ void custom_SV_SendMessageToClient(msg_t *msg, client_t *client)
         return;
     }
 
-    rateMsec = SV_RateMsec(client, compressedSize);
+    rateMsec = SV_RateMsec(*client, compressedSize);
     if (rateMsec < client->snapshotMsec)
     {
         rateMsec = client->snapshotMsec;
