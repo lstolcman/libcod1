@@ -472,6 +472,43 @@ void gsc_utils_makelocalizedstring()
     var->type = STACK_LOCALIZED_STRING;
 }
 
+void gsc_utils_getlocalizedstringindex()
+{
+    char *str;
+
+    if (!stackGetParams("l", &str))
+    {
+        stackError("gsc_utils_getlocalizedstringindex() argument is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+
+    stackPushInt(G_LocalizedStringIndex(str));
+}
+
+void gsc_utils_makeupdatedlocalizedstring()
+{
+    char *str;
+    int index;
+    
+    if (!stackGetParams("si", &str, &index))
+    {
+        stackError("gsc_utils_makeupdatedlocalizedstring() argument is undefined or has a wrong type");
+        stackPushUndefined();
+        return;
+    }
+    
+    trap_SetConfigstring(index + 1244, str);
+    
+    stackPushString(str);
+
+    VariableValue *var;
+    int param = 0;
+
+    var = &scrVmPub.top[-param];
+    var->type = STACK_LOCALIZED_STRING;
+}
+
 void gsc_utils_ban()
 {
     int numParam = Scr_GetNumParam();

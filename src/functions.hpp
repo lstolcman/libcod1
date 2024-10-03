@@ -152,6 +152,9 @@ extern G_RegisterCvars_t G_RegisterCvars;
 typedef void (*G_AddEvent_t)(gentity_t *ent, int event, int eventParm);
 
 typedef void (*G_AddPredictableEvent_t)(gentity_t *ent, int event, int eventParm);
+
+typedef int (*G_LocalizedStringIndex_t)(const char *string);
+extern G_LocalizedStringIndex_t G_LocalizedStringIndex;
 ////
 
 //// Get
@@ -500,4 +503,7 @@ typedef void (*trap_GetConfigstring_t)(int index, char *buffer, int bufferSize);
 extern trap_GetConfigstring_t trap_GetConfigstring;
 
 typedef void (*trap_GetUserinfo_t)(int num, char *buffer, int bufferSize);
+
+typedef void (*trap_SetConfigstring_t)(int index, const char *val);
+extern trap_SetConfigstring_t trap_SetConfigstring;
 ////

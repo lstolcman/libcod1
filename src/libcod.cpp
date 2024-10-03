@@ -117,6 +117,8 @@ PM_ClipVelocity_t PM_ClipVelocity;
 va_t va;
 trap_GetUserinfo_t trap_GetUserinfo;
 PM_NoclipMove_t PM_NoclipMove;
+G_LocalizedStringIndex_t G_LocalizedStringIndex;
+trap_SetConfigstring_t trap_SetConfigstring;
 
 // Stock callbacks
 int codecallback_startgametype = 0;
@@ -370,33 +372,33 @@ void custom_Com_Init(char *commandLine)
 }
 
 // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/script.c#L944
-static int localized_string_index = 128;
+static int localizedStringIndex = 128;
 int custom_G_LocalizedStringIndex(const char *string)
 {
     int i;
+    int start = 1244;
     char s[MAX_STRINGLENGTH];
 
-    if(localized_string_index >= 256)
-        localized_string_index = 128;
+    if(localizedStringIndex >= 256)
+        localizedStringIndex = 128;
 
     if(!string || !*string)
         return 0;
-    
-    int start = 1244;
 
     for (i = 1; i < 256; i++)
     {
         trap_GetConfigstring(start + i, s, sizeof(s));
         if(!*s)
             break;
-        if (!strcmp(s, string))
+        if(!strcmp(s, string))
             return i;
     }
-    if(i == 256)
-        i = localized_string_index;
 
-    SV_SetConfigstring(i + 1244, string);
-    ++localized_string_index;
+    if(i == 256)
+        i = localizedStringIndex;
+
+    trap_SetConfigstring(i + 1244, string);
+    localizedStringIndex++;
     
     return i;
 }
@@ -2767,6 +2769,8 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     va = (va_t)dlsym(libHandle, "va");
     trap_GetUserinfo = (trap_GetUserinfo_t)dlsym(libHandle, "trap_GetUserinfo");
     PM_NoclipMove = (PM_NoclipMove_t)((int)dlsym(libHandle, "_init") + 0x8300);
+    G_LocalizedStringIndex = (G_LocalizedStringIndex_t)dlsym(libHandle, "G_LocalizedStringIndex");
+    trap_SetConfigstring = (trap_SetConfigstring_t)dlsym(libHandle, "trap_SetConfigstring");
     ////
 
     //// [exploit patch] codmsgboom
