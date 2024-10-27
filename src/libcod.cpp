@@ -119,6 +119,8 @@ trap_GetUserinfo_t trap_GetUserinfo;
 PM_NoclipMove_t PM_NoclipMove;
 G_LocalizedStringIndex_t G_LocalizedStringIndex;
 trap_SetConfigstring_t trap_SetConfigstring;
+trap_GetArchivedPlayerState_t trap_GetArchivedPlayerState;
+G_Error_t G_Error;
 
 // Stock callbacks
 int codecallback_startgametype = 0;
@@ -2190,6 +2192,10 @@ void hook_ClientCommand(int clientNum)
         return;
     ////
 
+    // To prevent following while staying alive
+    if(!strcmp(cmd, "follownext") || !strcmp(cmd, "followprev"))
+        return;
+
     if (!codecallback_playercommand)
     {
         ClientCommand(clientNum);
@@ -2771,6 +2777,8 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     PM_NoclipMove = (PM_NoclipMove_t)((int)dlsym(libHandle, "_init") + 0x8300);
     G_LocalizedStringIndex = (G_LocalizedStringIndex_t)dlsym(libHandle, "G_LocalizedStringIndex");
     trap_SetConfigstring = (trap_SetConfigstring_t)dlsym(libHandle, "trap_SetConfigstring");
+    trap_GetArchivedPlayerState = (trap_GetArchivedPlayerState_t)dlsym(libHandle, "trap_GetArchivedPlayerState");
+    G_Error = (G_Error_t)dlsym(libHandle, "G_Error");
     ////
 
     //// [exploit patch] codmsgboom
