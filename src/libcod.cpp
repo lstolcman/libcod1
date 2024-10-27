@@ -2186,13 +2186,13 @@ void hook_ClientCommand(int clientNum)
     if(!Scr_IsSystemActive())
         return;
 
-    //// [exploit patch] gc
     char* cmd = Cmd_Argv(0);
+
+    // [exploit patch] gc
     if(!strcmp(cmd, "gc"))
         return;
-    ////
 
-    // To prevent following while staying alive
+    // [glitch patch] follow while alive
     if(!strcmp(cmd, "follownext") || !strcmp(cmd, "followprev"))
         return;
 
