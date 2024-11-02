@@ -2848,7 +2848,7 @@ class libcod
     public:
     libcod()
     {
-        printf("------------- libcod -------------\n");
+        printf("------------ libcod ------------\n");
         printf("Compiled on %s %s using g++ %s\n", __DATE__, __TIME__, __VERSION__);
 
         // Don't inherit lib of parent
@@ -2915,7 +2915,7 @@ class libcod
         hook_SV_BotUserMove->hook();
 
         printf("Loading complete\n");
-        printf("-----------------------------------\n");
+        printf("--------------------------------\n");
     }
 
     ~libcod()
