@@ -45,6 +45,7 @@ cvar_t *sv_connectMessage;
 cvar_t *sv_connectMessageChallenges;
 cvar_t *sv_cracked;
 cvar_t *sv_debugRate;
+cvar_t *sv_downloadForce;
 cvar_t *sv_downloadNotifications;
 cvar_t *sv_fastDownload;
 cvar_t *sv_heartbeatDelay;
@@ -374,6 +375,7 @@ void custom_Com_Init(char *commandLine)
     sv_connectMessageChallenges = Cvar_Get("sv_connectMessageChallenges", "1", CVAR_ARCHIVE);
     sv_cracked = Cvar_Get("sv_cracked", "0", CVAR_ARCHIVE);
     sv_debugRate = Cvar_Get("sv_debugRate", "0", CVAR_ARCHIVE);
+    sv_downloadForce = Cvar_Get("sv_downloadForce", "0", CVAR_ARCHIVE);
     sv_downloadNotifications = Cvar_Get("sv_downloadNotifications", "0", CVAR_ARCHIVE);
     sv_fastDownload = Cvar_Get("sv_fastDownload", "0", CVAR_ARCHIVE);
     sv_heartbeatDelay = Cvar_Get("sv_heartbeatDelay", "30", CVAR_ARCHIVE);
@@ -1201,19 +1203,31 @@ void custom_SV_SendClientGameState(client_t *client)
             {
                 if (!sv_allowDownload->integer)
                 {
-                    // Fix to prevent the client failing to join because he has cl_allowDownload enabled and sv_allowDownload is disabled.
+                    /*
+                    If client has cl_allowDownload enabled, but sv_allowDownload is disabled, client will attempt to download anyway, and then fail joining.
+                    So if sv_allowDownload is disabled, force cl_allowDownload off.
+                    */
                     stringCopy.append("\\cl_allowDownload\\0");
                 }
                 else
                 {
-                    /*
-                    Fix for 1.1x extension requiring download forcing, even if player enables himself before joining.
-                    See: https://github.com/xtnded/codextended-client/blob/45af251518a390ab08b1c8713a6a1544b70114a1/cl_main.cpp#L41
-                    */
-                    if(*Info_ValueForKey(client->userinfo, "xtndedbuild") && sv_allowDownload->integer)
+                    if (sv_downloadForce->integer)
+                    {
                         stringCopy.append("\\cl_allowDownload\\1");
-
-                    // We do not force cl_allowDownload, if a player doesn't want to download, we respect his choice.
+                        /*
+                        To prevent servers forcing download on yourself, you can use the c1cx client extension
+                        See function CL_SystemInfoChanged_Cvar_Set in https://github.com/cod1dev/c1cx
+                        */
+                    }
+                    else
+                    {
+                        /*
+                        1.1x client extension requires download forcing, even if player enables cl_allowDownload by himself before joining.
+                        See: https://github.com/xtnded/codextended-client/blob/45af251518a390ab08b1c8713a6a1544b70114a1/cl_main.cpp#L41
+                        */
+                        if(*Info_ValueForKey(client->userinfo, "xtndedbuild") && sv_allowDownload->integer)
+                            stringCopy.append("\\cl_allowDownload\\1");
+                    }
                 }
             }
             MSG_WriteBigString(&msg, stringCopy.c_str());
