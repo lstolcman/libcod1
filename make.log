@@ -1,0 +1,19 @@
+mkdir -p build/./src/
+g++ -I. -m32 -fPIC -Wall -fvisibility=hidden -D COD_VERSION=COD1_1_1  -c src/libcod.cpp -o build/./src/libcod.cpp.o
+mkdir -p build/./src/
+g++ -I. -m32 -fPIC -Wall -fvisibility=hidden -D COD_VERSION=COD1_1_1  -c src/gsc.cpp -o build/./src/gsc.cpp.o
+mkdir -p build/./src/
+g++ -I. -m32 -fPIC -Wall -fvisibility=hidden -D COD_VERSION=COD1_1_1  -c src/cracking.cpp -o build/./src/cracking.cpp.o
+mkdir -p build/./src/
+g++ -I. -m32 -fPIC -Wall -fvisibility=hidden -D COD_VERSION=COD1_1_1  -c src/gsc_utils.cpp -o build/./src/gsc_utils.cpp.o
+mkdir -p build/./src/
+g++ -I. -m32 -fPIC -Wall -fvisibility=hidden -D COD_VERSION=COD1_1_1  -c src/gsc_player.cpp -o build/./src/gsc_player.cpp.o
+mkdir -p build/./src/
+g++ -I. -m32 -fPIC -Wall -fvisibility=hidden -D COD_VERSION=COD1_1_1  -c src/gsc_sqlite.cpp -o build/./src/gsc_sqlite.cpp.o
+mkdir -p build/./src/lib/
+cc -I. -m32 -fPIC -Wall -fvisibility=hidden -D COD_VERSION=COD1_1_1  -c src/lib/qvsnprintf.c -o build/./src/lib/qvsnprintf.c.o
+mkdir -p build/./src/lib/
+cc -I. -m32 -fPIC -Wall -fvisibility=hidden -D COD_VERSION=COD1_1_1  -c src/lib/strcmp_constant_time.c -o build/./src/lib/strcmp_constant_time.c.o
+mkdir -p build/./src/
+g++ -I. -m32 -fPIC -Wall -fvisibility=hidden -D COD_VERSION=COD1_1_1  -c src/gsc_entity.cpp -o build/./src/gsc_entity.cpp.o
+g++ -m32 -shared -L/lib32 -ldl -lpthread ./build/./src/libcod.cpp.o ./build/./src/gsc.cpp.o ./build/./src/cracking.cpp.o ./build/./src/gsc_utils.cpp.o ./build/./src/gsc_player.cpp.o ./build/./src/gsc_sqlite.cpp.o ./build/./src/lib/qvsnprintf.c.o ./build/./src/lib/strcmp_constant_time.c.o ./build/./src/gsc_entity.cpp.o -o build/libcod1
