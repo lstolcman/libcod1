@@ -1,0 +1,37 @@
+name: build-libcod1
+
+on: push
+
+jobs: 
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps: 
+      - uses: actions/checkout@v4
+
+      - name: Setup APK dependencies
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends g++-multilib libsqlite3-dev:i386 libcurl4-openssl-dev:i386 libssl-dev:i386
+
+      - name: Build
+        run: cd ./src  && ./build.sh --sqlite --curl --ssl
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          path: ./bin/libcod1.so
+
+      - name: Compute the release tag
+        run: |
+          echo "release_tag=v`date '+%Y-%m-%d_%H-%M-%S'`" >> $GITHUB_ENV
+  
+      - name: Push prerelease
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: true
+          tag_name: ${{ env.release_tag }}
+          # target_commitish: main
+          target_commitish: github-ci
+          files: ./bin/libcod1.so
