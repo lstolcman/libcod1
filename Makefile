@@ -68,6 +68,9 @@ SRCS := $(addprefix $(SRC_DIRS)/,$(SRC_FILES))
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 
 
+
+
+
 # The final build step.
 .PHONY: libcod1
 .libcod1:
@@ -88,6 +91,10 @@ $(BUILD_DIR)/%.cpp.o: %.cpp
 .PHONY: default
 default: libcod1
 
+# The final build step.
+.PHONY: debug
+debug: libcod1
+
 
 .PHONY: clean
 clean:
@@ -97,3 +104,48 @@ clean:
 # sudo apt update
 # sudo apt install --no-install-recommends -y g++-multilib libsqlite3-dev:i386
 
+# make debug - build debug
+# make - build normal with defaults
+
+
+
+
+ 
+ 
+ 
+# chunking
+ 
+ 
+# intro and details: https://safjan.com/from-fixed-size-to-nlp-chunking-a-deep-dive-into-text-chunking-techniques/#structure-aware-splitting-by-sentence-paragraph-section-chapter
+ 
+ 
+# https://python.langchain.com/docs/modules/data_connection/document_transformers/semantic-chunker
+# https://blog.langchain.dev/a-chunk-by-any-other-name/
+# https://medium.com/@zilliz_learn/experimenting-with-different-chunking-strategies-via-langchain-694a4bd9f7a5
+ 
+# https://gioelecrispo.github.io/blog/the-importance-of-semantics-text-chunks-of-better-quality/
+ 
+# the tool to use:
+# 1. https://github.com/benbrandt/text-splitter
+# 2. 
+ 
+ 
+ 
+# sbert description
+# https://towardsdatascience.com/sbert-deb3d4aef8a4
+ 
+ 
+ 
+# https://gioelecrispo.github.io/blog/the-importance-of-semantics-text-chunks-of-better-quality/
+ 
+ 
+ 
+# other
+# https://ounapuu.ee/posts/2024/02/12/fosdem-2024/
+ 
+# web tech stack what you use https://news.ycombinator.com/item?id=39312613
+ 
+ 
+ 
+ 
+ 

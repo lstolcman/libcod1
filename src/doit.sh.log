@@ -1,0 +1,58 @@
++ cc=g++
++ options='-I. -m32 -fPIC -Wall -fvisibility=hidden'
++ sqlite_found=0
++ sqlite_link=
++ sqlite_libpath=/usr/lib32/libsqlite3.so
++ sqlite_libpath2=/usr/lib/i386-linux-gnu/libsqlite3.so
++ sqlite_libpath3=/usr/lib/libsqlite3.so
++ '[' '' == sqlite ']'
++ '[' '' == sqlite ']'
++ '[' '' == debug ']'
++ '[' '' == debug ']'
++ debug=
++ set -- cod1_1_1
++ constants='-D COD_VERSION=COD1_1_1'
++ mkdir -p ../bin
++ mkdir -p objects_cod1_1_1
++ echo '##### COMPILE cod1_1_1 CRACKING.CPP #####'
+##### COMPILE cod1_1_1 CRACKING.CPP #####
++ g++ -I. -m32 -fPIC -Wall -fvisibility=hidden -D COD_VERSION=COD1_1_1 -c cracking.cpp -o objects_cod1_1_1/cracking.opp
++ echo '##### COMPILE cod1_1_1 GSC.CPP #####'
+##### COMPILE cod1_1_1 GSC.CPP #####
++ g++ -I. -m32 -fPIC -Wall -fvisibility=hidden -D COD_VERSION=COD1_1_1 -c gsc.cpp -o objects_cod1_1_1/gsc.opp
++ grep -q 'COMPILE_ENTITY 1' config.hpp
++ echo '##### COMPILE cod1_1_1 GSC_ENTITY.CPP #####'
+##### COMPILE cod1_1_1 GSC_ENTITY.CPP #####
++ g++ -I. -m32 -fPIC -Wall -fvisibility=hidden -D COD_VERSION=COD1_1_1 -c gsc_entity.cpp -o objects_cod1_1_1/gsc_entity.opp
++ '[' 0 == 1 ']'
++ grep -q 'COMPILE_PLAYER 1' config.hpp
++ echo '##### COMPILE cod1_1_1 GSC_PLAYER.CPP #####'
+##### COMPILE cod1_1_1 GSC_PLAYER.CPP #####
++ g++ -I. -m32 -fPIC -Wall -fvisibility=hidden -D COD_VERSION=COD1_1_1 -c gsc_player.cpp -o objects_cod1_1_1/gsc_player.opp
++ grep -q 'COMPILE_UTILS 1' config.hpp
++ echo '##### COMPILE cod1_1_1 GSC_UTILS.CPP #####'
+##### COMPILE cod1_1_1 GSC_UTILS.CPP #####
++ g++ -I. -m32 -fPIC -Wall -fvisibility=hidden -D COD_VERSION=COD1_1_1 -c gsc_utils.cpp -o objects_cod1_1_1/gsc_utils.opp
++ echo '##### COMPILE cod1_1_1 LIBCOD.CPP #####'
+##### COMPILE cod1_1_1 LIBCOD.CPP #####
++ g++ -I. -m32 -fPIC -Wall -fvisibility=hidden -D COD_VERSION=COD1_1_1 -c libcod.cpp -o objects_cod1_1_1/libcod.opp
++ echo '##### COMPILE cod1_1_1 QVSNPRINTF.C #####'
+##### COMPILE cod1_1_1 QVSNPRINTF.C #####
++ g++ -I. -m32 -fPIC -Wall -fvisibility=hidden -D COD_VERSION=COD1_1_1 -c lib/qvsnprintf.c -o objects_cod1_1_1/qvsnprintf.opp
++ echo '##### COMPILE cod1_1_1 STRCMP_CONSTANT_TIME.C #####'
+##### COMPILE cod1_1_1 STRCMP_CONSTANT_TIME.C #####
++ g++ -I. -m32 -fPIC -Wall -fvisibility=hidden -D COD_VERSION=COD1_1_1 -c lib/strcmp_constant_time.c -o objects_cod1_1_1/strcmp_constant_time.opp
++ echo '##### LINKING libcod1_1_1.so #####'
+##### LINKING libcod1_1_1.so #####
+++ ls objects_cod1_1_1/cracking.opp objects_cod1_1_1/gsc.opp objects_cod1_1_1/gsc_entity.opp objects_cod1_1_1/gsc_player.opp objects_cod1_1_1/gsc_utils.opp objects_cod1_1_1/libcod.opp objects_cod1_1_1/qvsnprintf.opp objects_cod1_1_1/strcmp_constant_time.opp
++ objects='objects_cod1_1_1/cracking.opp
+objects_cod1_1_1/gsc.opp
+objects_cod1_1_1/gsc_entity.opp
+objects_cod1_1_1/gsc_player.opp
+objects_cod1_1_1/gsc_utils.opp
+objects_cod1_1_1/libcod.opp
+objects_cod1_1_1/qvsnprintf.opp
+objects_cod1_1_1/strcmp_constant_time.opp'
++ g++ -m32 -shared -L/lib32 -o ../bin/libcod1_1_1.so -ldl objects_cod1_1_1/cracking.opp objects_cod1_1_1/gsc.opp objects_cod1_1_1/gsc_entity.opp objects_cod1_1_1/gsc_player.opp objects_cod1_1_1/gsc_utils.opp objects_cod1_1_1/libcod.opp objects_cod1_1_1/qvsnprintf.opp objects_cod1_1_1/strcmp_constant_time.opp -lpthread
++ rm objects_cod1_1_1 -r
+➜  src git:(add-makefile) ✗
