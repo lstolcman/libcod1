@@ -1,0 +1,30 @@
+name: build-libcod1
+
+on: push
+
+jobs: 
+  build:
+    runs-on: ubuntu-24.04
+    steps: 
+      - uses: actions/checkout@v4
+
+      - name: Setup APK dependencies
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends g++-multilib libsqlite3-dev:i386 libcurl4-openssl-dev:i386 libssl-dev:i386
+
+      - name: Build
+        run: cd ./src  && ./build.sh --sqlite --curl --ssl
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          path: ./bin/libcod1.so
+
+      - name: Push prerelease
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          tag: dev
+          files: ./bin/libcod1.so
